@@ -519,7 +519,7 @@ Item {
                         sourceComponent: DashMiniSlider {
                             icon: Audio.sink?.audio?.muted ? "volume_off" : "volume_up"
                             value: Audio.sink?.audio?.volume ?? 0
-                            onMoved: (val) => { if (Audio.sink?.audio) Audio.sink.audio.volume = val }
+                            onMoved: (val) => Audio.setSinkVolume(val)
                             onIconClicked: { if (Audio.sink?.audio) Audio.sink.audio.toggleMute() }
                         }
                     }

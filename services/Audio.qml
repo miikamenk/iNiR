@@ -64,6 +64,58 @@ Singleton {
         root.source.audio.muted = !root.source.audio.muted
     }
 
+    // Set sink volume safely. When protection is enabled, large jumps are rejected as "Illegal increment".
+    // To keep UX consistent with brightness (click anywhere on slider), we ramp in small steps.
+    function setSinkVolume(target: real): void {
+        if (!root.sink?.audio) return;
+
+        const maxAllowed = (Config.options?.audio?.protection?.maxAllowed ?? 100) / 100;
+        const clamped = Math.max(0, Math.min(Math.min(maxAllowed, root.hardMaxValue), target));
+
+        const protectionEnabled = (Config.options?.audio?.protection?.enable ?? false);
+        if (!protectionEnabled) {
+            root.sink.audio.volume = clamped;
+            return;
+        }
+
+        root._rampTarget = clamped;
+        root._rampTimer.restart();
+    }
+
+    // Ramp helper (prevents "Illegal increment" when user clicks far away on slider)
+    property real _rampTarget: 0
+    property alias _rampTimer: _rampTimerInternal
+    Timer {
+        id: _rampTimerInternal
+        interval: 16
+        repeat: true
+        running: false
+        onTriggered: {
+            if (!root.sink?.audio) {
+                running = false;
+                return;
+            }
+
+            const protectionEnabled = (Config.options?.audio?.protection?.enable ?? false);
+            if (!protectionEnabled) {
+                root.sink.audio.volume = root._rampTarget;
+                running = false;
+                return;
+            }
+
+            const maxStep = (Config.options?.audio?.protection?.maxAllowedIncrease ?? 10) / 100;
+            const step = Math.max(0.005, maxStep * 0.8); // Stay below protection threshold
+            const current = root.sink.audio.volume;
+            const diff = root._rampTarget - current;
+            if (Math.abs(diff) <= step) {
+                root.sink.audio.volume = root._rampTarget;
+                running = false;
+                return;
+            }
+            root.sink.audio.volume = current + Math.sign(diff) * step;
+        }
+    }
+
     function incrementVolume() {
         if (!root.sink?.audio) return;
         const currentVolume = root.sink.audio.volume;

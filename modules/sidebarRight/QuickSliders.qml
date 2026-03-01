@@ -67,10 +67,7 @@ Rectangle {
             sourceComponent: QuickSlider {
                 materialSymbol: "volume_up"
                 modelValue: Audio.sink?.audio?.volume ?? 0
-                onMoved: {
-                    if (Audio.sink?.audio)
-                        Audio.sink.audio.volume = value
-                }
+                onMoved: Audio.setSinkVolume(value)
             }
         }
 
