@@ -952,6 +952,7 @@ Item {
                                         sourceComponent: ClassicQuickPanel { compactMode: true }
                                         Connections {
                                             target: item
+                                            ignoreUnknownSignals: true
                                             function onOpenAudioOutputDialog() { root.showAudioOutputDialog = true }
                                             function onOpenAudioInputDialog()  { root.showAudioInputDialog  = true }
                                             function onOpenBluetoothDialog()   { root.showBluetoothDialog   = true }
@@ -966,6 +967,7 @@ Item {
                                         sourceComponent: AndroidQuickPanel { editMode: root.editMode }
                                         Connections {
                                             target: item
+                                            ignoreUnknownSignals: true
                                             function onOpenAudioOutputDialog() { root.showAudioOutputDialog = true }
                                             function onOpenAudioInputDialog()  { root.showAudioInputDialog  = true }
                                             function onOpenBluetoothDialog()   { root.showBluetoothDialog   = true }
@@ -1170,6 +1172,7 @@ Item {
         }
         Connections {
             target: tdLoader.item
+            ignoreUnknownSignals: true
             function onDismiss() { root[tdLoader.shownPropertyString] = false }
         }
     }
