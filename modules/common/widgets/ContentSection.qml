@@ -70,7 +70,7 @@ ColumnLayout {
             text: root.title
             font.pixelSize: Appearance.font.pixelSize.larger
             font.weight: Font.Medium
-            color: Appearance.colors.colOnSecondaryContainer
+            color: SettingsMaterialPreset.titleExpandedColor
         }
     }
 

@@ -122,7 +122,7 @@ Flow {
             rightmost: index === root.options.length - 1
             buttonIcon: modelData.icon || ""
             buttonText: modelData.displayName
-            toggled: root.currentValue == modelData.value
+            toggled: (root.currentValue != null && root.currentValue == modelData.value) ?? false
             onClicked: {
                 root.selected(modelData.value);
             }
