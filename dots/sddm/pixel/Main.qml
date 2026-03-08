@@ -165,7 +165,7 @@ MouseArea {
                 id: clockText
                 Layout.alignment: Qt.AlignHCenter
                 text: Qt.formatTime(new Date(), "hh:mm")
-                font.pixelSize: 108; font.weight: Font.Light; font.family: "Gabarito"
+                font.pixelSize: 108; font.weight: Font.DemiBold; font.family: "Roboto"
                 color: root.colOnSurface
                 layer.enabled: true
                 layer.effect: DropShadow { horizontalOffset: 0; verticalOffset: 3; radius: 16; samples: 33; color: Qt.rgba(0,0,0,0.5) }
