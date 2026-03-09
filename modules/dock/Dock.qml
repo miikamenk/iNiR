@@ -164,7 +164,7 @@ Scope {
 
                                     ColorQuantizer {
                                         id: dockWallpaperQuantizer
-                                        source: dockVisualBackground.wallpaperUrl
+                                        source: (Appearance.auroraEverywhere || Appearance.angelEverywhere) ? dockVisualBackground.wallpaperUrl : ""
                                         depth: 0
                                         rescaleSize: 10
                                     }

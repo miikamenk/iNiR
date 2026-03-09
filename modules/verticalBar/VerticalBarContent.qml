@@ -77,7 +77,7 @@ Item { // Bar content region
 
     ColorQuantizer {
         id: wallpaperColorQuantizer
-        source: root.wallpaperUrl
+        source: (Appearance.auroraEverywhere || Appearance.angelEverywhere) ? root.wallpaperUrl : ""
         depth: 0 // 2^0 = 1 color
         rescaleSize: 10
     }

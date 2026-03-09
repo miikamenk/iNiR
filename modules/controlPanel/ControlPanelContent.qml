@@ -29,7 +29,7 @@ Item {
     
     ColorQuantizer {
         id: wallpaperColorQuantizer
-        source: root.wallpaperUrl
+        source: (Appearance.auroraEverywhere || Appearance.angelEverywhere) ? root.wallpaperUrl : ""
         depth: 0
         rescaleSize: 10
     }

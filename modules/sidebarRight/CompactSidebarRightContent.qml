@@ -535,7 +535,7 @@ Item {
 
         ColorQuantizer {
             id: bgQuant
-            source: bg.wallpaperUrl
+            source: (Appearance.auroraEverywhere || Appearance.angelEverywhere) ? bg.wallpaperUrl : ""
             depth: 0
             rescaleSize: 10
         }

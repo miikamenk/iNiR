@@ -114,10 +114,12 @@ Variants {
         // Color quantizer for aurora-style adaptive colors
         ColorQuantizer {
             id: backdropColorQuantizer
-            source: backdropWindow.colorSourcePath 
-                ? (backdropWindow.colorSourcePath.startsWith("file://") 
-                    ? backdropWindow.colorSourcePath 
-                    : "file://" + backdropWindow.colorSourcePath)
+            source: (Appearance.auroraEverywhere || Appearance.angelEverywhere)
+                ? (backdropWindow.colorSourcePath
+                    ? (backdropWindow.colorSourcePath.startsWith("file://")
+                        ? backdropWindow.colorSourcePath
+                        : "file://" + backdropWindow.colorSourcePath)
+                    : "")
                 : ""
             depth: 0
             rescaleSize: 10

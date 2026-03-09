@@ -107,7 +107,7 @@ Item {
 
         ColorQuantizer {
             id: sidebarRightWallpaperQuantizer
-            source: sidebarRightBackground.wallpaperUrl
+            source: (Appearance.auroraEverywhere || Appearance.angelEverywhere) ? sidebarRightBackground.wallpaperUrl : ""
             depth: 0
             rescaleSize: 10
         }

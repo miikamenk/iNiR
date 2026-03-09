@@ -82,7 +82,9 @@ Item { // Bar content region
     readonly property bool _useGlobalQuantizer: root.wallpaperUrl === Wallpapers.effectiveWallpaperUrl
     ColorQuantizer {
         id: wallpaperColorQuantizer
-        source: root._useGlobalQuantizer ? "" : root.wallpaperUrl
+        source: (Appearance.auroraEverywhere || Appearance.angelEverywhere)
+            ? (root._useGlobalQuantizer ? "" : root.wallpaperUrl)
+            : ""
         depth: 0 // 2^0 = 1 color
         rescaleSize: 10
     }
