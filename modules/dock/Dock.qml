@@ -218,8 +218,8 @@ Scope {
                                     source: dockVisualBackground.wallpaperUrl
                                     fillMode: Image.PreserveAspectCrop
                                     cache: true
-                                    sourceSize.width: Math.ceil((dockRoot.screen?.width ?? 1920) / 4)
-                                    sourceSize.height: Math.ceil((dockRoot.screen?.height ?? 1080) / 4)
+                                    sourceSize.width: dockRoot.screen?.width ?? 1920
+                                    sourceSize.height: dockRoot.screen?.height ?? 1080
                                     asynchronous: true
 
                                     layer.enabled: Appearance.effectsEnabled && dockVisualBackground.auroraEverywhere && !dockVisualBackground.inirEverywhere && !dockVisualBackground.gameModeMinimal

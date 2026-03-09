@@ -219,8 +219,8 @@ Item {
             source: root.wallpaperUrl
             fillMode: Image.PreserveAspectCrop
             cache: true
-            sourceSize.width: Math.ceil(root.screenWidth / 4)
-            sourceSize.height: Math.ceil(root.screenHeight / 4)
+            sourceSize.width: root.screenWidth
+            sourceSize.height: root.screenHeight
             asynchronous: true
 
             layer.enabled: Appearance.effectsEnabled
@@ -323,8 +323,8 @@ Item {
                     source: root.wallpaperUrl
                     fillMode: Image.PreserveAspectCrop
                     cache: true
-                    sourceSize.width: Math.ceil(root.screenWidth / 4)
-                    sourceSize.height: Math.ceil(root.screenHeight / 4)
+                    sourceSize.width: root.screenWidth
+                    sourceSize.height: root.screenHeight
                     asynchronous: true
 
                     layer.enabled: Appearance.effectsEnabled && (Appearance.auroraEverywhere || Appearance.angelEverywhere) && !Appearance.inirEverywhere

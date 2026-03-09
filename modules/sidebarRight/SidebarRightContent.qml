@@ -150,8 +150,8 @@ Item {
             source: sidebarRightBackground.wallpaperUrl
             fillMode: Image.PreserveAspectCrop
             cache: true
-            sourceSize.width: Math.ceil((root.screenWidth ?? 1920) / 4)
-            sourceSize.height: Math.ceil((root.screenHeight ?? 1080) / 4)
+            sourceSize.width: root.screenWidth ?? 1920
+            sourceSize.height: root.screenHeight ?? 1080
             asynchronous: true
 
             layer.enabled: Appearance.effectsEnabled && sidebarRightBackground.auroraEverywhere && !sidebarRightBackground.inirEverywhere

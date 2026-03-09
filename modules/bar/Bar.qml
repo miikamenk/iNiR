@@ -261,8 +261,8 @@ Scope {
                                             source: barContent.wallpaperUrl
                                             fillMode: Image.PreserveAspectCrop
                                             cache: true
-                                            sourceSize.width: Math.ceil((barRoot.screen?.width ?? 1920) / 4)
-                                            sourceSize.height: Math.ceil((barRoot.screen?.height ?? 1080) / 4)
+                                            sourceSize.width: barRoot.screen?.width ?? 1920
+                                            sourceSize.height: barRoot.screen?.height ?? 1080
                                             asynchronous: true
                                             
                                             layer.enabled: Appearance.effectsEnabled && Appearance.auroraEverywhere

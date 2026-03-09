@@ -63,8 +63,8 @@ Rectangle {
         asynchronous: true
         // Constrain decoded size: this Image is always heavily blurred so full
         // native resolution is wasted.  Screen dimensions are more than enough.
-        sourceSize.width: Math.ceil(root.screenWidth / 4)
-        sourceSize.height: Math.ceil(root.screenHeight / 4)
+        sourceSize.width: root.screenWidth
+        sourceSize.height: root.screenHeight
 
         layer.enabled: Appearance.effectsEnabled && root.auroraEverywhere && !root.inirEverywhere
         layer.effect: MultiEffect {

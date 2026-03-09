@@ -69,8 +69,8 @@ Item {
             source: Wallpapers.effectiveWallpaperUrl
             fillMode: Image.PreserveAspectCrop
             cache: true
-            sourceSize.width: Math.ceil((Quickshell.screens[0]?.width ?? 1920) / 4)
-            sourceSize.height: Math.ceil((Quickshell.screens[0]?.height ?? 1080) / 4)
+            sourceSize.width: Quickshell.screens[0]?.width ?? 1920
+            sourceSize.height: Quickshell.screens[0]?.height ?? 1080
             smooth: true
             mipmap: true
             asynchronous: true

@@ -603,8 +603,8 @@ Item {
             source: bg.wallpaperUrl
             fillMode: Image.PreserveAspectCrop
             cache: true; asynchronous: true
-            sourceSize.width: Math.ceil((root.screenWidth  ?? 1920) / 4)
-            sourceSize.height: Math.ceil((root.screenHeight ?? 1080) / 4)
+            sourceSize.width: root.screenWidth ?? 1920
+            sourceSize.height: root.screenHeight ?? 1080
             layer.enabled: Appearance.effectsEnabled && bg.auroraEverywhere && !bg.inirEverywhere
             layer.effect: MultiEffect {
                 source: bgBlurWallpaper

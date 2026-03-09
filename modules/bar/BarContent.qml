@@ -271,8 +271,8 @@ Item { // Bar content region
             source: root.wallpaperUrl
             fillMode: Image.PreserveAspectCrop
             cache: true
-            sourceSize.width: Math.ceil((root.screen?.width ?? 1920) / 4)
-            sourceSize.height: Math.ceil((root.screen?.height ?? 1080) / 4)
+            sourceSize.width: root.screen?.width ?? 1920
+            sourceSize.height: root.screen?.height ?? 1080
             asynchronous: true
 
             layer.enabled: Appearance.effectsEnabled && barBackground.auroraEverywhere && !root.inirEverywhere

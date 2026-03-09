@@ -87,8 +87,8 @@ Item {
             source: root.wallpaperUrl
             fillMode: Image.PreserveAspectCrop
             cache: true
-            sourceSize.width: Math.ceil(root.screenWidth / 4)
-            sourceSize.height: Math.ceil(root.screenHeight / 4)
+            sourceSize.width: root.screenWidth
+            sourceSize.height: root.screenHeight
             asynchronous: true
 
             layer.enabled: Appearance.effectsEnabled && root.auroraEverywhere && !root.inirEverywhere

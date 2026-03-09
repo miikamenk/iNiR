@@ -151,8 +151,8 @@ Item { // Bar content region
             source: root.wallpaperUrl
             fillMode: Image.PreserveAspectCrop
             cache: true
-            sourceSize.width: Math.ceil(root.width / 4)
-            sourceSize.height: Math.ceil(root.height / 4)
+            sourceSize.width: root.width
+            sourceSize.height: root.height
             asynchronous: true
 
             layer.enabled: Appearance.effectsEnabled && root.auroraEverywhere && !root.inirEverywhere && !root.gameModeMinimal
