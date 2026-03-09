@@ -302,6 +302,7 @@ Item {
 
     function _onTransitionEnd(): void {
         transitionAnim.stop()
+        const fromIndex = internal.transitionFromIndex
         if (internal.transitionToIndex >= 0)
             internal.activeIndex = internal.transitionToIndex
         _transitioning = false
@@ -312,6 +313,15 @@ Item {
             internal.pendingSource = ""
         internal.transitionFromIndex = -1
         internal.transitionToIndex = -1
+
+        // Release the old wallpaper texture from the inactive slot.
+        // Without this, every wallpaper ever displayed stays in Qt's
+        // QPixmapCache because cache:true retains decoded pixmaps by URL.
+        // Only clear when there's no pending source that needs the slot.
+        if (internal.pendingSource === "" || internal.pendingSource === internal.displayedSource) {
+            internal.inactiveImage().source = ""
+        }
+
         transitionFinished()
         if (internal.pendingSource !== "" && internal.pendingSource !== internal.displayedSource)
             internal.loadPending()
@@ -552,7 +562,7 @@ Item {
             fillMode: root.fillMode
             sourceSize: root._slotSourceSize(0)
             asynchronous: true
-            cache: true
+            cache: false
             mipmap: true
             smooth: true
             opacity: root._slotOpacity(0)
@@ -597,7 +607,7 @@ Item {
             fillMode: root.fillMode
             sourceSize: root._slotSourceSize(1)
             asynchronous: true
-            cache: true
+            cache: false
             mipmap: true
             smooth: true
             opacity: root._slotOpacity(1)
