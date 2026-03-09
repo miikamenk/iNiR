@@ -137,15 +137,19 @@ Variants {
                 anchors.fill: parent
                 fillMode: Image.PreserveAspectCrop
                 source: backdropWindow.effectiveWallpaperPath && !backdropWindow.wallpaperIsGif && !backdropWindow.wallpaperIsVideo
-                    ? (backdropWindow.effectiveWallpaperPath.startsWith("file://") 
-                        ? backdropWindow.effectiveWallpaperPath 
+                    ? (backdropWindow.effectiveWallpaperPath.startsWith("file://")
+                        ? backdropWindow.effectiveWallpaperPath
                         : "file://" + backdropWindow.effectiveWallpaperPath)
                     : ""
                 asynchronous: true
-                cache: true
+                cache: false
                 smooth: true
                 mipmap: true
                 visible: !backdropWindow.useAuroraStyle && !backdropWindow.wallpaperIsGif && !backdropWindow.wallpaperIsVideo
+                // Constrain decoded size to monitor resolution — no need for native
+                // resolution since backdrop is always screen-sized with blur.
+                sourceSize.width: backdropWindow.screen?.width ?? 1920
+                sourceSize.height: backdropWindow.screen?.height ?? 1080
 
                 layer.enabled: Appearance.effectsEnabled && backdropWindow.backdropBlurRadius > 0 && !backdropWindow.useAuroraStyle
                 layer.effect: MultiEffect {
@@ -169,7 +173,7 @@ Variants {
                         : "file://" + backdropWindow.wallpaperPathRaw)
                     : ""
                 asynchronous: true
-                cache: true
+                cache: false
                 smooth: true
                 mipmap: true
                 visible: !backdropWindow.useAuroraStyle && backdropWindow.wallpaperIsGif
@@ -251,10 +255,13 @@ Variants {
                 fillMode: Image.PreserveAspectCrop
                 source: backdropWindow.wallpaperIsGif ? gifWallpaper.source : wallpaper.source
                 asynchronous: true
-                cache: true
+                cache: false
                 smooth: true
                 mipmap: true
                 visible: backdropWindow.useAuroraStyle && status === Image.Ready && !backdropWindow.wallpaperIsGif && !backdropWindow.wallpaperIsVideo
+                // Constrain decoded size — aurora is heavily blurred, screen res is enough.
+                sourceSize.width: backdropWindow.screen?.width ?? 1920
+                sourceSize.height: backdropWindow.screen?.height ?? 1080
 
                 layer.enabled: Appearance.effectsEnabled
                 layer.effect: MultiEffect {
@@ -276,7 +283,7 @@ Variants {
                 fillMode: Image.PreserveAspectCrop
                 source: backdropWindow.wallpaperIsGif ? gifWallpaper.source : ""
                 asynchronous: true
-                cache: true
+                cache: false
                 smooth: true
                 mipmap: true
                 visible: backdropWindow.useAuroraStyle && backdropWindow.wallpaperIsGif
