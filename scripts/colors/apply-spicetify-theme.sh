@@ -65,15 +65,19 @@ spicetify_root="$(dirname "$spicetify_config")"
 theme_dir="$spicetify_root/Themes/$THEME_NAME"
 color_file="$theme_dir/color.ini"
 user_css_file="$theme_dir/user.css"
+config_file="$spicetify_root/config-xpui.ini"
+watch_pid_file="$STATE_DIR/user/generated/spicetify_watch.pid"
 
 if ! mkdir -p "$theme_dir" 2>/dev/null; then
   log "Cannot create theme directory: $theme_dir"
   exit 1
 fi
 
-if ! curl -L --create-dirs -o "$user_css_file" \
-  "https://raw.githubusercontent.com/spicetify/spicetify-themes/master/Sleek/user.css" 2>>"$LOG_FILE"; then
-  log "Failed to download Sleek user.css. Continuing with existing file if present."
+if [[ ! -f "$user_css_file" ]]; then
+  if ! curl -L --create-dirs -o "$user_css_file" \
+    "https://raw.githubusercontent.com/spicetify/spicetify-themes/master/Sleek/user.css" 2>>"$LOG_FILE"; then
+    log "Failed to download Sleek user.css."
+  fi
 fi
 
 if ! cat > "$color_file" <<EOF
@@ -99,15 +103,30 @@ then
   exit 1
 fi
 
-if ! spicetify config inject_css 1 replace_colors 1 >> "$LOG_FILE" 2>&1; then
-  log "Failed to enable inject_css/replace_colors."
-  exit 1
+spicetify config inject_css 1 replace_colors 1 >> "$LOG_FILE" 2>&1 || true
+spicetify config current_theme "$THEME_NAME" color_scheme "$SCHEME_NAME" >> "$LOG_FILE" 2>&1 || true
+
+spotify_running=$(pgrep -x spotify 2>/dev/null)
+watch_running=false
+
+if [[ -f "$watch_pid_file" ]]; then
+  watch_pid=$(cat "$watch_pid_file" 2>/dev/null)
+  if [[ -n "$watch_pid" ]] && kill -0 "$watch_pid" 2>/dev/null; then
+    watch_running=true
+  fi
 fi
 
-if ! spicetify config current_theme "$THEME_NAME" color_scheme "$SCHEME_NAME" >> "$LOG_FILE" 2>&1; then
-  log "Failed to update Spicetify config."
-  exit 1
+if ! $watch_running && pgrep -f "spicetify watch" >/dev/null 2>&1; then
+  watch_running=true
 fi
+
+if [[ -n "$spotify_running" ]] || $watch_running; then
+  log "Spotify/watcher already running - color.ini updated, live reload will handle it."
+  log "Updated colors: primary=$(strip_hash "$primary"), surface=$(strip_hash "$surface")"
+  exit 0
+fi
+
+log "Initial setup - running spicetify apply and starting watch mode."
 
 apply_out=""
 if ! apply_out=$(spicetify apply 2>&1); then
@@ -128,13 +147,8 @@ else
   printf "%s\n" "$apply_out" >> "$LOG_FILE" 2>&1
 fi
 
-log "Applied theme '$THEME_NAME' (scheme '$SCHEME_NAME')."
+log "Applied theme '$THEME_NAME' (scheme '$SCHEME_NAME'). Starting watch mode."
 
-pkill -f "spicetify watch" 2>/dev/null || true
-
-if pgrep -x spotify >/dev/null 2>&1; then
-  log "Spotify is running - using spicetify watch for live updates."
-  exec spicetify watch -s 2>&1 | sed "/Reloaded Spotify/q"
-else
-  log "Spotify not running - start with: spicetify watch -s"
-fi
+exec spicetify watch -s 2>&1 | sed "/Reloaded Spotify/q" &
+watch_pid=$!
+echo "$watch_pid" > "$watch_pid_file"
