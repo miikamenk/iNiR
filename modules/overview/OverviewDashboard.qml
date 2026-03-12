@@ -1166,20 +1166,20 @@ Item {
 
                             MaterialSymbol {
                                 text: Battery.isCharging ? "battery_charging_full"
-                                    : Battery.percentage > 80 ? "battery_full"
-                                    : Battery.percentage > 60 ? "battery_5_bar"
-                                    : Battery.percentage > 40 ? "battery_3_bar"
-                                    : Battery.percentage > 20 ? "battery_2_bar" : "battery_1_bar"
+                                    : (Battery.percentage * 100) > 80 ? "battery_full"
+                                    : (Battery.percentage * 100) > 60 ? "battery_5_bar"
+                                    : (Battery.percentage * 100) > 40 ? "battery_3_bar"
+                                    : (Battery.percentage * 100) > 20 ? "battery_2_bar" : "battery_1_bar"
                                 iconSize: 14
                                 fill: 1
-                                color: Battery.percentage <= 20 && !Battery.isCharging ? Appearance.m3colors.m3error
+                                color: (Battery.percentage * 100) <= 20 && !Battery.isCharging ? Appearance.m3colors.m3error
                                     : Battery.isCharging ? Appearance.colors.colTertiary
                                     : root.colSubtext
                             }
                             StyledText {
                                 text: Battery.percentage + "%"
                                 font { pixelSize: Appearance.font.pixelSize.smallest; family: Appearance.font.family.numbers; weight: Font.Medium }
-                                color: Battery.percentage <= 20 && !Battery.isCharging ? Appearance.m3colors.m3error
+                                color: (Battery.percentage * 100) <= 20 && !Battery.isCharging ? Appearance.m3colors.m3error
                                     : Battery.isCharging ? Appearance.colors.colTertiary
                                     : root.colSubtext
                             }
