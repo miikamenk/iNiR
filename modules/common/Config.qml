@@ -748,7 +748,7 @@ Singleton {
                 property bool enableBlurGlass: true
                 property bool separatePinnedFromRunning: true // Waffle-style: pinned-only apps on left, running on right
                 property list<string> pinnedApps: [ // IDs of pinned entries
-                    "org.gnome.Nautilus", "firefox", "foot",]
+                    "org.gnome.Nautilus", "firefox", "kitty",]
                 property list<string> ignoredAppRegexes: []
                 property list<string> screenList: [] // List of screen names to show dock on (e.g. ["DP-2"]). Empty = all screens
                 // Smart indicator settings

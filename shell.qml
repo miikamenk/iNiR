@@ -96,6 +96,14 @@ ShellRoot {
             }
         }
 
+        const legacyPinnedApps = ["org.gnome.Nautilus", "firefox", "foot"];
+        const currentPinnedApps = Config.options?.dock?.pinnedApps ?? [];
+        if (currentPinnedApps.length === legacyPinnedApps.length
+                && currentPinnedApps.every((panel, idx) => panel === legacyPinnedApps[idx])) {
+            root._log("[Shell] Migrating dock.pinnedApps default terminal from foot to kitty");
+            Config.setNestedValue("dock.pinnedApps", ["org.gnome.Nautilus", "firefox", "kitty"])
+        }
+
         if (changed)
             Config.setNestedValue("enabledPanels", panels)
     }
@@ -166,9 +174,8 @@ ShellRoot {
             "iiWallpaperSelector", "iiCoverflowSelector", "iiClipboard"
         ],
         "waffle": [
-            "wBar", "wBackground", "wBackdrop", "wStartMenu", "wActionCenter", "wNotificationCenter", "wNotificationPopup", "wOnScreenDisplay", "wWidgets", "wLock", "wPolkit", "wSessionScreen",
+            "wBar", "wBackground", "wBackdrop", "wStartMenu", "wActionCenter", "wNotificationCenter", "wNotificationPopup", "wOnScreenDisplay", "wWidgets", "wTaskView", "wLock", "wPolkit", "wSessionScreen",
             // Shared modules that work with waffle
-            // Note: wTaskView is experimental and NOT included by default
             // Note: wAltSwitcher is always loaded when waffle is active (not in this list)
             "iiCheatsheet", "iiControlPanel", "iiLock", "iiOnScreenKeyboard", "iiOverlay", "iiOverview", "iiPolkit",
             "iiRegionSelector", "iiScreenCorners", "iiSessionScreen", "iiTilingOverlay", "iiWallpaperSelector", "iiCoverflowSelector", "iiClipboard"

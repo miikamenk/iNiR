@@ -424,6 +424,8 @@ Singleton {
 
         if (applyProc.running) applyProc.running = false
 
+        Config.setNestedValue("appearance.wallpaperTheming.previewSourcePath", normalizedPath)
+
         root._applyInProgress = true
         _applySuppressTimer.restart()
 
