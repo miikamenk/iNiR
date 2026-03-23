@@ -297,7 +297,7 @@ Singleton {
                     property bool enableVSCode: true
                     property bool enableChrome: true
                     property bool enableSpicetify: false
-                    property bool enableOpenCode: true
+                    property bool enableOpenCode: false
                     property JsonObject vscodeEditors: JsonObject {
                         property bool code: true           // Official VSCode
                         property bool codium: true         // VSCodium (FOSS)
@@ -561,6 +561,11 @@ Singleton {
                     property int intervalMinutes: 30 // minutes between wallpaper changes
                     property bool generateColors: true // regenerate theme colors on each change
                     property string folder: "" // empty = use current wallpaper folder
+                }
+                property JsonObject pan: JsonObject {
+                    property real x: 0.0 // Focal point offset X (-1.0 to 1.0, stored as fraction; -1 = full left, +1 = full right)
+                    property real y: 0.0 // Focal point offset Y (-1.0 to 1.0; -1 = top, +1 = bottom)
+                    property real zoom: 1.0 // Extra zoom on top of fill-crop (1.0 = standard fill, 2.0 = 2× zoom, max 3.0)
                 }
                 property JsonObject backend: JsonObject {
                     property string provider: "awww"
@@ -1308,6 +1313,7 @@ Singleton {
                     property bool dock: false
                     property bool mediaControls: false
                     property bool screenCorners: false
+                    property bool widgets: true
                 }
                 property JsonObject tweaks: JsonObject {
                     property bool smootherMenuAnimations: true

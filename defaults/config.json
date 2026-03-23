@@ -5,6 +5,8 @@
         "tool": "functions"
     },
     "altSwitcher": {
+        "preset": "default",
+        "noVisualUi": false,
         "animationDurationMs": 200,
         "backgroundOpacity": 0.9,
         "blurAmount": 0.4,
@@ -15,7 +17,9 @@
         "panelAlignment": "right",
         "scrimDim": 0,
         "showOverviewWhileSwitching": true,
-        "useMostRecentFirst": true
+        "useMostRecentFirst": true,
+        "useM3Layout": false,
+        "autoHideDelayMs": 500
     },
     "appearance": {
         "globalStyle": "material",
@@ -149,7 +153,7 @@
                 "yazi": true,
                 "omp": true
             },
-            "enableOpenCode": true,
+            "enableOpenCode": false,
             "vscodeEditors": {
                 "code": true,
                 "codium": true,
@@ -259,6 +263,11 @@
         },
         "thumbnailPath": "",
         "wallpaperPath": "",
+        "pan": {
+            "x": 0.0,
+            "y": 0.0,
+            "zoom": 1.0
+        },
         "autoWallpaper": {
             "enable": false,
             "intervalMinutes": 30,
@@ -320,6 +329,13 @@
                 "placementStrategy": "free",
                 "x": 100,
                 "y": 200
+            },
+            "mediaControls": {
+                "enable": false,
+                "placementStrategy": "free",
+                "playerPreset": "full",
+                "x": 240,
+                "y": 240
             }
         },
         "multiMonitor": {
@@ -963,7 +979,9 @@
         "disableReloadToasts": true,
         "disableDiscoverOverlay": true,
         "checkInterval": 2000,
-        "minimalMode": false
+        "minimalMode": false,
+        "niriWindowListUpdateIntervalMs": 100,
+        "niriWindowListUpdateIntervalMsGameMode": 500
     },
     "reloadToasts": {
         "enable": true
@@ -1018,6 +1036,14 @@
         "settings": {
             "useMaterialStyle": false
         },
+        "modules": {
+            "sidebarLeft": false,
+            "sidebarRight": false,
+            "dock": false,
+            "mediaControls": false,
+            "screenCorners": false,
+            "widgets": true
+        },
         "tweaks": {
             "smootherMenuAnimations": true,
             "switchHandlePositionFix": true
@@ -1034,11 +1060,26 @@
             "thumbnailHeight": 180,
             "listWidth": 500,
             "scrimOpacity": 0.4,
-            "showOverviewWhileSwitching": false
+            "showOverviewWhileSwitching": false,
+            "monochromeIcons": false,
+            "enableAnimation": true,
+            "animationDurationMs": 300,
+            "backgroundOpacity": 1.0,
+            "blurAmount": 0.0,
+            "scrimDim": 0,
+            "compactStyle": false,
+            "panelAlignment": "center",
+            "useM3Layout": false
+        },
+        "notifications": {
+            "showUnreadCount": true
         },
         "background": {
             "wallpaperPath": "",
+            "thumbnailPath": "",
             "useMainWallpaper": true,
+            "enableAnimation": true,
+            "hideWhenFullscreen": true,
             "transition": {
                 "enable": true,
                 "type": "crossfade",
@@ -1191,6 +1232,7 @@
             "showScreenRecord": true,
             "showSession": true
         },
+        "workspaceNames": {},
         "taskView": {
             "mode": "centered",
             "closeOnSelect": false
