@@ -63,10 +63,12 @@ Item {
         const lower = activeName.toLowerCase()
         const isVideo = lower.endsWith(".mp4") || lower.endsWith(".webm") || lower.endsWith(".mkv") || lower.endsWith(".avi") || lower.endsWith(".mov")
         const isGif = lower.endsWith(".gif")
-        if (isVideo || isGif) {
-            const thumbPath = Wallpapers.getExpectedThumbnailPath(activePath, root._lastThumbnailSizeName)
-            return thumbPath.length > 0 ? ("file://" + thumbPath) : ""
-        }
+        // Always prefer the thumbnail for color quantization — loading the full
+        // source image just for accent extraction wastes memory and decode time.
+        const thumbPath = Wallpapers.getExpectedThumbnailPath(activePath, root._lastThumbnailSizeName)
+        if (thumbPath.length > 0) return "file://" + thumbPath
+        // Fall back to the full image only when no thumbnail is available yet.
+        if (isVideo || isGif) return ""
         return "file://" + activePath
     }
     readonly property string activeDisplayName: !hasItems ? ""

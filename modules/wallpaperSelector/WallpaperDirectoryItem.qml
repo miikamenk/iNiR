@@ -66,7 +66,7 @@ MouseArea {
                         generateThumbnail: true
                         sourcePath: fileModelData.filePath
 
-                        cache: false
+                        cache: true
                         fillMode: Image.PreserveAspectCrop
                         clip: true
                         sourceSize.width: Math.round(wallpaperItemImageContainer.width * root._dpr)

@@ -878,8 +878,8 @@ Item {
                         mipmap: true
                         fillMode: Image.PreserveAspectCrop
                         clip: true
-                        sourceSize.width: Math.round(heroCard.width * root._dpr * 1.5)
-                        sourceSize.height: Math.round(heroCard.height * root._dpr * 1.5)
+                        sourceSize.width: Math.round(heroCard.width * root._dpr)
+                        sourceSize.height: Math.round(heroCard.height * root._dpr)
                         property string requestedSource: ""
                         onStatusChanged: heroClipContent._promoteReadySlot(heroA)
                         Behavior on opacity {
@@ -898,8 +898,8 @@ Item {
                         mipmap: true
                         fillMode: Image.PreserveAspectCrop
                         clip: true
-                        sourceSize.width: Math.round(heroCard.width * root._dpr * 1.5)
-                        sourceSize.height: Math.round(heroCard.height * root._dpr * 1.5)
+                        sourceSize.width: Math.round(heroCard.width * root._dpr)
+                        sourceSize.height: Math.round(heroCard.height * root._dpr)
                         property string requestedSource: ""
                         onStatusChanged: heroClipContent._promoteReadySlot(heroB)
                         Behavior on opacity {
@@ -1201,9 +1201,7 @@ Item {
             spacing: 10
             clip: true
             model: root.totalCount
-            cacheBuffer: 2400
-            displayMarginBeginning: 600
-            displayMarginEnd: 600
+            cacheBuffer: 800
             boundsBehavior: Flickable.StopAtBounds
             currentIndex: root.currentIndex
 
