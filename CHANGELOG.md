@@ -5,15 +5,67 @@ All notable changes to iNiR will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.15.0] - 2026-03-23
+
+### Added
+- **Wallpaper pan/zoom**: Reposition and zoom wallpapers within the fill-crop frame with interactive drag-and-scroll settings UI (`background.pan.{x, y, zoom}`).
+- **Gowall wallpaper effects**: New `GowallService` and settings editor for wallpaper color manipulation — convert with builtin/custom/Material themes, invert, pixelate, and live preview.
+- **Material scheme variant selector**: Choose between Content, Expressive, Fidelity, Monochrome, Neutral, Rainbow, and Tonal Spot color schemes in Control Panel, Waffle Widgets panel, and theme settings pages.
+- **InputChip widget**: M3-style compact tag component with optional icon, label, and removable close button.
+- **Fields of the Shire theme presets**: New dark and light nature-inspired theme presets with warm earthy tones.
+- **Niri keybinds overhaul**: Expanded default keybinds with session dialog, power-off monitors, browser launch, column layout/resize, consume/expel, monitor navigation, media controls, and comprehensive inline documentation.
+
+### Changed
+- **Wallpaper selector rewrite**: Skew view rebuilt with rapid-nav velocity tracking, adaptive wheel thresholds (trackpad vs mouse), focus pulse animations, increased cache buffer (600→1400), and adaptive width animation.
+- **VSCode theme generators**: Python and Go generators now use HSL color manipulation for richer, more readable syntax highlighting with saturation boosting and contrast-aware token colors.
+- **Dock preview**: Live toplevel tracking with stable per-window keys and smart capture-signature deduplication to avoid redundant screenshots.
+- **Vertical bar aurora/angel**: Blur layer separated into sibling Item with screen-sized wallpaper image for correct corner alignment; added angel inset glow and partial border.
+- **Quick settings redesign**: Hero wallpaper preview with style-aware card, next/random overlay buttons, and improved layout.
+- **Waffle system button**: Battery percentage text shown next to icon; network icon filled.
+- **Waffle Looks.qml**: Danger/warning colors derived from Material tokens instead of hardcoded values.
+- **Color pipeline improvements**: GTK theme application, terminal config generation, material color generation, and Kvantum theming all refined.
+- **Launcher restart flow**: `start_background()` uses nohup for proper process detachment; restart via `inir start` instead of direct `qs` exec.
+
+### Fixed
+- **Settings direct mutations**: Converted legacy `Config.options` property assignments to `Config.setNestedValue()` in InterfaceConfig (overlay, crosshair, dock settings) and Translator (language persistence).
+- **ThumbnailImage path resolution**: Fixed non-absolute path handling and improved URI encoding compliance for thumbnail cache lookup.
+- **Scheme variant on manual themes**: Settings pages now use `MaterialThemeLoader.applySchemeVariant()` with seed color for non-auto themes instead of only running `switchwall.sh`.
+- **Distribution scripts**: `robust-update.sh`, `snapshots.sh`, and `uninstall.sh` use path-based `qs -p` targeting consistent with the launcher.
+- **Super overview daemon**: PID detection matches both legacy `qs -c inir` and path-based `qs -p <path>` process forms.
+
+### Removed
+- **OpenCode theme preset**: Removed from ThemePresets (opt-in only via `enableOpenCode` config).
+
 ## [2.14.0] - 2026-03-20
 
 ### Added
+- **`inir` launcher CLI**: Unified daily-use command (`inir run`, `inir restart`, `inir settings`, `inir overview toggle`, etc.) replacing direct `qs` invocation. Supports direct IPC shorthand, maintenance delegation, systemd service management, and version inspection.
 - **Per-monitor workspaces (Niri)**: Each bar can show workspaces for its own monitor (`bar.workspaces.perMonitor`).
-- **Waffle quick actions switches**: Individual toggles for Files/Terminal/Settings/Wallpaper/Screenshot/Screen Record/Session in the Widgets panel.
+- **Waffle quick action switches**: Individual toggles for Files/Terminal/Settings/Wallpaper/Screenshot/Screen Record/Session in the Widgets panel.
+- **Waffle background clock widget**: Configurable clock overlay on the desktop background with font, position, and style settings.
+- **Waffle Interface settings page**: New dedicated page for waffle-specific UI customization.
+- **Configurable browser action**: `apps.browser` config key for the global "open browser" action.
+- **Colors-only wallpaper mode**: Extract Material You colors from a wallpaper without displaying it (`appearance.wallpaperTheming.colorsOnlyMode`).
+- **Systemd service asset**: `inir.service` for managed startup via `inir service install/enable`.
+- **Desktop entry**: `inir.desktop` for XDG application launchers.
+- **DMS-style install surface**: Root `Makefile` with `make install`/`make uninstall` for system-level deployment.
+- **Arch Linux packaging**: First-class PKGBUILDs for `inir-shell`, `inir-shell-git`, and `inir-meta` under `distro/arch/`.
+- **Modular Niri config**: Default Niri configuration split into `config.d/` fragments (input, layout, window-rules, environment, startup, animations, binds, layer-rules, user-extra).
+- **Migration 016**: Converts legacy `qs`/`ii`-era Niri keybindings to the `inir` launcher.
+- **Migration 017**: Deduplicates hardware keybinds (brightness/media) that accumulated from prior migration bugs.
+- **Migration 018**: Automatically splits monolithic Niri configs into the modular `config.d/` layout.
+- **Install/update metadata model**: Runtime metadata now records `installMode`, `updateStrategy`, `repoPath`, `source` for package-aware lifecycle management.
+- **Manifest-driven file sync**: Install and update flows now use `sdata/runtime-payload-dirs.txt` and `sdata/runtime-root-files.txt` instead of hard-coded rsync patterns.
 
 ### Changed
 - **Dark mode toggles**: Routed through `MaterialThemeLoader` to ensure a reliable `colors.json` reload after switching.
 - **Style selection**: No longer forces `appearance.transparency.enable` when selecting styles.
+- **Color system modularized**: `applycolor.sh` rewritten from monolithic script to modular dispatcher with individual modules (terminals, GTK, Qt, Spicetify, SDDM) and shared runtime library.
+- **Shell RC namespace**: Setup-managed shell integration files moved from `~/.config/ii/` to `~/.config/inir/`; existing RC includes are migrated in place.
+- **Setup behavior for packaged installs**: `setup status`, `setup update`, `setup rollback`, and `setup uninstall` now detect externally-managed installs and provide appropriate guidance instead of assuming repo-based updates.
+- **Shell lifecycle commands**: Internal kill/restart/IPC flows use path-based `qs -p <path>` targeting instead of config-name-based `qs -c inir`.
+- **Alt-Switcher refactor**: Major refactoring of both ii and waffle alt-switcher components with expanded configuration options.
+- **Niri keybinds documentation**: Complete rewrite of `docs/KEYBINDS.md`.
 
 ### Fixed
 - **Cloudflare WARP toggle**: Periodic status polling to stay in sync.
@@ -22,6 +74,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **VS Code Material Code theming**: Respects `appearance.wallpaperTheming.enableVSCode`.
 - **Waffle user avatar**: More reliable fallback loading.
 - **Waffle settings UI**: Improved loading indicator and multiple polish fixes.
+- **Weather location privacy**: Toggle now synchronized across all shell surfaces (bar, overview, lock screen, sidebar, control panel) instead of only affecting the Control Panel card.
+- **Weather payload parsing**: Updated to handle current `wttr.in` nested response shape (`data.current_condition`).
+- **GameMode toast suppression**: Fullscreen/gamemode states now suppress desktop toasts.
+- **Waffle "Colors only" preview**: Persists and previews correctly; clears stale preview state when disabled.
+- **Migration target file creation**: Required migrations that create their own target file are no longer skipped.
+- **WaffleConfig direct mutation**: Legacy settings writes converted from direct `Config.options` mutation to `Config.setNestedValue()`.
+- **Stale `qs -c inir` references**: Setup scripts (robust-update, snapshots, uninstall) and daemon now use path-based targeting consistent with the launcher.
+- **Sandbox leak in uninstall**: `Darkly.colors` paths now use `XDG_DATA_HOME` instead of hardcoded `$HOME/.local/share`.
 
 ## [2.13.2] - 2026-03-13
 
