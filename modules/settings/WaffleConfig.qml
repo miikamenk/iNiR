@@ -8,7 +8,7 @@ import qs.modules.common.functions
 
 ContentPage {
     id: root
-    settingsPageIndex: 10
+    settingsPageIndex: 11
     settingsPageName: Translation.tr("Waffle Style")
 
     property bool isWaffleActive: Config.options?.panelFamily === "waffle"

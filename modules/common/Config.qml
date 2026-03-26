@@ -9,6 +9,7 @@ Singleton {
     property string filePath: Directories.shellConfigPath
     property alias options: configOptionsJsonAdapter
     property bool ready: false
+    property bool isSettingsProcess: (Quickshell.env("QS_NO_RELOAD_POPUP") ?? "") === "1"
     property int readWriteDelay: 50 // milliseconds
     property bool blockWrites: false
 
@@ -360,7 +361,7 @@ Singleton {
                 }
                 property string iconTheme: "" // System icon theme (tray, GTK/Qt apps)
                 property string dockIconTheme: "" // Dock icon theme (overrides system for dock only)
-                property real shellScale: 1.0 // Global shell scale factor (QT_SCALE_FACTOR). Requires restart.
+                property real shellScale: 1.0 // Legacy compatibility key. Launcher keeps QT_SCALE_FACTOR=1; use appearance.typography.sizeScale.
             }
 
             property JsonObject performance: JsonObject {
@@ -433,6 +434,10 @@ Singleton {
                     property real maxAllowedIncrease: 10
                     property real maxAllowed: 100
                 }
+            }
+
+            property JsonObject compositor: JsonObject {
+                property bool autoExpandSingleTilingWindow: false
             }
 
             property JsonObject apps: JsonObject {

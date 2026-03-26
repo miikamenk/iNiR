@@ -206,6 +206,9 @@
             "maxAllowedIncrease": 10
         }
     },
+    "compositor": {
+        "autoExpandSingleTilingWindow": false
+    },
     "background": {
         "backdrop": {
             "blurRadius": 40,

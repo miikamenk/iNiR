@@ -8,7 +8,7 @@ import qs.modules.common.functions
 import qs.modules.common.widgets
 
 ContentPage {
-    settingsPageIndex: 6
+    settingsPageIndex: 7
     settingsPageName: Translation.tr("Services")
 
     SettingsCardSection {
@@ -930,4 +930,5 @@ ContentPage {
             }
         }
     }
+
 }
