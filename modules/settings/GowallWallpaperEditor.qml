@@ -491,6 +491,24 @@ ColumnLayout {
             color: Appearance.colors.colSubtext
             wrapMode: Text.WordWrap
         }
+
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: 6
+
+            MaterialSymbol {
+                text: "warning"
+                iconSize: Appearance.font.pixelSize.normal
+                color: Appearance.m3colors.m3error
+            }
+            StyledText {
+                Layout.fillWidth: true
+                text: Translation.tr("Upscaling uses AI (ESRGAN) and requires a GPU with Vulkan support. This operation can take 1-5 minutes depending on image size and GPU power. A black result means your GPU doesn't support Vulkan.")
+                font.pixelSize: Appearance.font.pixelSize.smaller
+                color: Appearance.colors.colSubtext
+                wrapMode: Text.WordWrap
+            }
+        }
     }
 
     // ── Effects options ──

@@ -95,7 +95,12 @@ Singleton {
             if (json.hasOwnProperty(key)) {
                 // Convert snake_case to CamelCase
                 const camelCaseKey = key.replace(/_([a-z])/g, (g) => g[1].toUpperCase())
-                const m3Key = `m3${camelCaseKey}`
+                // Terminal colors (term0-term15) and control flags (darkmode, transparent)
+                // are stored without the m3 prefix in Appearance.m3colors
+                const noPrefix = camelCaseKey.startsWith("term") || camelCaseKey === "darkmode" || camelCaseKey === "transparent"
+                const m3Key = noPrefix ? camelCaseKey : `m3${camelCaseKey}`
+                if (Appearance.m3colors[m3Key] === undefined)
+                    continue
                 Appearance.m3colors[m3Key] = json[key]
             }
         }

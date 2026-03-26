@@ -8,6 +8,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 STATE_DIR="$XDG_STATE_HOME/quickshell"
 CONFIG_FILE="$XDG_CONFIG_HOME/illogical-impulse/config.json"
 MODULE_LOG="$STATE_DIR/user/generated/theming_modules.log"
+TARGETS_DIR="$SCRIPT_DIR/targets"
+MODULES_DIR="$SCRIPT_DIR/modules"
 
 ensure_generated_dirs() {
   mkdir -p "$STATE_DIR/user/generated"
@@ -64,5 +66,39 @@ run_module_script() {
 }
 
 list_theming_modules() {
-  find "$SCRIPT_DIR/modules" -maxdepth 1 -type f -name '*.sh' | sort
+  find "$MODULES_DIR" -maxdepth 1 -type f -name '*.sh' | sort
+}
+
+list_theming_target_manifests() {
+  if [[ -d "$TARGETS_DIR" ]]; then
+    find "$TARGETS_DIR" -maxdepth 1 -type f -name '*.json' | sort
+  fi
+}
+
+resolve_target_module_path() {
+  local target_id="$1"
+  local manifest_path="$TARGETS_DIR/${target_id}.json"
+  [[ -f "$manifest_path" ]] || return 1
+
+  local module_name=""
+  if command -v jq >/dev/null 2>&1; then
+    module_name=$(jq -r '.module // empty' "$manifest_path" 2>/dev/null || true)
+  else
+    module_name=$(sed -n 's/.*"module"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$manifest_path" | head -1)
+  fi
+
+  [[ -n "$module_name" ]] || return 1
+  local module_path="$MODULES_DIR/$module_name"
+  [[ -f "$module_path" ]] || return 1
+  printf '%s\n' "$module_path"
+}
+
+list_declared_theming_modules() {
+  local manifest
+  while IFS= read -r manifest; do
+    [[ -n "$manifest" ]] || continue
+    local target_id
+    target_id="$(basename "$manifest" .json)"
+    resolve_target_module_path "$target_id" || true
+  done < <(list_theming_target_manifests)
 }

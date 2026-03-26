@@ -9,8 +9,16 @@ main() {
 
   local modules=()
   while IFS= read -r module_path; do
+    [[ -n "$module_path" ]] || continue
     modules+=("$module_path")
-  done < <(list_theming_modules)
+  done < <(list_declared_theming_modules)
+
+  if [[ ${#modules[@]} -eq 0 ]]; then
+    while IFS= read -r module_path; do
+      [[ -n "$module_path" ]] || continue
+      modules+=("$module_path")
+    done < <(list_theming_modules)
+  fi
 
   if [[ ${#modules[@]} -eq 0 ]]; then
     printf 'No theming modules found in %s\n' "$SCRIPT_DIR/modules" >&2

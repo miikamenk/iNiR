@@ -5,20 +5,45 @@ source "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/lib/module-runtime.sh"
 COLOR_MODULE_ID="editors"
 
 SCSS_FILE="$STATE_DIR/user/generated/material_colors.scss"
+PALETTE_FILE="$STATE_DIR/user/generated/palette.json"
+TERMINAL_FILE="$STATE_DIR/user/generated/terminal.json"
+LEGACY_COLORS_FILE="$STATE_DIR/user/generated/colors.json"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 VSCODE_THEMEGEN_BIN="$STATE_DIR/user/generated/bin/inir-vscode-themegen"
+OPENCODE_THEMEGEN_BIN="$STATE_DIR/user/generated/bin/inir-opencode-themegen"
+ZED_THEMEGEN_BIN="$STATE_DIR/user/generated/bin/inir-zed-themegen"
 
 ensure_vscode_themegen() {
   command -v go &>/dev/null || return 1
   mkdir -p "$STATE_DIR/user/generated/bin"
-  if [[ ! -x "$VSCODE_THEMEGEN_BIN" || "$REPO_ROOT/go.mod" -nt "$VSCODE_THEMEGEN_BIN" || "$SCRIPT_DIR/vscode_themegen/main.go" -nt "$VSCODE_THEMEGEN_BIN" ]]; then
+  if [[ ! -x "$VSCODE_THEMEGEN_BIN" || "$REPO_ROOT/go.mod" -nt "$VSCODE_THEMEGEN_BIN" || "$SCRIPT_DIR/vscode_themegen/main.go" -nt "$VSCODE_THEMEGEN_BIN" || "$SCRIPT_DIR/themegencommon/common.go" -nt "$VSCODE_THEMEGEN_BIN" ]]; then
     (cd "$REPO_ROOT" && go build -o "$VSCODE_THEMEGEN_BIN" ./scripts/colors/vscode_themegen) >/dev/null 2>&1 || return 1
   fi
   [[ -x "$VSCODE_THEMEGEN_BIN" ]]
 }
 
+ensure_opencode_themegen() {
+  command -v go &>/dev/null || return 1
+  mkdir -p "$STATE_DIR/user/generated/bin"
+  if [[ ! -x "$OPENCODE_THEMEGEN_BIN" || "$REPO_ROOT/go.mod" -nt "$OPENCODE_THEMEGEN_BIN" || "$SCRIPT_DIR/opencode_themegen/main.go" -nt "$OPENCODE_THEMEGEN_BIN" || "$SCRIPT_DIR/themegencommon/common.go" -nt "$OPENCODE_THEMEGEN_BIN" ]]; then
+    (cd "$REPO_ROOT" && go build -o "$OPENCODE_THEMEGEN_BIN" ./scripts/colors/opencode_themegen) >/dev/null 2>&1 || return 1
+  fi
+  [[ -x "$OPENCODE_THEMEGEN_BIN" ]]
+}
+
+ensure_zed_themegen() {
+  command -v go &>/dev/null || return 1
+  mkdir -p "$STATE_DIR/user/generated/bin"
+  if [[ ! -x "$ZED_THEMEGEN_BIN" || "$REPO_ROOT/go.mod" -nt "$ZED_THEMEGEN_BIN" || "$SCRIPT_DIR/zed_themegen/main.go" -nt "$ZED_THEMEGEN_BIN" || "$SCRIPT_DIR/themegencommon/common.go" -nt "$ZED_THEMEGEN_BIN" ]]; then
+    (cd "$REPO_ROOT" && go build -o "$ZED_THEMEGEN_BIN" ./scripts/colors/zed_themegen) >/dev/null 2>&1 || return 1
+  fi
+  [[ -x "$ZED_THEMEGEN_BIN" ]]
+}
+
 apply_code_editors() {
   [[ -f "$SCSS_FILE" ]] || return 0
+  local colors_file="$PALETTE_FILE"
+  [[ -f "$colors_file" ]] || colors_file="$LEGACY_COLORS_FILE"
   local python_cmd
   python_cmd=$(venv_python)
 
@@ -27,7 +52,11 @@ apply_code_editors() {
   enable_vscode=$(config_json 'if .appearance.wallpaperTheming | has("enableVSCode") then .appearance.wallpaperTheming.enableVSCode else true end' true)
 
   if [[ "$enable_zed" == 'true' ]] && { command -v zed &>/dev/null || command -v zeditor &>/dev/null; }; then
-    "$python_cmd" "$SCRIPT_DIR/generate_terminal_configs.py" --scss "$SCSS_FILE" --zed >> "$STATE_DIR/user/generated/code_editor_themes.log" 2>&1 || true
+    if ensure_zed_themegen; then
+      "$ZED_THEMEGEN_BIN" "$SCSS_FILE" "$colors_file" "$TERMINAL_FILE" >> "$STATE_DIR/user/generated/code_editor_themes.log" 2>&1 || true
+    else
+      "$python_cmd" "$SCRIPT_DIR/generate_terminal_configs.py" --scss "$SCSS_FILE" --colors "$colors_file" --terminal-json "$TERMINAL_FILE" --zed >> "$STATE_DIR/user/generated/code_editor_themes.log" 2>&1 || true
+    fi
   fi
 
   if [[ "$enable_vscode" == 'true' ]]; then
@@ -66,13 +95,13 @@ apply_code_editors() {
 
     if [[ ${#enabled_forks[@]} -gt 0 ]]; then
       if ensure_vscode_themegen; then
-        local vscode_cmd=("$VSCODE_THEMEGEN_BIN" "--colors" "$STATE_DIR/user/generated/colors.json" "--scss" "$SCSS_FILE")
+        local vscode_cmd=("$VSCODE_THEMEGEN_BIN" "--colors" "$colors_file" "--terminal-json" "$TERMINAL_FILE" "--scss" "$SCSS_FILE")
         for fork in "${enabled_forks[@]}"; do
           vscode_cmd+=("--forks" "$fork")
         done
         "${vscode_cmd[@]}" >> "$STATE_DIR/user/generated/code_editor_themes.log" 2>&1 || true
       else
-        "$python_cmd" "$SCRIPT_DIR/generate_terminal_configs.py" --scss "$SCSS_FILE" --vscode --vscode-forks "${enabled_forks[@]}" >> "$STATE_DIR/user/generated/code_editor_themes.log" 2>&1 || true
+        "$python_cmd" "$SCRIPT_DIR/generate_terminal_configs.py" --scss "$SCSS_FILE" --colors "$colors_file" --terminal-json "$TERMINAL_FILE" --vscode --vscode-forks "${enabled_forks[@]}" >> "$STATE_DIR/user/generated/code_editor_themes.log" 2>&1 || true
       fi
     fi
 
@@ -101,7 +130,11 @@ apply_code_editors() {
     local enable_opencode
     enable_opencode=$(config_bool '.appearance.wallpaperTheming.enableOpenCode' true)
     if [[ "$enable_opencode" == 'true' ]]; then
-      "$python_cmd" "$SCRIPT_DIR/opencode/theme_generator.py" "$SCSS_FILE" >> "$STATE_DIR/user/generated/code_editor_themes.log" 2>&1 || true
+      if ensure_opencode_themegen; then
+        "$OPENCODE_THEMEGEN_BIN" "$SCSS_FILE" "$colors_file" "$TERMINAL_FILE" >> "$STATE_DIR/user/generated/code_editor_themes.log" 2>&1 || true
+      else
+        "$python_cmd" "$SCRIPT_DIR/opencode/theme_generator.py" "$SCSS_FILE" "$colors_file" "$TERMINAL_FILE" >> "$STATE_DIR/user/generated/code_editor_themes.log" 2>&1 || true
+      fi
     fi
   fi
 }

@@ -1,15 +1,16 @@
 #!/bin/bash
-# Apply Qt/KDE theme colors from matugen's colors.json
+# Apply Qt/KDE theme colors from iNiR's generated palette contract
 # GTK CSS is handled by matugen templates — this script only generates:
 #   - kdeglobals (KDE/Qt app colors for Dolphin, etc.)
 #   - Darkly.colors (Qt style color scheme)
 #   - Pywalfox colors (Firefox theming)
 #   - Vesktop/Discord theme (if enabled)
-# Reads from colors.json (matugen's output) for UI consistency.
+# Prefers palette.json and falls back to colors.json for compatibility.
 
 XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
 XDG_DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
 XDG_STATE_HOME="${XDG_STATE_HOME:-$HOME/.local/state}"
+PALETTE_JSON="$XDG_STATE_HOME/quickshell/user/generated/palette.json"
 COLORS_JSON="$XDG_STATE_HOME/quickshell/user/generated/colors.json"
 KDEGLOBALS="$HOME/.config/kdeglobals"
 DARKLY_COLORS="$XDG_DATA_HOME/color-schemes/Darkly.colors"
@@ -29,29 +30,34 @@ if [[ "$enable_apps_shell" == "false" ]]; then
     exit 0
 fi
 
-# Read colors from matugen's colors.json (UI authority)
-if [[ ! -f "$COLORS_JSON" ]] || ! command -v jq &>/dev/null; then
-    echo "[apply-gtk-theme] colors.json not found or jq missing, skipping"
+# Read colors from the explicit palette contract first, then fall back to colors.json
+COLOR_SOURCE="$PALETTE_JSON"
+if [[ ! -f "$COLOR_SOURCE" ]]; then
+    COLOR_SOURCE="$COLORS_JSON"
+fi
+
+if [[ ! -f "$COLOR_SOURCE" ]] || ! command -v jq &>/dev/null; then
+    echo "[apply-gtk-theme] palette/colors JSON not found or jq missing, skipping"
     exit 0
 fi
 
-BG=$(jq -r '.background // empty' "$COLORS_JSON" 2>/dev/null || echo "#1e1e2e")
-FG=$(jq -r '.on_background // empty' "$COLORS_JSON" 2>/dev/null || echo "#cdd6f4")
-PRIMARY=$(jq -r '.primary // empty' "$COLORS_JSON" 2>/dev/null || echo "#cba6f7")
-ON_PRIMARY=$(jq -r '.on_primary // empty' "$COLORS_JSON" 2>/dev/null || echo "#1e1e2e")
-SURFACE=$(jq -r '.surface // empty' "$COLORS_JSON" 2>/dev/null || echo "$BG")
-ON_SURFACE=$(jq -r '.on_surface // empty' "$COLORS_JSON" 2>/dev/null || echo "$FG")
-SURFACE_CONTAINER=$(jq -r '.surface_container // empty' "$COLORS_JSON" 2>/dev/null)
-SURFACE_CONTAINER_HIGH=$(jq -r '.surface_container_high // empty' "$COLORS_JSON" 2>/dev/null)
-SURFACE_CONTAINER_LOW=$(jq -r '.surface_container_low // empty' "$COLORS_JSON" 2>/dev/null)
-SURFACE_DIM=$(jq -r '.surface_dim // empty' "$COLORS_JSON" 2>/dev/null)
-OUTLINE_VARIANT=$(jq -r '.outline_variant // empty' "$COLORS_JSON" 2>/dev/null)
-SURFACE_CONTAINER_HIGHEST=$(jq -r '.surface_container_highest // empty' "$COLORS_JSON" 2>/dev/null)
+BG=$(jq -r '.background // empty' "$COLOR_SOURCE" 2>/dev/null || echo "#1e1e2e")
+FG=$(jq -r '.on_background // empty' "$COLOR_SOURCE" 2>/dev/null || echo "#cdd6f4")
+PRIMARY=$(jq -r '.primary // empty' "$COLOR_SOURCE" 2>/dev/null || echo "#cba6f7")
+ON_PRIMARY=$(jq -r '.on_primary // empty' "$COLOR_SOURCE" 2>/dev/null || echo "#1e1e2e")
+SURFACE=$(jq -r '.surface // empty' "$COLOR_SOURCE" 2>/dev/null || echo "$BG")
+ON_SURFACE=$(jq -r '.on_surface // empty' "$COLOR_SOURCE" 2>/dev/null || echo "$FG")
+SURFACE_CONTAINER=$(jq -r '.surface_container // empty' "$COLOR_SOURCE" 2>/dev/null)
+SURFACE_CONTAINER_HIGH=$(jq -r '.surface_container_high // empty' "$COLOR_SOURCE" 2>/dev/null)
+SURFACE_CONTAINER_LOW=$(jq -r '.surface_container_low // empty' "$COLOR_SOURCE" 2>/dev/null)
+SURFACE_DIM=$(jq -r '.surface_dim // empty' "$COLOR_SOURCE" 2>/dev/null)
+OUTLINE_VARIANT=$(jq -r '.outline_variant // empty' "$COLOR_SOURCE" 2>/dev/null)
+SURFACE_CONTAINER_HIGHEST=$(jq -r '.surface_container_highest // empty' "$COLOR_SOURCE" 2>/dev/null)
 
 # Semantic colors from Material tokens
-ERROR_COLOR=$(jq -r '.error // empty' "$COLORS_JSON" 2>/dev/null)
-TERTIARY=$(jq -r '.tertiary // empty' "$COLORS_JSON" 2>/dev/null)
-SECONDARY=$(jq -r '.secondary // empty' "$COLORS_JSON" 2>/dev/null)
+ERROR_COLOR=$(jq -r '.error // empty' "$COLOR_SOURCE" 2>/dev/null)
+TERTIARY=$(jq -r '.tertiary // empty' "$COLOR_SOURCE" 2>/dev/null)
+SECONDARY=$(jq -r '.secondary // empty' "$COLOR_SOURCE" 2>/dev/null)
 
 # If ThemePresets passes args (bg fg primary on_primary surface surface_dim), use them
 # This avoids the race condition between generateColorsJson() writing to disk and this script reading

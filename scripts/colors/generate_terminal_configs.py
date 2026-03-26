@@ -23,7 +23,7 @@ from vscode.theme_generator import (
 
 
 def parse_scss_colors(scss_path):
-    """Parse material_colors.scss and extract color variables"""
+    """Parse material_colors.scss compatibility values."""
     colors = {}
     try:
         with open(scss_path, "r") as f:
@@ -36,6 +36,26 @@ def parse_scss_colors(scss_path):
     except FileNotFoundError:
         print(f"Error: Could not find {scss_path}", file=sys.stderr)
         sys.exit(1)
+    return colors
+
+
+def load_json_colors(json_path):
+    try:
+        with open(json_path, "r") as f:
+            data = json.load(f)
+            return {k: v for k, v in data.items() if isinstance(v, str)}
+    except FileNotFoundError:
+        return {}
+
+
+def load_generator_colors(scss_path, palette_json_path, terminal_json_path):
+    colors = parse_scss_colors(scss_path) if scss_path else {}
+    palette_colors = load_json_colors(palette_json_path)
+    terminal_colors = load_json_colors(terminal_json_path)
+
+    # Explicit contracts should win over SCSS compatibility values.
+    colors.update(palette_colors)
+    colors.update(terminal_colors)
     return colors
 
 
@@ -1234,6 +1254,22 @@ def main():
         help="Path to material_colors.scss file",
     )
     parser.add_argument(
+        "--colors",
+        type=str,
+        default=os.path.expanduser(
+            "~/.local/state/quickshell/user/generated/palette.json"
+        ),
+        help="Path to palette/colors JSON file",
+    )
+    parser.add_argument(
+        "--terminal-json",
+        type=str,
+        default=os.path.expanduser(
+            "~/.local/state/quickshell/user/generated/terminal.json"
+        ),
+        help="Path to terminal JSON file",
+    )
+    parser.add_argument(
         "--terminals",
         type=str,
         nargs="+",
@@ -1274,8 +1310,8 @@ def main():
 
     args = parser.parse_args()
 
-    # Parse colors from SCSS
-    colors = parse_scss_colors(args.scss)
+    # Prefer explicit generated contracts, keep SCSS as compatibility fallback.
+    colors = load_generator_colors(args.scss, args.colors, args.terminal_json)
 
     if not colors:
         print("Error: No colors found in SCSS file", file=sys.stderr)
@@ -1325,13 +1361,15 @@ def main():
         generate_starship_config(colors, f"{home}/.config/starship/ii-palette.toml")
 
     if "omp" in terminals:
-        colors_json_path = os.path.expanduser(
-            "~/.local/state/quickshell/user/generated/colors.json"
-        )
+        colors_json_path = args.colors
+        terminal_json_path = args.terminal_json
         try:
             with open(colors_json_path, "r") as f:
                 m3_colors = json.load(f)
                 omp_colors = {**colors, **m3_colors}
+                if os.path.exists(terminal_json_path):
+                    with open(terminal_json_path, "r") as tf:
+                        omp_colors.update(json.load(tf))
                 generate_omp_config(
                     omp_colors, f"{home}/.config/oh-my-posh/ii-auto.json"
                 )
@@ -1342,10 +1380,8 @@ def main():
             generate_omp_config(colors, f"{home}/.config/oh-my-posh/ii-auto.json")
 
     if "btop" in terminals:
-        # btop needs full M3 tokens from colors.json, not just terminal colors
-        colors_json_path = os.path.expanduser(
-            "~/.local/state/quickshell/user/generated/colors.json"
-        )
+        # btop needs full M3 tokens from palette.json, not just terminal colors
+        colors_json_path = args.colors
         try:
             with open(colors_json_path, "r") as f:
                 m3_colors = json.load(f)
@@ -1370,14 +1406,16 @@ def main():
 
     if args.zed:
         generate_zed_config(
-            colors, args.scss, f"{home}/.config/zed/themes/ii-theme.json"
+            colors,
+            args.scss,
+            f"{home}/.config/zed/themes/ii-theme.json",
+            args.colors,
+            args.terminal_json,
         )
 
     if args.vscode:
         # Use the new multi-fork generation that auto-detects all installed forks
-        colors_json = os.path.expanduser(
-            "~/.local/state/quickshell/user/generated/colors.json"
-        )
+        colors_json = args.colors
         # Parse enabled forks from --vscode-forks argument if provided
         forks_to_generate = (
             args.vscode_forks

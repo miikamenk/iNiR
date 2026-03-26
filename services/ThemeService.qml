@@ -31,11 +31,11 @@ Singleton {
         enableVSCode: wallpaperThemingCfg?.enableVSCode ?? true,
         useBackdropForColors: wallpaperThemingCfg?.useBackdropForColors ?? false,
         forceTerminalDarkMode: wallpaperThemingCfg?.terminalGenerationProps?.forceDarkMode ?? false,
-        termSaturation: terminalAdjCfg?.saturation ?? 0.40,
-        termBrightness: terminalAdjCfg?.brightness ?? 0.55,
-        termHarmony: terminalAdjCfg?.harmony ?? 0.40,
-        termBackgroundBrightness: terminalAdjCfg?.backgroundBrightness ?? 0.50,
-        softenColors: Config.options?.appearance?.softenColors ?? false,
+        termSaturation: terminalAdjCfg?.saturation ?? 0.65,
+        termBrightness: terminalAdjCfg?.brightness ?? 0.6,
+        termHarmony: terminalAdjCfg?.harmony ?? 0.4,
+        termBackgroundBrightness: terminalAdjCfg?.backgroundBrightness ?? 0.5,
+        softenColors: Config.options?.appearance?.softenColors ?? true,
     })
     property string _lastLiveRegenSignature: ""
 
@@ -65,8 +65,22 @@ Singleton {
         } else {
             root._log("[ThemeService] Manual theme, calling ThemePresets.applyPreset");
             ThemePresets.applyPreset(themeId, applyExternal);
+            if (applyExternal && vesktopEnabled) {
+                root._log("[ThemeService] Manual setTheme requesting Vesktop regeneration")
+                root._triggerVesktopThemeGeneration()
+            }
         }
         root._log("[ThemeService] setTheme completed");
+    }
+
+    function _triggerVesktopThemeGeneration(): void {
+        root._log("[ThemeService] Triggering Vesktop theme generation wrapper")
+        Qt.callLater(() => {
+            Quickshell.execDetached([
+                "/usr/bin/bash",
+                Directories.scriptPath + "/colors/system24_palette.sh"
+            ]);
+        });
     }
 
     function applyCurrentTheme(applyExternal = defaultApplyExternal): void {
@@ -86,16 +100,15 @@ Singleton {
             }
 
             if (applyExternal && vesktopEnabled) {
-                Qt.callLater(() => {
-                    Quickshell.execDetached([
-                        "/usr/bin/python3",
-                        Directories.scriptPath + "/colors/system24_palette.py"
-                    ]);
-                });
+                root._triggerVesktopThemeGeneration()
             }
         } else {
             root._log("[ThemeService] Applying manual theme:", currentTheme);
             ThemePresets.applyPreset(currentTheme, applyExternal);
+            if (applyExternal && vesktopEnabled) {
+                root._log("[ThemeService] applyCurrentTheme manual branch requesting Vesktop regeneration")
+                root._triggerVesktopThemeGeneration()
+            }
         }
         root.ready = true;
     }

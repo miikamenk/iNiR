@@ -49,6 +49,7 @@ Setup-backed maintenance commands:
 
 Other:
   version [--json]
+  theme <list-targets|inspect|doctor|apply|scaffold> [args...]
 
 Notes:
   - `inir` is the daily launcher/operator CLI.
@@ -71,6 +72,11 @@ Most people only need:
   inir browser
   inir logs
   inir repair
+  inir theme list-targets
+  inir theme inspect terminals
+  inir theme doctor
+  inir theme scaffold myapp
+  inir theme apply terminals
   ./setup
 EOF
 }
@@ -541,9 +547,27 @@ show_version() {
         fi
     done
 
+    local runtime_version_file=""
+    local local_version_file="${XDG_CONFIG_HOME:-$HOME/.config}/illogical-impulse/version.json"
     local version_file=""
+
     if [[ -n "$runtime_path" ]]; then
-        version_file="$runtime_path/version.json"
+        runtime_version_file="$runtime_path/version.json"
+    fi
+
+    local runtime_install_mode=""
+    if [[ -n "$runtime_version_file" && -f "$runtime_version_file" ]] && command -v jq >/dev/null 2>&1; then
+        runtime_install_mode="$(jq -r '.installMode // .install_mode // empty' "$runtime_version_file" 2>/dev/null || true)"
+    fi
+
+    if [[ -n "${INIR_RUNTIME_DIR:-}" && -n "$runtime_version_file" && -f "$runtime_version_file" ]]; then
+        version_file="$runtime_version_file"
+    elif [[ "$runtime_install_mode" == "package-managed" ]]; then
+        version_file="$runtime_version_file"
+    elif [[ -f "$local_version_file" ]]; then
+        version_file="$local_version_file"
+    elif [[ -n "$runtime_version_file" && -f "$runtime_version_file" ]]; then
+        version_file="$runtime_version_file"
     fi
 
     if [[ -n "$version_file" && -f "$version_file" ]]; then
@@ -572,6 +596,62 @@ show_version() {
 
     printf 'iNiR %s\n' "$(tr -d '[:space:]' < "$setup_dir/VERSION")"
     printf 'runtime: %s\n' "${runtime_path:-$setup_dir}"
+}
+
+run_theme_command() {
+    local action="${1:-}"
+    shift || true
+
+    local setup_dir
+    setup_dir="$(resolve_setup_dir)"
+    local colors_dir="$setup_dir/scripts/colors"
+
+    case "$action" in
+        list-targets)
+            exec python3 "$colors_dir/list-targets.py" list "$@"
+            ;;
+        inspect)
+            if [[ $# -lt 1 ]]; then
+                echo "Usage: inir theme inspect <target-id>" >&2
+                exit 1
+            fi
+            exec python3 "$colors_dir/list-targets.py" inspect "$@"
+            ;;
+        doctor)
+            exec python3 "$colors_dir/list-targets.py" doctor "$@"
+            ;;
+        scaffold)
+            if [[ $# -lt 1 ]]; then
+                echo "Usage: inir theme scaffold <target-id> [--label ... --category ... --inputs ...]" >&2
+                exit 1
+            fi
+            exec python3 "$colors_dir/list-targets.py" scaffold "$@"
+            ;;
+        apply)
+            if [[ $# -eq 0 ]]; then
+                echo "Usage: inir theme apply <target-id ...|all>" >&2
+                exit 1
+            fi
+            exec bash "$colors_dir/apply-targets.sh" "$@"
+            ;;
+        -h|--help|"")
+            cat <<'EOF' >&2
+Usage: inir theme <command> [args...]
+
+Commands:
+  list-targets          List declared theming targets
+  inspect <id>          Show manifest, module, and resolved input info for a target
+  doctor [id]           Validate all targets, or a specific one
+  scaffold <id>         Create a new target manifest and module stub
+  apply <ids...|all>    Apply one or more theming targets
+EOF
+            exit 0
+            ;;
+        *)
+            echo "Unknown theme action: $action" >&2
+            exit 1
+            ;;
+    esac
 }
 
 run_ipc_target_command() {
@@ -1040,6 +1120,9 @@ case "$command_name" in
         ;;
     version)
         show_version "$@"
+        ;;
+    theme)
+        run_theme_command "$@"
         ;;
     help|-h|--help|"")
         usage_short

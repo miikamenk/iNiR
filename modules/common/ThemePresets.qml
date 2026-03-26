@@ -3057,6 +3057,8 @@ Singleton {
         m3.m3onSuccess = c.m3onSuccess;
         m3.m3successContainer = c.m3successContainer;
         m3.m3onSuccessContainer = c.m3onSuccessContainer;
+
+        generateColorsJson(c);
         
         if (applyExternal) {
             applyExternalThemes(c);
@@ -3069,17 +3071,6 @@ Singleton {
         const enableAppsAndShell = Config.options?.appearance?.wallpaperTheming?.enableAppsAndShell ?? true;
         const enableVesktop = Config.options?.appearance?.wallpaperTheming?.enableVesktop ?? true;
         const enableTerminal = Config.options?.appearance?.wallpaperTheming?.enableTerminal ?? true;
-        
-        // Generate colors.json for Vesktop (if enabled)
-        if (enableVesktop) {
-            generateColorsJson(c);
-            Qt.callLater(() => {
-                Quickshell.execDetached([
-                    "/usr/bin/python3",
-                    Directories.scriptPath + "/colors/system24_palette.py"
-                ]);
-            });
-        }
         
         // Apply GTK theme (if enabled)
         if (enableAppsAndShell) {
@@ -3152,19 +3143,35 @@ Singleton {
             "onPrimary": c.m3onPrimary,
             "primaryContainer": c.m3primaryContainer,
             "onPrimaryContainer": c.m3onPrimaryContainer,
+            "primaryFixed": c.m3primaryFixed,
+            "primaryFixedDim": c.m3primaryFixedDim,
+            "onPrimaryFixed": c.m3onPrimaryFixed,
+            "onPrimaryFixedVariant": c.m3onPrimaryFixedVariant,
             "inversePrimary": c.m3inversePrimary,
             "secondary": c.m3secondary,
             "onSecondary": c.m3onSecondary,
             "secondaryContainer": c.m3secondaryContainer,
             "onSecondaryContainer": c.m3onSecondaryContainer,
+            "secondaryFixed": c.m3secondaryFixed,
+            "secondaryFixedDim": c.m3secondaryFixedDim,
+            "onSecondaryFixed": c.m3onSecondaryFixed,
+            "onSecondaryFixedVariant": c.m3onSecondaryFixedVariant,
             "tertiary": c.m3tertiary,
             "onTertiary": c.m3onTertiary,
             "tertiaryContainer": c.m3tertiaryContainer,
             "onTertiaryContainer": c.m3onTertiaryContainer,
+            "tertiaryFixed": c.m3tertiaryFixed,
+            "tertiaryFixedDim": c.m3tertiaryFixedDim,
+            "onTertiaryFixed": c.m3onTertiaryFixed,
+            "onTertiaryFixedVariant": c.m3onTertiaryFixedVariant,
             "error": c.m3error,
             "onError": c.m3onError,
             "errorContainer": c.m3errorContainer,
             "onErrorContainer": c.m3onErrorContainer,
+            "success": c.m3success,
+            "onSuccess": c.m3onSuccess,
+            "successContainer": c.m3successContainer,
+            "onSuccessContainer": c.m3onSuccessContainer,
         };
         
         for (const [key, value] of Object.entries(colorMap)) {
@@ -3177,9 +3184,9 @@ Singleton {
         
         // Get user adjustments from config
         const termAdj = Config.options?.appearance?.wallpaperTheming?.terminalColorAdjustments ?? {};
-        const userSaturation = termAdj.saturation ?? 0.40;
-        const userBrightness = termAdj.brightness ?? 0.55;
-        const userHarmony = termAdj.harmony ?? 0.15;
+        const userSaturation = termAdj.saturation ?? 0.65;
+        const userBrightness = termAdj.brightness ?? 0.60;
+        const userHarmony = termAdj.harmony ?? 0.40;
         
         // Get primary color for harmonization
         const primaryColor = Qt.color(c.m3primary);
@@ -3284,24 +3291,33 @@ Singleton {
         // DEPRECATED: Use applyExternalThemes instead
         applyExternalThemes(c);
     }
-    
-    function generateColorsJson(c) {
-        console.log("[ThemePresets] Generating colors.json for Vesktop");
-        
-        // Generate colors.json in the format expected by system24_palette.py
-        const colorsJson = {
+
+    function generateColorsJsonObject(c) {
+        return {
             primary: c.m3primary,
             on_primary: c.m3onPrimary,
             primary_container: c.m3primaryContainer,
             on_primary_container: c.m3onPrimaryContainer,
+            primary_fixed: c.m3primaryFixed,
+            primary_fixed_dim: c.m3primaryFixedDim,
+            on_primary_fixed: c.m3onPrimaryFixed,
+            on_primary_fixed_variant: c.m3onPrimaryFixedVariant,
             secondary: c.m3secondary,
             on_secondary: c.m3onSecondary,
             secondary_container: c.m3secondaryContainer,
             on_secondary_container: c.m3onSecondaryContainer,
+            secondary_fixed: c.m3secondaryFixed,
+            secondary_fixed_dim: c.m3secondaryFixedDim,
+            on_secondary_fixed: c.m3onSecondaryFixed,
+            on_secondary_fixed_variant: c.m3onSecondaryFixedVariant,
             tertiary: c.m3tertiary,
             on_tertiary: c.m3onTertiary,
             tertiary_container: c.m3tertiaryContainer,
             on_tertiary_container: c.m3onTertiaryContainer,
+            tertiary_fixed: c.m3tertiaryFixed,
+            tertiary_fixed_dim: c.m3tertiaryFixedDim,
+            on_tertiary_fixed: c.m3onTertiaryFixed,
+            on_tertiary_fixed_variant: c.m3onTertiaryFixedVariant,
             error: c.m3error,
             on_error: c.m3onError,
             error_container: c.m3errorContainer,
@@ -3310,10 +3326,13 @@ Singleton {
             on_background: c.m3onBackground,
             surface: c.m3surface,
             on_surface: c.m3onSurface,
+            surface_dim: c.m3surfaceDim,
+            surface_bright: c.m3surfaceBright,
             surface_variant: c.m3surfaceVariant,
             on_surface_variant: c.m3onSurfaceVariant,
-            surface_container: c.m3surfaceContainer,
+            surface_container_lowest: c.m3surfaceContainerLowest,
             surface_container_low: c.m3surfaceContainerLow,
+            surface_container: c.m3surfaceContainer,
             surface_container_high: c.m3surfaceContainerHigh,
             surface_container_highest: c.m3surfaceContainerHighest,
             outline: c.m3outline,
@@ -3323,19 +3342,83 @@ Singleton {
             inverse_primary: c.m3inversePrimary,
             shadow: c.m3shadow,
             scrim: c.m3scrim,
-            surface_tint: c.m3surfaceTint
+            surface_tint: c.m3surfaceTint,
+            success: c.m3success,
+            on_success: c.m3onSuccess,
+            success_container: c.m3successContainer,
+            on_success_container: c.m3onSuccessContainer
         };
-        
+    }
+    
+    function generateColorsJson(c) {
+        console.log("[ThemePresets] Generating colors.json for preset theme");
+        const colorsJson = generateColorsJsonObject(c);
+        const terminalJson = buildTerminalJson(c);
+        Object.assign(colorsJson, terminalJson)
+
         const outputPath = Directories.generatedMaterialThemePath;
         const jsonStr = JSON.stringify(colorsJson, null, 2);
 
         colorsJsonFileView.path = Qt.resolvedUrl(outputPath)
         colorsJsonFileView.setText(jsonStr)
+        writeGeneratedThemeContracts(c)
+        if ((Config.options?.appearance?.wallpaperTheming?.enableVesktop ?? true) !== false) {
+            console.log("[ThemePresets] Triggering Vesktop theme generation wrapper")
+            Quickshell.execDetached([
+                "/usr/bin/bash",
+                Directories.scriptPath + "/colors/system24_palette.sh"
+            ])
+        }
         console.log("[ThemePresets] colors.json written to:", outputPath);
     }
 
     FileView {
         id: colorsJsonFileView
+    }
+
+    FileView {
+        id: paletteJsonFileView
+    }
+
+    FileView {
+        id: terminalJsonFileView
+    }
+
+    FileView {
+        id: themeMetaFileView
+    }
+
+    function buildTerminalJson(c) {
+        const scss = generateScssFromColors(c);
+        const terminalJson = {};
+        const regex = /^\$(term\d+):\s*(#[0-9A-Fa-f]{6});$/gm;
+        let match;
+        while ((match = regex.exec(scss)) !== null) {
+            terminalJson[match[1]] = match[2];
+        }
+        return terminalJson;
+    }
+
+    function buildThemeMeta(c) {
+        return {
+            source: "preset",
+            preset: Config.options?.appearance?.theme ?? null,
+            mode: c.darkmode ? "dark" : "light",
+            scheme: "preset",
+            transparent: c.transparent ?? false,
+            generated_by: "ThemePresets.qml"
+        };
+    }
+
+    function writeGeneratedThemeContracts(c) {
+        paletteJsonFileView.path = Qt.resolvedUrl(Directories.generatedPalettePath)
+        paletteJsonFileView.setText(JSON.stringify(generateColorsJsonObject(c), null, 2))
+
+        terminalJsonFileView.path = Qt.resolvedUrl(Directories.generatedTerminalPalettePath)
+        terminalJsonFileView.setText(JSON.stringify(buildTerminalJson(c), null, 2))
+
+        themeMetaFileView.path = Qt.resolvedUrl(Directories.generatedThemeMetaPath)
+        themeMetaFileView.setText(JSON.stringify(buildThemeMeta(c), null, 2))
     }
 
     // ========== Hover Preview System ==========
@@ -3490,4 +3573,3 @@ Singleton {
         m3.m3onSuccessContainer = c.m3onSuccessContainer;
     }
 }
-

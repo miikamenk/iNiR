@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	common "inir/scripts/colors/themegencommon"
 	"math"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 )
 
@@ -165,9 +165,11 @@ func clampInt(v, lo, hi int) int {
 
 func main() {
 	home, _ := os.UserHomeDir()
-	defaultColors := filepath.Join(home, ".local/state/quickshell/user/generated/colors.json")
+	defaultColors := filepath.Join(home, ".local/state/quickshell/user/generated/palette.json")
+	defaultTerminal := filepath.Join(home, ".local/state/quickshell/user/generated/terminal.json")
 	defaultSCSS := filepath.Join(home, ".local/state/quickshell/user/generated/material_colors.scss")
 	colorsPath := flag.String("colors", defaultColors, "")
+	terminalJSONPath := flag.String("terminal-json", defaultTerminal, "")
 	scssPath := flag.String("scss", defaultSCSS, "")
 	output := flag.String("output", "", "")
 	listForks := flag.Bool("list-forks", false, "")
@@ -202,7 +204,7 @@ func main() {
 		return
 	}
 	if *output != "" {
-		ok, err := generateTheme(*colorsPath, *scssPath, *output)
+		ok, err := generateTheme(*colorsPath, *terminalJSONPath, *scssPath, *output)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
@@ -212,7 +214,7 @@ func main() {
 		}
 		os.Exit(1)
 	}
-	results, err := generateAllThemes(*colorsPath, *scssPath, forks)
+	results, err := generateAllThemes(*colorsPath, *terminalJSONPath, *scssPath, forks)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
@@ -230,7 +232,7 @@ func main() {
 	os.Exit(1)
 }
 
-func generateAllThemes(colorsPath, scssPath string, forks []string) (map[string]bool, error) {
+func generateAllThemes(colorsPath, terminalJSONPath, scssPath string, forks []string) (map[string]bool, error) {
 	selected := forks
 	if len(selected) == 0 {
 		for key, name := range vscodeForks {
@@ -250,7 +252,7 @@ func generateAllThemes(colorsPath, scssPath string, forks []string) (map[string]
 		if !dirExists(filepath.Dir(settingsPath)) {
 			continue
 		}
-		ok, err := generateTheme(colorsPath, scssPath, settingsPath)
+		ok, err := generateTheme(colorsPath, terminalJSONPath, scssPath, settingsPath)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "  ✗ %s: %v\n", forkName, err)
 			results[forkKey] = false
@@ -266,12 +268,19 @@ func generateAllThemes(colorsPath, scssPath string, forks []string) (map[string]
 	return results, nil
 }
 
-func generateTheme(colorsPath, scssPath, settingsPath string) (bool, error) {
-	colors, err := readStringMapJSON(colorsPath)
+func generateTheme(colorsPath, terminalJSONPath, scssPath, settingsPath string) (bool, error) {
+	colors, err := common.ReadStringMapJSON(colorsPath)
 	if err != nil {
 		return false, fmt.Errorf("error: could not find %s", colorsPath)
 	}
-	termColors, _ := parseSCSS(scssPath)
+	termColors, _ := common.ParseSCSS(scssPath)
+	if terminalJSONPath != "" {
+		if explicitTerms, err := common.ReadStringMapJSON(terminalJSONPath); err == nil {
+			for k, v := range explicitTerms {
+				termColors[k] = v
+			}
+		}
+	}
 	settings, err := loadSettings(settingsPath)
 	if err != nil {
 		return false, err
@@ -546,40 +555,6 @@ func writeSettings(path string, settings map[string]any) error {
 	return os.WriteFile(path, data, 0o644)
 }
 
-func readStringMapJSON(path string) (map[string]string, error) {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return nil, err
-	}
-	var raw map[string]any
-	if err := json.Unmarshal(data, &raw); err != nil {
-		return nil, err
-	}
-	out := map[string]string{}
-	for k, v := range raw {
-		if s, ok := v.(string); ok {
-			out[k] = s
-		}
-	}
-	return out, nil
-}
-
-func parseSCSS(path string) (map[string]string, error) {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return nil, err
-	}
-	re := regexp.MustCompile(`\$(\w+):\s*(#[A-Fa-f0-9]{6});`)
-	out := map[string]string{}
-	for _, line := range strings.Split(string(data), "\n") {
-		match := re.FindStringSubmatch(strings.TrimSpace(line))
-		if len(match) == 3 {
-			out[match[1]] = match[2]
-		}
-	}
-	return out, nil
-}
-
 func getSettingsPath(forkName string) string {
 	return filepath.Join(configDir(), forkName, "User", "settings.json")
 }
@@ -592,8 +567,5 @@ func configDir() string {
 }
 func dirExists(path string) bool { info, err := os.Stat(path); return err == nil && info.IsDir() }
 func pick(m map[string]string, key, fallback string) string {
-	if v, ok := m[key]; ok && v != "" {
-		return v
-	}
-	return fallback
+	return common.Pick(m, key, fallback)
 }

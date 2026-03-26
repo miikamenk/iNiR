@@ -5,6 +5,8 @@ source "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/lib/module-runtime.sh"
 COLOR_MODULE_ID="terminals"
 
 SCSS_FILE="$STATE_DIR/user/generated/material_colors.scss"
+PALETTE_FILE="$STATE_DIR/user/generated/palette.json"
+TERMINAL_FILE="$STATE_DIR/user/generated/terminal.json"
 SEQUENCES_TEMPLATE="$SCRIPT_DIR/terminal/sequences.txt"
 
 apply_term_sequences() {
@@ -12,13 +14,22 @@ apply_term_sequences() {
   mkdir -p "$STATE_DIR/user/generated/terminal"
   cp "$SEQUENCES_TEMPLATE" "$STATE_DIR/user/generated/terminal/sequences.txt"
 
-  local color_names color_values
-  mapfile -t color_names < <(cut -d: -f1 "$SCSS_FILE")
-  mapfile -t color_values < <(cut -d: -f2 "$SCSS_FILE" | cut -d ' ' -f2 | cut -d ';' -f1)
+  if [[ -f "$TERMINAL_FILE" ]] && command -v jq &>/dev/null; then
+    local idx value
+    for idx in $(seq 0 15); do
+      value=$(jq -r ".term${idx} // empty" "$TERMINAL_FILE" 2>/dev/null || true)
+      [[ -n "$value" ]] || continue
+      sed -i "s/\$term${idx} #/${value#\#}/g" "$STATE_DIR/user/generated/terminal/sequences.txt"
+    done
+  else
+    local color_names color_values
+    mapfile -t color_names < <(cut -d: -f1 "$SCSS_FILE")
+    mapfile -t color_values < <(cut -d: -f2 "$SCSS_FILE" | cut -d ' ' -f2 | cut -d ';' -f1)
 
-  for i in "${!color_names[@]}"; do
-    sed -i "s/${color_names[$i]} #/${color_values[$i]#\#}/g" "$STATE_DIR/user/generated/terminal/sequences.txt"
-  done
+    for i in "${!color_names[@]}"; do
+      sed -i "s/${color_names[$i]} #/${color_values[$i]#\#}/g" "$STATE_DIR/user/generated/terminal/sequences.txt"
+    done
+  fi
 
   sed -i 's/\$alpha/100/g' "$STATE_DIR/user/generated/terminal/sequences.txt"
 
@@ -100,7 +111,7 @@ apply_terminal_configs() {
 
   local python_cmd
   python_cmd=$(venv_python)
-  "$python_cmd" "$SCRIPT_DIR/generate_terminal_configs.py" --scss "$SCSS_FILE" --terminals "${enabled_terminals[@]}" >> "$STATE_DIR/user/generated/terminal_colors.log" 2>&1
+  "$python_cmd" "$SCRIPT_DIR/generate_terminal_configs.py" --scss "$SCSS_FILE" --colors "$PALETTE_FILE" --terminal-json "$TERMINAL_FILE" --terminals "${enabled_terminals[@]}" >> "$STATE_DIR/user/generated/terminal_colors.log" 2>&1
   reload_terminal_colors "${enabled_terminals[@]}" >> "$STATE_DIR/user/generated/terminal_colors.log" 2>&1 &
 }
 
