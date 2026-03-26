@@ -1,5 +1,5 @@
 pkgname=inir-meta
-pkgver=2.13.2
+pkgver=2.15.0
 pkgrel=1
 pkgdesc='Recommended dependency bundle for the full iNiR desktop experience'
 arch=(any)

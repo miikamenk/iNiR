@@ -1,5 +1,5 @@
 pkgname=inir-shell-git
-pkgver=2.13.2.r0.g0000000
+pkgver=2.15.0.r0.g0000000
 pkgrel=1
 pkgdesc='iNiR shell payload, launcher, and user service (git)'
 arch=(any)
