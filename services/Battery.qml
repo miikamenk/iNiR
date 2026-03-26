@@ -1,11 +1,12 @@
 pragma Singleton
+pragma ComponentBehavior: Bound
 
-import qs.services
-import qs.modules.common
-import Quickshell
-import Quickshell.Services.UPower
 import QtQuick
+import Quickshell
 import Quickshell.Io
+import Quickshell.Services.UPower
+import qs.modules.common
+import qs.services
 
 Singleton {
     id: root

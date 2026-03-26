@@ -51,6 +51,33 @@ Singleton {
     }
     readonly property bool showVisibleCity: root.visibleCity.length > 0
 
+    function redactedLogCity(city): string {
+        if (root.hideLocation)
+            return "[hidden]"
+
+        const value = String(city ?? "").trim()
+        return value.length > 0 ? value : "Unknown"
+    }
+
+    function redactedLogLocationName(name): string {
+        if (root.hideLocation)
+            return "[hidden]"
+
+        const value = String(name ?? "").trim()
+        return value.length > 0 ? value : "Unknown"
+    }
+
+    function redactedLogCoordinates(lat, lon): string {
+        if (root.hideLocation)
+            return "[hidden]"
+
+        const latNum = Number(lat)
+        const lonNum = Number(lon)
+        if (!isFinite(latNum) || !isFinite(lonNum))
+            return "Unknown"
+        return latNum.toFixed(5) + "," + lonNum.toFixed(5)
+    }
+
     function isNightNow(): bool {
         const h = new Date().getHours();
         return h < 6 || h >= 18;
@@ -144,7 +171,7 @@ Singleton {
         }
 
         root.data = result;
-        console.info("[Weather] Updated:", result.temp, result.city);
+        console.info("[Weather] Updated:", result.temp, root.redactedLogCity(result.city));
     }
 
     function _degToCompass(deg): string {
@@ -181,7 +208,7 @@ Singleton {
         result.press = (current.pressure_msl ?? 0) + " " + (units.pressure_msl ?? (root.useUSCS ? "inHg" : "hPa"))
 
         root.data = result
-        console.info("[Weather] Updated via Open-Meteo:", result.temp, result.city)
+        console.info("[Weather] Updated via Open-Meteo:", result.temp, root.redactedLogCity(result.city))
     }
 
     function fetchWeatherFallback(): void {
@@ -219,7 +246,7 @@ Singleton {
 
         if (root.hasManualCoords) {
             // User provided exact coordinates — reverse geocode for display name
-            console.info("[Weather] Using manual coordinates:", root.configLat, root.configLon);
+            console.info("[Weather] Using manual coordinates:", root.redactedLogCoordinates(root.configLat, root.configLon));
             root.location = {
                 valid: true,
                 lat: root.configLat,
@@ -239,7 +266,7 @@ Singleton {
 
         if (root.hasManualCity) {
             // User provided city name — forward geocode for coordinates + validated name
-            console.info("[Weather] Using manual city:", root.configCity);
+            console.info("[Weather] Using manual city:", root.redactedLogLocationName(root.configCity));
             const q = encodeURIComponent(root.configCity);
             forwardGeocoder.command = ["/usr/bin/curl", "-s", "--max-time", "10",
                 "https://nominatim.openstreetmap.org/search?format=jsonv2&q=" + q + "&limit=5&addressdetails=1&accept-language=es,en"];
@@ -473,7 +500,15 @@ Singleton {
                         }
 
                         root.location = { valid: true, lat: lat, lon: lon, name: displayName };
-                        console.info("[Weather] Geocoded:", root.configCity, "→", displayName, "(", lat, ",", lon, ")");
+                        console.info(
+                            "[Weather] Geocoded:",
+                            root.redactedLogLocationName(root.configCity),
+                            "→",
+                            root.redactedLogLocationName(displayName),
+                            "(",
+                            root.redactedLogCoordinates(lat, lon),
+                            ")"
+                        );
                         root.fetchWeather();
                     } else {
                         console.warn("[Weather] No geocode results for:", root.configCity);
@@ -514,7 +549,7 @@ Singleton {
                                 name: name
                             };
                             // Save the resolved name back to config for display
-                            console.info("[Weather] Reverse geocoded:", name);
+                            console.info("[Weather] Reverse geocoded:", root.redactedLogLocationName(name));
                         }
                     }
                 } catch (e) {
@@ -545,7 +580,7 @@ Singleton {
                     const lon = parseFloat(parts[1]);
                     if (!isNaN(lat) && !isNaN(lon)) {
                         root.location = { valid: true, lat: lat, lon: lon, name: "" };
-                        console.info("[Weather] GPS location:", lat, lon);
+                        console.info("[Weather] GPS location:", root.redactedLogCoordinates(lat, lon));
                         // Reverse geocode for display name
                         reverseGeocoder.command = ["/usr/bin/curl", "-s", "--max-time", "10",
                             "https://nominatim.openstreetmap.org/reverse?format=json&lat=" + lat + "&lon=" + lon + "&zoom=10&accept-language=en"];
@@ -587,7 +622,7 @@ Singleton {
                             lon: data.lon,
                             name: data.city + (data.regionName ? `, ${data.regionName}` : "")
                         };
-                        console.info("[Weather] Location:", root.location.name);
+                        console.info("[Weather] Location:", root.redactedLogLocationName(root.location.name));
                         root.fetchWeather();
                     } else {
                         fallbackLocator.running = true;
