@@ -59,8 +59,8 @@ Rectangle {
             active: Battery.available
             sourceComponent: StatBar {
                 label: "BAT"
-                value: Battery.percentage * 100
-                barColor: (Battery.percentage * 100) < 20 ? Appearance.colors.colError
+                value: (Battery.percentage * 100) ?? 0
+                barColor: ((Battery.percentage * 100) ?? 0) < 20 ? Appearance.colors.colError
                         : Battery.charging ? Appearance.colors.colSuccess
                         : (Appearance.angelEverywhere ? Appearance.angel.colPrimary
                         : root.inirEverywhere ? Appearance.inir.colPrimary : Appearance.colors.colPrimary)

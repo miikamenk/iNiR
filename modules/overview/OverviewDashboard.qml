@@ -1170,18 +1170,18 @@ Item {
 
                             MaterialSymbol {
                                 text: Battery.isCharging ? "battery_charging_full"
-                                    : (Battery.percentage * 100) > 80 ? "battery_full"
-                                    : (Battery.percentage * 100) > 60 ? "battery_5_bar"
-                                    : (Battery.percentage * 100) > 40 ? "battery_3_bar"
-                                    : (Battery.percentage * 100) > 20 ? "battery_2_bar" : "battery_1_bar"
+                                    : ((Battery.percentage * 100) ?? 0) > 80 ? "battery_full"
+                                    : ((Battery.percentage * 100) ?? 0) > 60 ? "battery_5_bar"
+                                    : ((Battery.percentage * 100) ?? 0) > 40 ? "battery_3_bar"
+                                    : ((Battery.percentage * 100) ?? 0) > 20 ? "battery_2_bar" : "battery_1_bar"
                                 iconSize: 14
                                 fill: 1
-                                color: (Battery.percentage * 100) <= 20 && !Battery.isCharging ? Appearance.colors.colError
+                                color: ((Battery.percentage * 100) ?? 0) <= 20 && !Battery.isCharging ? Appearance.colors.colError
                                     : Battery.isCharging ? Appearance.colors.colTertiary
                                     : root.colSubtext
                             }
                             StyledText {
-                                text: (Battery.percentage * 100) + "%"
+                                text: ((Battery.percentage * 100) ?? 0) + "%"
                                 font { pixelSize: Appearance.font.pixelSize.smallest; family: Appearance.font.family.numbers; weight: Font.Medium }
                                 color: (Battery.percentage * 100) <= 20 && !Battery.isCharging ? Appearance.colors.colError
                                     : Battery.isCharging ? Appearance.colors.colTertiary
