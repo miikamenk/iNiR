@@ -1787,37 +1787,57 @@ Item {
         }
     }
 
-    component BubbleToolTip: ToolTip {
+    component BubbleToolTip: PopupToolTip {
         id: bubble
         property string position: "left" // top | right | left
         delay: 0
-        padding: 0
-        x: position === "left"
-            ? -width - 6
-            : position === "right"
-            ? parent.width + 4
-            : (parent.width - width) / 2
-        y: position === "left" || position === "right"
-            ? (parent.height - height) / 2
-            : -height - 6
-        background: Rectangle {
-            color: bg.angelEverywhere ? Appearance.angel.colPrimary
-                : bg.inirEverywhere ? Appearance.inir.colPrimary
-                : Appearance.colors.colPrimary
-            radius: Appearance.rounding.full
-            implicitWidth: bubbleLabel.implicitWidth + 24
-            implicitHeight: bubbleLabel.implicitHeight + 10
-        }
-        contentItem: StyledText {
-            id: bubbleLabel
-            text: bubble.text
-            font.pixelSize: Appearance.font.pixelSize.small
-            font.weight: Font.Medium
-            color: bg.angelEverywhere ? Appearance.angel.colOnPrimary
-                : bg.inirEverywhere ? Appearance.inir.colOnPrimary
-                : Appearance.colors.colOnPrimary
-            horizontalAlignment: Text.AlignHCenter
-            verticalAlignment: Text.AlignVCenter
+        horizontalPadding: 12
+        verticalPadding: 5
+        anchorEdges: position === "left" ? Edges.Left
+            : position === "right" ? Edges.Right
+            : Edges.Top
+        anchorGravity: anchorEdges
+        contentItem: Item {
+            id: bubbleContent
+            property bool shown: false
+            implicitWidth: bubbleBackground.implicitWidth
+            implicitHeight: bubbleBackground.implicitHeight
+            opacity: shown ? 1 : 0
+            scale: shown ? 1 : 0.9
+
+            Behavior on opacity {
+                enabled: Appearance.animationsEnabled
+                NumberAnimation { duration: Appearance.animation.elementMoveFast.duration; easing.type: Easing.OutCubic }
+            }
+
+            Behavior on scale {
+                enabled: Appearance.animationsEnabled
+                NumberAnimation { duration: Appearance.animation.elementMoveFast.duration; easing.type: Easing.OutCubic }
+            }
+
+            Rectangle {
+                id: bubbleBackground
+                anchors.centerIn: parent
+                color: bg.angelEverywhere ? Appearance.angel.colPrimary
+                    : bg.inirEverywhere ? Appearance.inir.colPrimary
+                    : Appearance.colors.colPrimary
+                radius: Appearance.rounding.full
+                implicitWidth: bubbleLabel.implicitWidth + 24
+                implicitHeight: bubbleLabel.implicitHeight + 10
+
+                StyledText {
+                    id: bubbleLabel
+                    anchors.centerIn: parent
+                    text: bubble.text
+                    font.pixelSize: Appearance.font.pixelSize.small
+                    font.weight: Font.Medium
+                    color: bg.angelEverywhere ? Appearance.angel.colOnPrimary
+                        : bg.inirEverywhere ? Appearance.inir.colOnPrimary
+                        : Appearance.colors.colOnPrimary
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
+            }
         }
     }
 
