@@ -61,7 +61,7 @@ Scope {
                 screen: panelLoader.modelData
                 visible: !GlobalStates.screenLocked
 
-                property bool reveal: root.pinned || (Config.options?.dock?.hoverToReveal && dockMouseArea.containsMouse) || (dockApps?.requestDockShow || dockAppsVertical?.requestDockShow) || (Config.options?.dock?.showOnDesktop !== false && !ToplevelManager.activeToplevel?.activated)
+                property bool reveal: !GlobalStates.coverflowSelectorOpen && (root.pinned || (Config.options?.dock?.hoverToReveal && dockMouseArea.containsMouse) || (dockApps?.requestDockShow || dockAppsVertical?.requestDockShow) || (Config.options?.dock?.showOnDesktop !== false && !ToplevelManager.activeToplevel?.activated))
 
                 readonly property real dockHeight: Config.options?.dock?.height ?? 70
 

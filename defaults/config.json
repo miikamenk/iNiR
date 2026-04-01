@@ -953,7 +953,8 @@
         "style": "grid",
         "coverflowView": "gallery",
         "targetMonitor": "",
-        "useSystemFileDialog": false
+        "useSystemFileDialog": false,
+        "animatePreview": false
     },
     "screenRecord": {
         "savePath": "",

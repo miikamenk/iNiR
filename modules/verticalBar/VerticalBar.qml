@@ -58,7 +58,7 @@ Scope {
                 property bool superShow: false
                 property bool mustShow: hoverRegion.containsMouse || superShow
                 exclusionMode: ExclusionMode.Ignore
-                exclusiveZone: (Config?.options.bar.autoHide.enable && (!mustShow || !Config?.options.bar.autoHide.pushWindows)) ? 0 :
+                exclusiveZone: (GlobalStates.coverflowSelectorOpen || (Config?.options.bar.autoHide.enable && (!mustShow || !Config?.options.bar.autoHide.pushWindows))) ? 0 :
                     Appearance.sizes.baseVerticalBarWidth + ((Config.options?.bar?.cornerStyle ?? 0) === 1 ? Appearance.sizes.hyprlandGapsOut : 0)
                 WlrLayershell.namespace: "quickshell:verticalBar"
                 // WlrLayershell.layer: WlrLayer.Overlay // TODO enable this when bar can hide when fullscreen
@@ -100,7 +100,7 @@ Scope {
                             bottom: parent.bottom
                             left: parent.left
                             right: undefined
-                            leftMargin: (Config?.options.bar.autoHide.enable && !mustShow) ? -Appearance.sizes.verticalBarWidth : 0
+                            leftMargin: ((Config?.options.bar.autoHide.enable && !mustShow) || GlobalStates.coverflowSelectorOpen) ? -Appearance.sizes.verticalBarWidth : 0
                             rightMargin: 0
                         }
                         Behavior on anchors.leftMargin {
@@ -125,7 +125,7 @@ Scope {
                             PropertyChanges {
                                 target: barContent
                                 anchors.topMargin: 0
-                                anchors.rightMargin: (Config?.options.bar.autoHide.enable && !mustShow) ? -Appearance.sizes.verticalBarWidth : 0
+                                anchors.rightMargin: ((Config?.options.bar.autoHide.enable && !mustShow) || GlobalStates.coverflowSelectorOpen) ? -Appearance.sizes.verticalBarWidth : 0
                             }
                         }
                     }

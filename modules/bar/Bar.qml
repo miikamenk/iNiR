@@ -59,7 +59,7 @@ Scope {
                 property bool superShow: false
                 property bool mustShow: hoverRegion.containsMouse || superShow
                 exclusionMode: ExclusionMode.Ignore
-                exclusiveZone: (Config?.options.bar.autoHide.enable && (!mustShow || !Config?.options.bar.autoHide.pushWindows)) ? 0 :
+                exclusiveZone: (GlobalStates.coverflowSelectorOpen || (Config?.options.bar.autoHide.enable && (!mustShow || !Config?.options.bar.autoHide.pushWindows))) ? 0 :
                     Appearance.sizes.baseBarHeight + ((((Config.options?.bar?.cornerStyle ?? 0) === 1) || ((Config.options?.bar?.cornerStyle ?? 0) === 3)) ? (Appearance.sizes.hyprlandGapsOut * 2) : 0)
                 WlrLayershell.namespace: "quickshell:bar"
                 implicitHeight: Appearance.sizes.barHeight + Appearance.rounding.screenRounding
@@ -108,7 +108,7 @@ Scope {
                             left: parent.left
                             top: parent.top
                             bottom: undefined
-                            topMargin: (Config?.options.bar.autoHide.enable && !mustShow) ? -Appearance.sizes.barHeight : 0
+                            topMargin: ((Config?.options.bar.autoHide.enable && !mustShow) || GlobalStates.coverflowSelectorOpen) ? -Appearance.sizes.barHeight : 0
                             bottomMargin: ((Config.options?.interactions?.deadPixelWorkaround?.enable ?? false) && barRoot.anchors.bottom) * -1
                             rightMargin: ((Config.options?.interactions?.deadPixelWorkaround?.enable ?? false) && barRoot.anchors.right) * -1
                         }
@@ -134,7 +134,7 @@ Scope {
                             PropertyChanges {
                                 target: barContent
                                 anchors.topMargin: 0
-                                anchors.bottomMargin: (Config?.options.bar.autoHide.enable && !mustShow) ? -Appearance.sizes.barHeight : 0
+                                anchors.bottomMargin: ((Config?.options.bar.autoHide.enable && !mustShow) || GlobalStates.coverflowSelectorOpen) ? -Appearance.sizes.barHeight : 0
                             }
                         }
                     }
