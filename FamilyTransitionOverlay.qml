@@ -518,10 +518,10 @@ Scope {
             Rectangle {
                 id: badge
                 anchors.centerIn: parent
-                anchors.verticalCenterOffset: -18
-                width: 60
-                height: 60
-                radius: 30
+                anchors.verticalCenterOffset: -26
+                width: 68
+                height: 68
+                radius: 34
                 color: root._snapPrimaryContainer
 
                 opacity: root._phase ? 0 : (materialRoot.showBadge ? 1 : 0)
@@ -546,29 +546,27 @@ Scope {
                     }
                 }
 
+                // Logo shown at native colors — SVG has dark bg + teal gradients,
+                // MultiEffect colorization makes it a muddy blob at this size
                 Image {
                     anchors.centerIn: parent
-                    width: 34
-                    height: 34
+                    width: 40
+                    height: 40
                     source: Qt.resolvedUrl("assets/icons/illogical-impulse.svg")
-                    sourceSize: Qt.size(34, 34)
-
-                    layer.enabled: Appearance.effectsEnabled
-                    layer.effect: MultiEffect {
-                        colorization: 1.0
-                        colorizationColor: {
-                            const c = root._snapOnPrimaryContainer
-                            return ColorUtils.hslLightness(c) < 0.2 ? root._snapPrimary : c
-                        }
-                    }
+                    sourceSize: Qt.size(40, 40)
                 }
             }
 
-            // ── Text group ──
-            Column {
+            // ── Text ──
+            Text {
                 anchors.centerIn: parent
-                anchors.verticalCenterOffset: 30
-                spacing: 3
+                anchors.verticalCenterOffset: 38
+                text: "Material"
+                font.pixelSize: Appearance.font.pixelSize.larger
+                font.family: Appearance.font.family.main
+                font.weight: Font.Normal
+                color: root._snapOnSurface
+
                 opacity: root._phase ? 0 : (materialRoot.showSubtext ? 1 : 0)
                 scale: root._phase ? 0.92 : (materialRoot.showSubtext ? 1 : 0.85)
 
@@ -589,39 +587,12 @@ Scope {
                     }
                 }
 
-                Text {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    text: "Material ii"
-                    font.pixelSize: Appearance.font.pixelSize.larger
-                    font.family: Appearance.font.family.main
-                    font.weight: Font.Normal
-                    color: root._snapOnSurface
-
-                    layer.enabled: Appearance.effectsEnabled
-                    layer.effect: MultiEffect {
-                        shadowEnabled: true
-                        shadowColor: root._snapDarkmode ? "#40000000" : "#40FFFFFF"
-                        shadowBlur: 0.6
-                        shadowVerticalOffset: 1
-                    }
-                }
-
-                Text {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    text: "Material Design"
-                    font.pixelSize: Appearance.font.pixelSize.small
-                    font.family: Appearance.font.family.main
-                    font.weight: Font.Light
-                    color: root._snapOnSurface
-                    opacity: 0.55
-
-                    layer.enabled: Appearance.effectsEnabled
-                    layer.effect: MultiEffect {
-                        shadowEnabled: true
-                        shadowColor: root._snapDarkmode ? "#30000000" : "#30FFFFFF"
-                        shadowBlur: 0.4
-                        shadowVerticalOffset: 1
-                    }
+                layer.enabled: Appearance.effectsEnabled
+                layer.effect: MultiEffect {
+                    shadowEnabled: true
+                    shadowColor: root._snapDarkmode ? "#40000000" : "#40FFFFFF"
+                    shadowBlur: 0.6
+                    shadowVerticalOffset: 1
                 }
             }
         }

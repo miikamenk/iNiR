@@ -47,9 +47,10 @@ ShellRoot {
     }
 
     // Shell entry animation: panels start hidden, slide in after a brief delay
+    // 400ms ensures LazyLoader panels are created and rendered in hidden state first
     Timer {
         id: shellEntryTimer
-        interval: Appearance.animationsEnabled ? 150 : 0
+        interval: Appearance.animationsEnabled ? 400 : 0
         repeat: false
         onTriggered: GlobalStates.shellEntryReady = true
     }
