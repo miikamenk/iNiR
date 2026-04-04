@@ -20,7 +20,7 @@ For low-level debugging, `inir ipc <target> <function>` still works.
 
 ## Available Targets
 
-Everything ii can do, exposed for your scripting pleasure.
+Everything iNiR can do, exposed for your scripting pleasure.
 
 ### overview
 
@@ -197,6 +197,18 @@ Open the settings window. GUI config so you don't have to edit JSON like it's 20
 ```kdl
 bind "Super+Comma" { spawn "inir" "settings"; }
 ```
+
+---
+
+### controlPanel
+
+Quick settings panel. Toggles, sliders, and system controls without opening full settings.
+
+| Function | Description |
+|----------|-------------|
+| `toggle` | Open/close control panel |
+| `open` | Open control panel |
+| `close` | Close control panel |
 
 ---
 
@@ -387,6 +399,29 @@ Clipboard history service. The backend that makes clipboard panel work. You prob
 
 ---
 
+### ai
+
+AI chat service. Multi-provider (Gemini, OpenAI, Mistral) with tool support.
+
+| Function | Description |
+|----------|-------------|
+| `ensureInitialized` | Force-load models and API keys |
+| `diagnose` | Dump current AI state (model, keys, config) as JSON |
+| `run <text>` | Send a message or `/command` to the AI chat |
+
+---
+
+### packageSearch
+
+Package search service. Searches pacman repos and installed packages.
+
+| Function | Description |
+|----------|-------------|
+| `search <query>` | Start a package search |
+| `results` | Print current search results |
+
+---
+
 ### gamemode
 
 Performance mode for gaming. Auto-detects fullscreen apps and disables animations/effects. Can also be toggled manually for those stubborn games that don't go fullscreen properly.
@@ -419,6 +454,23 @@ bind "Mod+Shift+W" { spawn "inir" "panelFamily" "cycle"; }
 
 ---
 
+### shellUpdate
+
+Shell update checker. Monitors the git repo for new commits and shows an update overlay.
+
+| Function | Description |
+|----------|-------------|
+| `toggle` | Open/close update overlay |
+| `open` | Open update overlay |
+| `close` | Close update overlay |
+| `check` | Check for updates now |
+| `performUpdate` | Run the update |
+| `dismiss` | Dismiss update notification |
+| `undismiss` | Un-dismiss update notification |
+| `diagnose` | Dump update state as JSON |
+
+---
+
 ### notifications
 
 Notification management.
@@ -439,6 +491,21 @@ Window minimization (Niri workaround - moves windows to hidden workspace).
 |----------|-------------|
 | `minimize` | Minimize focused window |
 | `restore` | Restore a minimized window by ID |
+
+---
+
+### tiling
+
+Tiling layout overlay. Pick or cycle through tiling presets for the current workspace.
+
+| Function | Description |
+|----------|-------------|
+| `toggle` | Open/close tiling picker |
+| `open` | Open tiling picker |
+| `hide` | Close picker and OSD |
+| `cycle` | Cycle to next tiling preset (shows OSD) |
+| `showOsd` | Flash the current tiling preset OSD |
+| `promote` | Promote focused window to master position |
 
 ---
 
@@ -509,3 +576,27 @@ Waffle task view (Win+Tab style).
 | Function | Description |
 |----------|-------------|
 | `toggle` | Open/close task view |
+
+---
+
+### osd
+
+Waffle on-screen display indicator (volume, brightness).
+
+| Function | Description |
+|----------|-------------|
+| `trigger` | Show the OSD indicator |
+
+---
+
+### waffleAltSwitcher
+
+Waffle Alt+Tab window switcher. Separate from the ii `altSwitcher` — supports quick-switch (first tab switches instantly, second opens UI) and no-visual-UI mode.
+
+| Function | Description |
+|----------|-------------|
+| `open` | Open switcher |
+| `close` | Close switcher |
+| `toggle` | Toggle switcher |
+| `next` | Focus next window |
+| `previous` | Focus previous window |
