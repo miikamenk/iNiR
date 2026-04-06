@@ -207,6 +207,21 @@ def fix_alacritty_import_order(config_path):
     import_line = 'import = ["~/.config/alacritty/colors.toml"]'
     bare_import_pat = r"^import\s*=\s*\[.*?colors\.toml.*?\]"
     general_import_pat = r"import\s*=\s*\[.*?colors\.toml.*?\]"
+    general_option_pat = r"^(working_directory|live_config_reload|ipc_socket)\s*="
+
+    hoisted_general_lines = []
+    hoisted_general_keys = {}
+
+    def _hoist_general_line(stripped_line):
+        match = re.match(general_option_pat, stripped_line)
+        if not match:
+            hoisted_general_lines.append(stripped_line)
+            return
+
+        key = match.group(1)
+        if key not in hoisted_general_keys:
+            hoisted_general_keys[key] = stripped_line
+            hoisted_general_lines.append(stripped_line)
 
     has_hardcoded_colors = bool(
         re.search(r"^\[colors\.(primary|normal|bright)\]", content, re.MULTILINE)
@@ -218,12 +233,28 @@ def fix_alacritty_import_order(config_path):
         l.strip() for l in lines[:10] if l.strip() and not l.strip().startswith("#")
     ]
 
-    # Correct state: [general] is first real line, import is second, no hardcoded colors
+    misplaced_general = bool(
+        re.search(
+            r"^\s*(working_directory|live_config_reload|ipc_socket)\s*=",
+            content,
+            re.MULTILINE,
+        )
+    ) and not bool(
+        re.search(
+            r"^\s*\[general\](?:\n|\r\n)(?:[^\[]*\n|\r\n)*(?:\s*(working_directory|live_config_reload|ipc_socket)\s*=)",
+            content,
+            re.MULTILINE,
+        )
+    )
+
+    # Correct state: [general] is first real line, import is second, no hardcoded colors,
+    # and no misplaced [general] options elsewhere.
     correct = (
         len(top_lines) >= 2
         and top_lines[0] == "[general]"
         and bool(re.match(general_import_pat, top_lines[1]))
         and not has_hardcoded_colors
+        and not misplaced_general
     )
     if correct:
         return False, "Config is already correct"
@@ -267,11 +298,16 @@ def fix_alacritty_import_order(config_path):
             elif re.match(general_import_pat, stripped):
                 continue  # Skip - we already added import at top
             elif stripped:
-                # Move other [general] settings (live_config_reload, etc.) to top
-                new_lines.append(stripped)
+                # Move other [general] settings to top
+                _hoist_general_line(stripped)
                 continue
             else:
                 continue  # Skip empty lines in old [general]
+
+        # Hoist misplaced [general] keys (e.g. accidentally inside [[keyboard.bindings]])
+        if re.match(general_option_pat, stripped):
+            _hoist_general_line(stripped)
+            continue
 
         # Comment out hardcoded color sections
         if re.match(r"^\[colors\.(primary|normal|bright|cursor|selection)\]", stripped):
@@ -301,6 +337,9 @@ def fix_alacritty_import_order(config_path):
             continue
 
         new_lines.append(line)
+
+    if hoisted_general_lines:
+        new_lines = new_lines[:3] + hoisted_general_lines + [""] + new_lines[3:]
 
     try:
         Path(config_path).write_text("\n".join(new_lines))
