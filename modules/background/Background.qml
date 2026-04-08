@@ -320,6 +320,18 @@ Variants {
         // Blur suppression during wallpaper transitions — briefly fades blur out
         // so awww/crossfader transitions are visible, then fades back in.
         property real _blurTransitionFactor: 1
+        property int _blurHoldDurationMs: 0
+        function beginBlurSuppression(totalTransitionMs: int): void {
+            if (bgRoot.blurProgress <= 0)
+                return
+            const holdMs = Math.max(0, totalTransitionMs)
+            _blurTransitionAnimation.stop()
+            bgRoot._blurTransitionFactor = 1
+            bgRoot._blurHoldDurationMs = holdMs
+            _blurTransitionAnimation.restart()
+            _blurTransitionSafetyTimer.interval = holdMs + Appearance.calcEffectiveDuration(800)
+            _blurTransitionSafetyTimer.restart()
+        }
         SequentialAnimation {
             id: _blurTransitionAnimation
             NumberAnimation {
@@ -327,7 +339,7 @@ Variants {
                 to: 0; duration: Appearance.calcEffectiveDuration(200); easing.type: Easing.OutQuad
             }
             PauseAnimation {
-                duration: AwwwBackend.transitionDurationMs + 200
+                duration: bgRoot._blurHoldDurationMs
             }
             NumberAnimation {
                 target: bgRoot; property: "_blurTransitionFactor"
@@ -345,6 +357,14 @@ Variants {
             const effects = bgRoot.effectsOptions;
             if (!(effects?.enableBlur && (effects?.blurRadius ?? 0) > 0)) return 0;
             return focusPresenceProgress * _blurTransitionFactor;
+        }
+
+        Connections {
+            target: Wallpapers
+            function onWallpaperBlurTransitionRequested(targetMonitors, durationMs): void {
+                if (!targetMonitors || targetMonitors.length === 0 || targetMonitors.indexOf(bgRoot.monitorName) >= 0)
+                    bgRoot.beginBlurSuppression(durationMs)
+            }
         }
 
         // Layer props
@@ -387,13 +407,8 @@ Variants {
                 bgRoot._awwwRevealOpacity = 1
                 bgRoot._manualWallpaperScaleOverride = 0
             }
-            // Suppress blur during transition so the wallpaper change is visible
-            if (bgRoot.blurProgress > 0) {
-                _blurTransitionAnimation.stop()
-                bgRoot._blurTransitionFactor = 1
-                _blurTransitionAnimation.restart()
-                _blurTransitionSafetyTimer.interval = bgRoot._wallpaperTransitionDurationMs + Appearance.calcEffectiveDuration(1200)
-                _blurTransitionSafetyTimer.restart()
+            if (!Wallpapers._applyInProgress && bgRoot.blurProgress > 0) {
+                bgRoot.beginBlurSuppression(bgRoot._wallpaperTransitionDurationMs)
             } else {
                 _blurTransitionAnimation.stop()
                 _blurTransitionSafetyTimer.stop()

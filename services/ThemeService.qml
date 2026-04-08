@@ -22,9 +22,11 @@ Singleton {
     readonly property var wallpaperThemingCfg: Config.options?.appearance?.wallpaperTheming ?? null
     readonly property var terminalAdjCfg: wallpaperThemingCfg?.terminalColorAdjustments ?? null
     readonly property string panelFamily: Config.options?.panelFamily ?? "ii"
+    readonly property bool waffleUsesMainWallpaper: Config.options?.waffles?.background?.useMainWallpaper ?? true
     readonly property string liveRegenSignature: JSON.stringify({
         theme: currentTheme,
         panelFamily: root.panelFamily,
+        waffleUsesMainWallpaper: root.waffleUsesMainWallpaper,
         paletteType: Config.options?.appearance?.palette?.type ?? "auto",
         themingWallpaperPath: Wallpapers.effectiveWallpaperPath ?? "",
         enableAppsAndShell: wallpaperThemingCfg?.enableAppsAndShell ?? true,
