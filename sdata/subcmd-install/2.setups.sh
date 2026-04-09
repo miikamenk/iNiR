@@ -155,15 +155,21 @@ function disable_super_daemon_if_present(){
 #####################################################################################
 function setup_desktop_settings(){
   tui_info "Applying desktop settings..."
+
+  local preferred_icon_theme="WhiteSur-dark"
+  local icon_theme="$preferred_icon_theme"
+  if [[ ! -d "$HOME/.local/share/icons/$preferred_icon_theme" ]] && [[ ! -d "/usr/share/icons/$preferred_icon_theme" ]]; then
+    icon_theme="Adwaita"
+  fi
   
   # gsettings for GNOME/GTK apps (Nautilus, etc.)
-  # Use Adwaita as safe icon theme fallback — always installed on every system.
-  # The real user-chosen theme is applied on first wallpaper color generation
-  # and persisted by IconThemeService at runtime.
+  # Keep default icon theme aligned with iNiR defaults/config and installer payload.
+  # If preferred theme is not installed, fall back to Adwaita.
+  # If user later changes icon theme in Settings, IconThemeService persists and syncs it.
   if command -v gsettings &>/dev/null; then
     try gsettings set org.gnome.desktop.interface color-scheme 'prefer-dark'
     try gsettings set org.gnome.desktop.interface gtk-theme 'adw-gtk3-dark'
-    try gsettings set org.gnome.desktop.interface icon-theme 'Adwaita'
+    try gsettings set org.gnome.desktop.interface icon-theme "$icon_theme"
     try gsettings set org.gnome.desktop.interface cursor-theme 'capitaine-cursors-light'
     try gsettings set org.gnome.desktop.interface cursor-size 24
     try gsettings set org.gnome.desktop.interface font-name 'Rubik 11'
@@ -176,7 +182,7 @@ function setup_desktop_settings(){
     # Set color scheme — Darkly matches the generated Darkly.colors
     try kwriteconfig6 --file kdeglobals --group General --key ColorScheme Darkly
     # Icons — must match gsettings above
-    try kwriteconfig6 --file kdeglobals --group Icons --key Theme Adwaita
+    try kwriteconfig6 --file kdeglobals --group Icons --key Theme "$icon_theme"
   fi
   
   # Configure Kvantum theme via config file (avoid GUI)

@@ -180,7 +180,13 @@ EOF
 generate_kdeglobals() {
     local icon_theme
     icon_theme=$(gsettings get org.gnome.desktop.interface icon-theme 2>/dev/null | tr -d "'")
-    [[ -z "$icon_theme" ]] && icon_theme="Adwaita"
+    if [[ -z "$icon_theme" ]]; then
+        if [[ -d "$HOME/.local/share/icons/WhiteSur-dark" || -d "/usr/share/icons/WhiteSur-dark" ]]; then
+            icon_theme="WhiteSur-dark"
+        else
+            icon_theme="Adwaita"
+        fi
+    fi
     
     cat << EOF
 [ColorEffects:Disabled]
@@ -871,7 +877,13 @@ QT6CT_CONF="$HOME/.config/qt6ct/qt6ct.conf"
 mkdir -p "$(dirname "$QT6CT_CONF")"
 touch "$QT6CT_CONF"
 CURRENT_ICON_THEME=$(grep '^icon_theme=' "$QT6CT_CONF" 2>/dev/null | cut -d= -f2 || true)
-[[ -z "$CURRENT_ICON_THEME" ]] && CURRENT_ICON_THEME="Adwaita"
+if [[ -z "$CURRENT_ICON_THEME" ]]; then
+    if [[ -d "$HOME/.local/share/icons/WhiteSur-dark" || -d "/usr/share/icons/WhiteSur-dark" ]]; then
+        CURRENT_ICON_THEME="WhiteSur-dark"
+    else
+        CURRENT_ICON_THEME="Adwaita"
+    fi
+fi
 CURRENT_QT_STYLE=$(grep '^style=' "$QT6CT_CONF" 2>/dev/null | cut -d= -f2 || true)
 [[ -z "$CURRENT_QT_STYLE" ]] && CURRENT_QT_STYLE="Darkly"
 cat > "$QT6CT_CONF" << EOF

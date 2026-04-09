@@ -1271,7 +1271,9 @@ if [[ ! -d "$ICON_DIR/WhiteSur-dark" ]]; then
     tar -xzf "$TEMP_DIR/whitesur.tar.gz" -C "$TEMP_DIR"
     cd "$TEMP_DIR/WhiteSur-icon-theme-master"
     ./install.sh -d "$ICON_DIR" -t default >/dev/null 2>&1 || {
-      cp -r src/WhiteSur "$ICON_DIR/WhiteSur-dark" 2>/dev/null || true
+      cp -r src/WhiteSur "$ICON_DIR/WhiteSur" 2>/dev/null || true
+      cp -r src/WhiteSur-dark "$ICON_DIR/WhiteSur-dark" 2>/dev/null || true
+      cp -r src/WhiteSur-light "$ICON_DIR/WhiteSur-light" 2>/dev/null || true
     }
     cd - >/dev/null
     log_success "WhiteSur icon theme installed"
