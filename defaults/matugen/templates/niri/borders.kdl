@@ -1,0 +1,15 @@
+// iNiR Material You Niri Border Colors
+// Rendered by iNiR's unified wallpaper-color pipeline
+
+layout {
+    focus-ring {
+        active-color   "{{colors.primary.default.hex}}"
+        inactive-color "{{colors.outline.default.hex}}"
+    }
+
+    border {
+        active-color   "{{colors.primary.default.hex}}"
+        inactive-color "{{colors.outline_variant.default.hex}}"
+        urgent-color   "{{colors.error.default.hex}}"
+    }
+}

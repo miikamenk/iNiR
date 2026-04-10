@@ -34,6 +34,21 @@
       "name": "steam_adwsteam",
       "input": "steam/adw-colortheme.css",
       "output": "~/.local/state/quickshell/user/generated/steam-colortheme.css"
+    },
+    {
+      "name": "niri_borders",
+      "input": "niri/borders.kdl",
+      "output": "~/.config/niri/config.d/99-generated-colors.kdl"
+    },
+    {
+      "name": "nvim",
+      "input": "nvim/matugen.lua",
+      "output": "~/.config/nvim/lua/matugen.lua"
+    },
+    {
+      "name": "homeassistant",
+      "input": "homeassistant/homeassistant.sh",
+      "output": "~/.cache/inir/homeassistant.sh"
     }
   ]
 }

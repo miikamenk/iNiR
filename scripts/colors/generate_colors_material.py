@@ -989,3 +989,14 @@ if args.render_templates:
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
         )
+    import subprocess
+    subprocess.run(["pkill", "-SIGUSR1", "nvim"], check=False)
+
+    # Home Assistant post-hook: run the generated script to update lights
+    ha_script = os.path.expanduser("~/.cache/inir/homeassistant.sh")
+    if os.path.isfile(ha_script):
+        subprocess.Popen(
+            ["bash", ha_script],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
