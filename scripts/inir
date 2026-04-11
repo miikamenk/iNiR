@@ -370,6 +370,22 @@ apply_shell_scale() {
 }
 
 apply_qt_runtime_env() {
+    # Ensure WAYLAND_DISPLAY is set — required for Qt to select the wayland
+    # platform backend.  When systemd starts inir.service at boot, the
+    # compositor may not have exported WAYLAND_DISPLAY into the user manager
+    # environment yet.  Without it Qt falls back to XCB, which crashes on a
+    # headless Wayland session (no X11 display) and delays shell startup long
+    # enough for tray apps to miss the StatusNotifierWatcher.
+    if [[ -z "${WAYLAND_DISPLAY:-}" ]]; then
+        local candidate
+        for candidate in /run/user/"$(id -u)"/wayland-[0-9]*; do
+            if [[ -S "$candidate" ]]; then
+                export WAYLAND_DISPLAY="$(basename "$candidate")"
+                break
+            fi
+        done
+    fi
+
     # Qt platform theme drives icon resolution (QIcon::fromTheme) and widget styling.
     # Override via INIR_QT_QPA_PLATFORMTHEME / INIR_QT_STYLE_OVERRIDE if needed.
     if [[ -n "${INIR_QT_QPA_PLATFORMTHEME+x}" ]]; then
@@ -1530,6 +1546,7 @@ case "$command_name" in
         apply_shell_scale
         apply_qt_runtime_env
         apply_qt_logging_rules
+        ensure_systemd_graphical_env
         check_qs_abi
         check_setup_version_sync "$config_dir"
         if has_instances "$config_dir"; then
