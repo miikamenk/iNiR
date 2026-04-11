@@ -78,30 +78,30 @@ Item {
 
     // ─── Indicator dots ──────────────────────────────────────────────────
     // Anchored to the bottom of the button — never moves with magnify.
-    // Shows one dot per open window (up to maxDots). Focused window dot uses
-    // accent color at full opacity; others are dimmed.
+    // Uses the same visual language as panel mode: focused dot is wider
+    // and uses accent color; others are narrow and dimmed.
     Row {
         id: indicatorRow
         visible: root.hasWindows
         spacing: 3
-
+        // Always below the icon, centered — matches Panel mode positioning
         anchors {
-            bottom:           parent.bottom
-            bottomMargin:     root.vertical ? 0 : 3
-            horizontalCenter: !root.vertical ? parent.horizontalCenter : undefined
-            verticalCenter:   root.vertical  ? parent.verticalCenter   : undefined
-            right:            root.vertical  ? parent.right            : undefined
-            rightMargin:      root.vertical  ? 2                       : 0
+            bottom: parent.bottom
+            bottomMargin: 3
+            horizontalCenter: parent.horizontalCenter
         }
+
+        // Config options — same as panel mode
+        property bool smartIndicator: Config.options?.dock?.smartIndicator !== false
+        property bool showAllDots: Config.options?.dock?.showAllWindowDots !== false
 
         Repeater {
             model: {
-                const showAll = Config.options?.dock?.showAllWindowDots !== false
+                const showAll = indicatorRow.showAllDots
                 const max = root.maxDots
                 if (root.appIsActive || showAll)
                     return Math.min(root.windowCount, max)
-                // App has windows but is not focused and showAll is off — show one dim dot
-                return 1
+                return 0
             }
 
             delegate: Rectangle {
@@ -109,32 +109,46 @@ Item {
 
                 property bool isFocused: {
                     if (!root.appIsActive) return false
-                    if (!(Config.options?.dock?.smartIndicator !== false)) return true
+                    if (!indicatorRow.smartIndicator) return true
                     if (root.windowCount <= 1) return true
                     return index === root.focusedWindowIndex
                 }
 
-                width:  5
-                height: 5
-                radius: Appearance.rounding.full
-
-                color: Appearance.angelEverywhere ? Appearance.angel.colPrimary
+                radius: Appearance.angelEverywhere ? 0 : Appearance.rounding.full
+                implicitWidth: Appearance.angelEverywhere
+                    ? (isFocused ? 14 : 6)
+                    : (isFocused ? 10 : 4)
+                implicitHeight: Appearance.angelEverywhere ? 2 : 4
+                color: isFocused
+                    ? (Appearance.angelEverywhere ? Appearance.angel.colPrimary
                      : Appearance.inirEverywhere  ? Appearance.inir.colPrimary
-                     : Appearance.auroraEverywhere ? ColorUtils.transparentize(Appearance.colors.colOnLayer0, 0.15)
-                     : Appearance.colors.colOnLayer0
+                     : Appearance.colors.colPrimary)
+                    : ColorUtils.transparentize(
+                        Appearance.angelEverywhere ? Appearance.angel.colTextSecondary
+                      : Appearance.inirEverywhere  ? Appearance.inir.colText
+                      : Appearance.colors.colOnLayer0, 0.5)
 
-                // Focused window: full opacity; other windows: dim; inactive: very dim
-                opacity: isFocused ? 1.0 : (root.appIsActive ? 0.38 : 0.25)
-
-                Behavior on opacity {
+                Behavior on implicitWidth {
                     enabled: Appearance.animationsEnabled
-                    NumberAnimation { duration: 200; easing.type: Easing.OutCubic }
+                    NumberAnimation { duration: 120; easing.type: Easing.OutQuad }
                 }
                 Behavior on color {
                     enabled: Appearance.animationsEnabled
                     ColorAnimation { duration: 180; easing.type: Easing.OutCubic }
                 }
             }
+        }
+
+        // Fallback: single dim dot when showAllDots is off and app is inactive
+        Rectangle {
+            visible: !root.appIsActive && root.hasWindows && !indicatorRow.showAllDots
+            width: Appearance.angelEverywhere ? 6 : 5
+            height: Appearance.angelEverywhere ? 2 : 5
+            radius: Appearance.angelEverywhere ? 0 : 2.5
+            color: ColorUtils.transparentize(
+                Appearance.angelEverywhere ? Appearance.angel.colTextSecondary
+              : Appearance.inirEverywhere  ? Appearance.inir.colText
+              : Appearance.colors.colOnLayer0, 0.5)
         }
     }
 }

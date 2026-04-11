@@ -53,22 +53,24 @@ Item {
     // Smart window-count indicators — same visual language as panel mode (flat pill dots).
     // Shows one dot per open window (up to maxDots). The focused window's dot is wider
     // and uses the accent color; others are dimmed.
+    // Config options — hoisted for reuse across repeater and fallback
+    property bool smartIndicator: Config.options?.dock?.smartIndicator !== false
+    property bool showAllDots: Config.options?.dock?.showAllWindowDots !== false
+
     Row {
         id: indicatorRow
         visible: root.hasWindows && !Appearance.gameModeMinimal
         spacing: 3
+        // Always below the icon, centered — matches Panel mode positioning
         anchors {
             bottom: parent.bottom
-            bottomMargin: root.vertical ? 0 : 2
-            horizontalCenter: !root.vertical ? parent.horizontalCenter : undefined
-            verticalCenter: root.vertical ? parent.verticalCenter : undefined
-            right: root.vertical ? parent.right : undefined
-            rightMargin: root.vertical ? 2 : 0
+            bottomMargin: 2
+            horizontalCenter: parent.horizontalCenter
         }
 
         Repeater {
             model: {
-                const showAll = Config.options?.dock?.showAllWindowDots !== false
+                const showAll = root.showAllDots
                 const max = root.maxDots
                 if (root.appIsActive || showAll)
                     return Math.min(root.windowCount, max)
@@ -80,7 +82,7 @@ Item {
 
                 property bool isFocused: {
                     if (!root.appIsActive) return false
-                    if (!(Config.options?.dock?.smartIndicator !== false)) return true
+                    if (!root.smartIndicator) return true
                     if (root.windowCount <= 1) return true
                     return index === root.focusedWindowIndex
                 }
@@ -113,7 +115,7 @@ Item {
 
         // Fallback: single dim dot when showAllDots is off and app is inactive
         Rectangle {
-            visible: !root.appIsActive && root.hasWindows && Config.options?.dock?.showAllWindowDots === false
+            visible: !root.appIsActive && root.hasWindows && !root.showAllDots
             width:  Appearance.angelEverywhere ? 6 : 5
             height: Appearance.angelEverywhere ? 2 : 5
             radius: Appearance.angelEverywhere ? 0 : 2.5
