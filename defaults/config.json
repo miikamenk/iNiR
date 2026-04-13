@@ -1181,6 +1181,12 @@
             "requirePasswordToPower": false,
             "unlockKeyring": true
         },
+        "screensaver": {
+            "enable": true,
+            "idleSeconds": 30,
+            "wallpaperIntervalSeconds": 30,
+            "showClock": true
+        },
         "showLockedText": true,
         "status": {
             "enable": true
