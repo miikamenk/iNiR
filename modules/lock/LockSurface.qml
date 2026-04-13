@@ -1,17 +1,21 @@
 import QtQuick
 import QtQuick.Layouts
+import QtQuick.Effects
 import QtMultimedia
 import Qt5Compat.GraphicalEffects
+import Qt.labs.folderlistmodel
+import Quickshell
+import Quickshell.Io
 import Quickshell.Services.UPower
 import Quickshell.Services.Mpris
+import Quickshell.Services.SystemTray
 import qs
 import qs.services
 import qs.modules.common
 import qs.modules.common.widgets
+import qs.modules.common.models
 import qs.modules.common.functions
 import qs.modules.bar as Bar
-import Quickshell
-import Quickshell.Services.SystemTray
 
 MouseArea {
     id: root
@@ -28,7 +32,14 @@ MouseArea {
     readonly property real blurRadius: Config.options?.lock?.blur?.radius ?? 64
     readonly property real blurZoom: Config.options?.lock?.blur?.extraZoom ?? 1.1
     readonly property bool enableAnimation: Config.options?.lock?.enableAnimation ?? false
-    
+
+    // Screensaver config
+    readonly property bool screensaverEnabled: Config.options?.lock?.screensaver?.enable ?? true
+    readonly property int screensaverIdleSeconds: Config.options?.lock?.screensaver?.idleSeconds ?? 30
+    readonly property int screensaverWallpaperInterval: Config.options?.lock?.screensaver?.wallpaperIntervalSeconds ?? 30
+    readonly property bool screensaverShowClock: Config.options?.lock?.screensaver?.showClock ?? true
+    property bool screensaverActive: false
+
     // Wallpaper path resolution
     readonly property string _wallpaperSource: Config.options?.background?.wallpaperPath ?? ""
     readonly property string _wallpaperThumbnail: Config.options?.background?.thumbnailPath ?? ""
@@ -984,6 +995,628 @@ MouseArea {
         }
     }
 
+    // ===== SCREENSAVER =====
+
+    // List image files from wallpaper folder for screensaver cycling
+    FolderListModel {
+        id: screensaverWallpaperModel
+        folder: "file://" + Directories.wallpapersPath
+        nameFilters: ["*.png", "*.jpg", "*.jpeg", "*.webp", "*.bmp"]
+        showDirs: false
+        sortField: FolderListModel.Unsorted
+    }
+
+    // Idle timer — triggers screensaver after no interaction
+    Timer {
+        id: screensaverIdleTimer
+        interval: root.screensaverIdleSeconds * 1000
+        running: root.screensaverEnabled && GlobalStates.screenLocked && !root.screensaverActive && root.currentView === "clock"
+        repeat: false
+        onTriggered: {
+            if (screensaverWallpaperModel.count > 0) {
+                screensaverState.loadFirst()
+                root.screensaverActive = true
+            }
+        }
+    }
+
+    // Wallpaper cycling timer
+    Timer {
+        id: screensaverCycleTimer
+        interval: root.screensaverWallpaperInterval * 1000
+        running: root.screensaverActive
+        repeat: true
+        onTriggered: screensaverState.startNextTransition()
+    }
+
+    // Screensaver state management
+    QtObject {
+        id: screensaverState
+        // Which layer is currently the visible "front" (true = A is front)
+        property bool aIsFront: true
+        // Pending source to load into the back layer before crossfading
+        property string pendingSource: ""
+        // Track what's currently showing so we avoid repeats
+        property string visiblePath: ""
+
+        function pickRandomPath(): string {
+            if (screensaverWallpaperModel.count === 0) return ""
+            let idx = Math.floor(Math.random() * screensaverWallpaperModel.count)
+            let path = screensaverWallpaperModel.get(idx, "filePath")
+            if (path === visiblePath && screensaverWallpaperModel.count > 1) {
+                idx = (idx + 1) % screensaverWallpaperModel.count
+                path = screensaverWallpaperModel.get(idx, "filePath")
+            }
+            return path
+        }
+
+        function loadFirst() {
+            const path = pickRandomPath()
+            if (!path) return
+            visiblePath = path
+            // Load directly into front layer, no crossfade
+            ssWallpaperA.source = path
+            ssWallpaperA.opacity = 1
+            ssWallpaperB.source = ""
+            ssWallpaperB.opacity = 0
+            aIsFront = true
+        }
+
+        function startNextTransition() {
+            const path = pickRandomPath()
+            if (!path) return
+            pendingSource = path
+            // Load into the back (hidden) layer
+            const backImg = aIsFront ? ssWallpaperB : ssWallpaperA
+            backImg.source = path
+            // If already cached/loaded, statusChanged won't fire — check immediately
+            if (backImg.status === Image.Ready) {
+                commitCrossfade()
+            }
+            // Otherwise onStatusChanged in the Image handles it
+        }
+
+        function commitCrossfade() {
+            if (!pendingSource) return
+            visiblePath = pendingSource
+            pendingSource = ""
+            // Crossfade: fade in the back layer on top; keep front at opacity 1
+            const incoming = aIsFront ? ssWallpaperB : ssWallpaperA
+            incoming.opacity = 0
+            ssCrossfadeAnim.target = incoming
+            ssCrossfadeAnim.start()
+            aIsFront = !aIsFront
+        }
+
+        function reset() {
+            pendingSource = ""
+            visiblePath = ""
+            ssCrossfadeAnim.stop()
+            ssWallpaperA.source = ""
+            ssWallpaperB.source = ""
+            ssWallpaperA.opacity = 1
+            ssWallpaperB.opacity = 0
+            aIsFront = true
+        }
+    }
+
+    // Timer to clear the old (now hidden) layer source after crossfade finishes
+    Timer {
+        id: ssClearOldTimer
+        interval: 1800  // slightly longer than crossfade duration
+        onTriggered: {
+            // Clear the hidden layer to free memory
+            if (screensaverState.aIsFront) {
+                ssWallpaperB.source = ""
+            } else {
+                ssWallpaperA.source = ""
+            }
+            gc()
+        }
+    }
+
+    // Screensaver overlay with crossfading wallpapers
+    Item {
+        id: screensaverOverlay
+        anchors.fill: parent
+        z: 50
+        visible: opacity > 0
+        opacity: root.screensaverActive ? 1 : 0
+
+        Behavior on opacity {
+            NumberAnimation {
+                duration: 800
+                easing.type: Easing.InOutQuad
+            }
+        }
+
+        // Layer A
+        Image {
+            id: ssWallpaperA
+            anchors.fill: parent
+            fillMode: Image.PreserveAspectCrop
+            asynchronous: true
+            cache: false
+            opacity: 1
+
+            onStatusChanged: {
+                if (status === Image.Ready && !screensaverState.aIsFront && screensaverState.pendingSource) {
+                    screensaverState.commitCrossfade()
+                }
+            }
+        }
+
+        // Layer B
+        Image {
+            id: ssWallpaperB
+            anchors.fill: parent
+            fillMode: Image.PreserveAspectCrop
+            asynchronous: true
+            cache: false
+            opacity: 0
+
+            onStatusChanged: {
+                if (status === Image.Ready && screensaverState.aIsFront && screensaverState.pendingSource) {
+                    screensaverState.commitCrossfade()
+                }
+            }
+        }
+
+        // Crossfade animation — only fades IN the incoming layer; outgoing stays opaque until done
+        NumberAnimation {
+            id: ssCrossfadeAnim
+            property: "opacity"
+            duration: 1500
+            easing.type: Easing.InOutQuad
+            from: 0; to: 1
+            onFinished: {
+                // Snap the now-hidden old layer to 0
+                if (screensaverState.aIsFront) {
+                    ssWallpaperB.opacity = 0
+                } else {
+                    ssWallpaperA.opacity = 0
+                }
+                ssClearOldTimer.restart()
+            }
+        }
+
+        // Subtle gradient overlay for readability
+        Rectangle {
+            anchors.fill: parent
+            gradient: Gradient {
+                GradientStop { position: 0.0; color: Qt.rgba(0, 0, 0, 0.15) }
+                GradientStop { position: 1.0; color: Qt.rgba(0, 0, 0, 0.35) }
+            }
+        }
+
+        // DVD-style bouncing clock — reuses lockscreen clock style + audio visualizer
+        Item {
+            id: driftingClock
+            visible: root.screensaverShowClock
+            width: driftClockCol.implicitWidth + 40
+            height: driftClockCol.implicitHeight + 20
+
+            property real vx: 1.5
+            property real vy: 1.0
+            property color dvdColor: Appearance.colors.colOnSurface
+
+            readonly property var dvdColors: [
+                "#FF6B6B", "#51CF66", "#339AF0", "#FCC419",
+                "#CC5DE8", "#FF922B", "#22B8CF", "#FF8787",
+                "#69DB7C", "#748FFC", "#F06595", "#20C997"
+            ]
+            property int dvdColorIndex: 0
+
+            function cycleColor() {
+                dvdColorIndex = (dvdColorIndex + 1) % dvdColors.length
+                dvdColor = dvdColors[dvdColorIndex]
+            }
+
+            Behavior on dvdColor {
+                ColorAnimation { duration: 300; easing.type: Easing.OutCubic }
+            }
+
+            Component.onCompleted: {
+                x = Math.random() * Math.max(1, screensaverOverlay.width - width)
+                y = Math.random() * Math.max(1, screensaverOverlay.height - height)
+                vx = (Math.random() < 0.5 ? -1 : 1) * (1.8 + Math.random() * 0.8)
+                vy = (Math.random() < 0.5 ? -1 : 1) * (1.2 + Math.random() * 0.6)
+            }
+
+            FrameAnimation {
+                running: root.screensaverActive && driftingClock.visible
+                onTriggered: {
+                    const dt = frameTime * 60
+                    let nx = driftingClock.x + driftingClock.vx * dt
+                    let ny = driftingClock.y + driftingClock.vy * dt
+                    const maxX = screensaverOverlay.width - driftingClock.width
+                    const maxY = screensaverOverlay.height - driftingClock.height
+                    let bounced = false
+
+                    if (maxX > 0) {
+                        if (nx <= 0) { nx = 0; driftingClock.vx = Math.abs(driftingClock.vx); bounced = true }
+                        else if (nx >= maxX) { nx = maxX; driftingClock.vx = -Math.abs(driftingClock.vx); bounced = true }
+                    }
+                    if (maxY > 0) {
+                        if (ny <= 0) { ny = 0; driftingClock.vy = Math.abs(driftingClock.vy); bounced = true }
+                        else if (ny >= maxY) { ny = maxY; driftingClock.vy = -Math.abs(driftingClock.vy); bounced = true }
+                    }
+
+                    if (bounced) driftingClock.cycleColor()
+
+                    driftingClock.x = nx
+                    driftingClock.y = ny
+                }
+            }
+
+            // Screensaver media state
+            readonly property var ssPlayer: MprisController.activePlayer
+            readonly property bool ssHasPlayer: ssPlayer !== null &&
+                ssPlayer.playbackState !== MprisPlaybackState.Stopped &&
+                (ssPlayer.trackTitle?.length > 0 ?? false)
+
+            property string ssArtFileName: ssPlayer?.trackArtUrl ? Qt.md5(ssPlayer.trackArtUrl) : ""
+            property string ssArtFilePath: ssArtFileName ? `${Directories.coverArt}/${ssArtFileName}` : ""
+            property bool ssArtDownloaded: false
+            property string ssDisplayedArt: ssArtDownloaded ? Qt.resolvedUrl(ssArtFilePath) : ""
+            property int _ssDownloadRetryCount: 0
+
+            function ssCheckArt() {
+                if (!ssPlayer?.trackArtUrl) { ssArtDownloaded = false; _ssDownloadRetryCount = 0; return }
+                ssArtExistsChecker.running = true
+            }
+
+            onSsArtFilePathChanged: { _ssDownloadRetryCount = 0; ssCheckArt() }
+            Connections {
+                target: driftingClock.ssPlayer
+                function onTrackArtUrlChanged() { driftingClock._ssDownloadRetryCount = 0; driftingClock.ssCheckArt() }
+            }
+
+            Process {
+                id: ssArtExistsChecker
+                command: ["/usr/bin/test", "-f", driftingClock.ssArtFilePath]
+                onExited: (exitCode, exitStatus) => {
+                    if (exitCode === 0) { driftingClock.ssArtDownloaded = true; driftingClock._ssDownloadRetryCount = 0 }
+                    else { driftingClock.ssArtDownloaded = false; ssArtDownloader.targetFile = driftingClock.ssPlayer?.trackArtUrl ?? ""; ssArtDownloader.artFilePath = driftingClock.ssArtFilePath; ssArtDownloader.running = true }
+                }
+            }
+
+            Process {
+                id: ssArtDownloader
+                property string targetFile
+                property string artFilePath
+                command: ["/usr/bin/bash", "-c", `
+                    if [ -f '${artFilePath}' ]; then exit 0; fi
+                    mkdir -p '${Directories.coverArt}'
+                    tmp='${artFilePath}.tmp'
+                    /usr/bin/curl -sSL --connect-timeout 10 --max-time 30 '${targetFile}' -o "$tmp" && \
+                    [ -s "$tmp" ] && /usr/bin/mv -f "$tmp" '${artFilePath}' || { rm -f "$tmp"; exit 1; }
+                `]
+                onExited: (exitCode) => {
+                    if (exitCode === 0) { driftingClock.ssArtDownloaded = true; driftingClock._ssDownloadRetryCount = 0 }
+                    else { driftingClock.ssArtDownloaded = false; if (driftingClock._ssDownloadRetryCount < 3 && driftingClock.ssPlayer?.trackArtUrl) { driftingClock._ssDownloadRetryCount++; ssRetryTimer.start() } }
+                }
+            }
+
+            Timer {
+                id: ssRetryTimer
+                interval: 1000 * driftingClock._ssDownloadRetryCount
+                repeat: false
+                onTriggered: { if (driftingClock.ssPlayer?.trackArtUrl && !driftingClock.ssArtDownloaded) { ssArtDownloader.targetFile = driftingClock.ssPlayer.trackArtUrl; ssArtDownloader.artFilePath = driftingClock.ssArtFilePath; ssArtDownloader.running = true } }
+            }
+
+            ColorQuantizer {
+                id: ssColorQuantizer
+                source: driftingClock.ssDisplayedArt
+                depth: 0
+                rescaleSize: 1
+            }
+
+            property color ssArtDominantColor: ColorUtils.mix(
+                ssColorQuantizer?.colors[0] ?? Appearance.colors.colPrimary,
+                Appearance.colors.colPrimaryContainer, 0.7
+            )
+            property QtObject ssBlendedColors: AdaptedMaterialScheme { color: driftingClock.ssArtDominantColor }
+
+            readonly property color ssColText: Appearance.inir.colText
+            readonly property color ssColTextSecondary: Appearance.inir.colTextSecondary
+            readonly property color ssColPrimary: Appearance.inir.colPrimary
+            readonly property color ssColLayer1: Appearance.inir.colLayer1
+            readonly property color ssColLayer2: Appearance.inir.colLayer2
+
+            CavaProcess {
+                id: ssCavaProcess
+                active: root.screensaverActive && driftingClock.visible &&
+                        driftingClock.ssHasPlayer &&
+                        (driftingClock.ssPlayer?.isPlaying ?? false) &&
+                        Appearance.effectsEnabled
+            }
+
+            ColumnLayout {
+                id: driftClockCol
+                anchors.centerIn: parent
+                spacing: 8
+
+                // Time — same style as lockscreen clock
+                Text {
+                    id: ssClock
+                    Layout.alignment: Qt.AlignHCenter
+                    text: Qt.formatTime(new Date(), "hh:mm")
+                    font.pixelSize: Math.round(108 * Appearance.fontSizeScale)
+                    font.weight: Font.DemiBold
+                    font.family: Appearance.font.family.appearance
+                    color: driftingClock.dvdColor
+
+                    Behavior on color {
+                        ColorAnimation { duration: 300; easing.type: Easing.OutCubic }
+                    }
+
+                    layer.enabled: Appearance.effectsEnabled
+                    layer.effect: DropShadow {
+                        horizontalOffset: 0
+                        verticalOffset: 3
+                        radius: 16
+                        samples: 33
+                        color: Qt.rgba(0, 0, 0, 0.5)
+                    }
+
+                    Timer {
+                        interval: 1000
+                        running: root.screensaverActive
+                        repeat: true
+                        onTriggered: ssClock.text = Qt.formatTime(new Date(), "hh:mm")
+                    }
+                }
+
+                // Date — same style as lockscreen date
+                Text {
+                    Layout.alignment: Qt.AlignHCenter
+                    text: Qt.formatDate(new Date(), "dddd, d MMMM")
+                    font.pixelSize: Math.round(22 * Appearance.fontSizeScale)
+                    font.weight: Font.Normal
+                    font.family: Appearance.font.family.main
+                    color: driftingClock.dvdColor
+
+                    Behavior on color {
+                        ColorAnimation { duration: 300; easing.type: Easing.OutCubic }
+                    }
+
+                    layer.enabled: Appearance.effectsEnabled
+                    layer.effect: DropShadow {
+                        horizontalOffset: 0
+                        verticalOffset: 1
+                        radius: 8
+                        samples: 17
+                        color: Qt.rgba(0, 0, 0, 0.4)
+                    }
+                }
+
+                // Media player card (no controls) — shown when music is playing
+                Loader {
+                    id: ssMediaLoader
+                    Layout.alignment: Qt.AlignHCenter
+                    Layout.topMargin: 12
+                    active: driftingClock.ssHasPlayer
+                    visible: active
+
+                    sourceComponent: Rectangle {
+                        id: ssCard
+                        width: 360
+                        implicitHeight: 130
+                        radius: Appearance.angelEverywhere ? Appearance.angel.roundingNormal
+                            : Appearance.inirEverywhere ? Appearance.inir.roundingNormal : Appearance.rounding.normal
+                        color: Appearance.angelEverywhere ? Appearance.angel.colGlassCard
+                             : Appearance.inirEverywhere ? Appearance.inir.colLayer1
+                             : Appearance.auroraEverywhere ? ColorUtils.transparentize(driftingClock.ssBlendedColors?.colLayer0 ?? Appearance.colors.colLayer0, 0.7)
+                             : (driftingClock.ssBlendedColors?.colLayer0 ?? Appearance.colors.colLayer0)
+                        border.width: Appearance.angelEverywhere ? Appearance.angel.cardBorderWidth
+                            : Appearance.inirEverywhere ? 1 : 0
+                        border.color: Appearance.angelEverywhere ? Appearance.angel.colCardBorder
+                            : Appearance.inirEverywhere ? Appearance.inir.colBorder : "transparent"
+                        clip: true
+
+                        layer.enabled: Appearance.effectsEnabled
+                        layer.effect: OpacityMask {
+                            maskSource: Rectangle { width: ssCard.width; height: ssCard.height; radius: ssCard.radius }
+                        }
+
+                        // Cover art background
+                        Image {
+                            anchors.fill: parent
+                            source: driftingClock.ssDisplayedArt
+                            fillMode: Image.PreserveAspectCrop
+                            asynchronous: true
+                            opacity: Appearance.inirEverywhere ? 0.2 : (Appearance.auroraEverywhere ? 0.3 : 0.6)
+                            visible: driftingClock.ssDisplayedArt !== ""
+
+                            layer.enabled: Appearance.effectsEnabled
+                            layer.effect: MultiEffect {
+                                blurEnabled: true
+                                blur: Appearance.inirEverywhere ? 0.5 : 0.4
+                                blurMax: 32
+                                saturation: Appearance.inirEverywhere ? 0.1 : 0.4
+                            }
+                        }
+
+                        // Dark overlay
+                        Rectangle {
+                            anchors.fill: parent
+                            gradient: Gradient {
+                                orientation: Gradient.Horizontal
+                                GradientStop { position: 0.0; color: ColorUtils.transparentize(driftingClock.ssBlendedColors?.colLayer0 ?? Appearance.colors.colLayer0, 0.7) }
+                                GradientStop { position: 0.3; color: ColorUtils.transparentize(driftingClock.ssBlendedColors?.colLayer0 ?? Appearance.colors.colLayer0, 0.4) }
+                                GradientStop { position: 1.0; color: ColorUtils.transparentize(driftingClock.ssBlendedColors?.colLayer0 ?? Appearance.colors.colLayer0, 0.2) }
+                            }
+                        }
+
+                        // Visualizer at bottom
+                        WaveVisualizer {
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            anchors.bottom: parent.bottom
+                            height: 30
+                            live: driftingClock.ssPlayer?.isPlaying ?? false
+                            points: ssCavaProcess.points
+                            maxVisualizerValue: 1000
+                            smoothing: 2
+                            color: ColorUtils.transparentize(
+                                Appearance.inirEverywhere ? driftingClock.ssColPrimary : (driftingClock.ssBlendedColors?.colPrimary ?? Appearance.colors.colPrimary),
+                                0.6
+                            )
+                        }
+
+                        RowLayout {
+                            anchors.fill: parent
+                            anchors.margins: 10
+                            spacing: 10
+
+                            // Cover art thumbnail
+                            Rectangle {
+                                id: ssCoverArtContainer
+                                Layout.preferredWidth: 110
+                                Layout.preferredHeight: 110
+                                Layout.alignment: Qt.AlignVCenter
+                                radius: Appearance.inirEverywhere ? Appearance.inir.roundingSmall : Appearance.rounding.small
+                                color: "transparent"
+                                clip: true
+
+                                layer.enabled: Appearance.effectsEnabled
+                                layer.effect: OpacityMask {
+                                    maskSource: Rectangle {
+                                        width: 110; height: 110
+                                        radius: Appearance.inirEverywhere ? Appearance.inir.roundingSmall : Appearance.rounding.small
+                                    }
+                                }
+
+                                Image {
+                                    id: ssCoverArt
+                                    anchors.fill: parent
+                                    source: driftingClock.ssDisplayedArt
+                                    fillMode: Image.PreserveAspectCrop
+                                    asynchronous: true
+                                }
+
+                                Rectangle {
+                                    anchors.fill: parent
+                                    color: Appearance.inirEverywhere ? driftingClock.ssColLayer2 : (driftingClock.ssBlendedColors?.colLayer1 ?? Appearance.colors.colLayer1)
+                                    visible: !driftingClock.ssArtDownloaded
+
+                                    MaterialSymbol {
+                                        anchors.centerIn: parent
+                                        text: "music_note"
+                                        iconSize: 32
+                                        color: Appearance.inirEverywhere ? driftingClock.ssColTextSecondary : (driftingClock.ssBlendedColors?.colSubtext ?? Appearance.colors.colSubtext)
+                                    }
+                                }
+                            }
+
+                            // Info column
+                            ColumnLayout {
+                                Layout.fillWidth: true
+                                Layout.fillHeight: true
+                                spacing: 2
+
+                                // Title
+                                StyledText {
+                                    Layout.fillWidth: true
+                                    text: StringUtils.cleanMusicTitle(driftingClock.ssPlayer?.trackTitle) || "\u2014"
+                                    font.pixelSize: Appearance.font.pixelSize.normal
+                                    font.weight: Font.Medium
+                                    color: Appearance.inirEverywhere ? driftingClock.ssColText : (driftingClock.ssBlendedColors?.colOnLayer0 ?? Appearance.colors.colOnLayer0)
+                                    elide: Text.ElideRight
+                                }
+
+                                // Artist
+                                StyledText {
+                                    Layout.fillWidth: true
+                                    text: driftingClock.ssPlayer?.trackArtist || ""
+                                    font.pixelSize: Appearance.font.pixelSize.smaller
+                                    color: Appearance.inirEverywhere ? driftingClock.ssColTextSecondary : (driftingClock.ssBlendedColors?.colSubtext ?? Appearance.colors.colSubtext)
+                                    elide: Text.ElideRight
+                                    visible: text !== ""
+                                }
+
+                                Item { Layout.fillHeight: true }
+
+                                // Progress bar
+                                Item {
+                                    Layout.fillWidth: true
+                                    implicitHeight: 16
+
+                                    Loader {
+                                        anchors.fill: parent
+                                        active: driftingClock.ssPlayer?.canSeek ?? false
+                                        sourceComponent: StyledSlider {
+                                            configuration: StyledSlider.Configuration.Wavy
+                                            wavy: driftingClock.ssPlayer?.isPlaying ?? false
+                                            animateWave: driftingClock.ssPlayer?.isPlaying ?? false
+                                            highlightColor: Appearance.inirEverywhere ? driftingClock.ssColPrimary : (driftingClock.ssBlendedColors?.colPrimary ?? Appearance.colors.colPrimary)
+                                            trackColor: Appearance.inirEverywhere ? Appearance.inir.colLayer2 : (driftingClock.ssBlendedColors?.colSecondaryContainer ?? Appearance.colors.colSecondaryContainer)
+                                            handleColor: Appearance.inirEverywhere ? driftingClock.ssColPrimary : (driftingClock.ssBlendedColors?.colPrimary ?? Appearance.colors.colPrimary)
+                                            value: driftingClock.ssPlayer?.length > 0 ? driftingClock.ssPlayer.position / driftingClock.ssPlayer.length : 0
+                                            scrollable: false
+                                        }
+                                    }
+
+                                    Loader {
+                                        anchors.fill: parent
+                                        active: !(driftingClock.ssPlayer?.canSeek ?? false)
+                                        sourceComponent: StyledProgressBar {
+                                            wavy: driftingClock.ssPlayer?.isPlaying ?? false
+                                            animateWave: driftingClock.ssPlayer?.isPlaying ?? false
+                                            highlightColor: Appearance.inirEverywhere ? driftingClock.ssColPrimary : (driftingClock.ssBlendedColors?.colPrimary ?? Appearance.colors.colPrimary)
+                                            trackColor: Appearance.inirEverywhere ? Appearance.inir.colLayer2 : (driftingClock.ssBlendedColors?.colSecondaryContainer ?? Appearance.colors.colSecondaryContainer)
+                                            value: driftingClock.ssPlayer?.length > 0 ? driftingClock.ssPlayer.position / driftingClock.ssPlayer.length : 0
+                                        }
+                                    }
+                                }
+
+                                // Time row
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    spacing: 4
+
+                                    StyledText {
+                                        text: StringUtils.friendlyTimeForSeconds(driftingClock.ssPlayer?.position ?? 0)
+                                        font.pixelSize: Appearance.font.pixelSize.smallest
+                                        font.family: Appearance.font.family.numbers
+                                        color: Appearance.inirEverywhere ? driftingClock.ssColText : (driftingClock.ssBlendedColors?.colOnLayer0 ?? Appearance.colors.colOnLayer0)
+                                    }
+
+                                    Item { Layout.fillWidth: true }
+
+                                    StyledText {
+                                        text: StringUtils.friendlyTimeForSeconds(driftingClock.ssPlayer?.length ?? 0)
+                                        font.pixelSize: Appearance.font.pixelSize.smallest
+                                        font.family: Appearance.font.family.numbers
+                                        color: Appearance.inirEverywhere ? driftingClock.ssColText : (driftingClock.ssBlendedColors?.colOnLayer0 ?? Appearance.colors.colOnLayer0)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Position update timer for screensaver media
+                Timer {
+                    running: driftingClock.ssPlayer?.playbackState === MprisPlaybackState.Playing
+                    interval: 1000
+                    repeat: true
+                    onTriggered: driftingClock.ssPlayer?.positionChanged()
+                }
+            }
+        }
+    }
+
+    // Exit screensaver on any interaction (resets idle timer too)
+    function resetScreensaver(): void {
+        if (root.screensaverActive) {
+            root.screensaverActive = false
+            screensaverState.reset()
+        }
+        screensaverIdleTimer.restart()
+    }
+
     // ===== INPUT HANDLING =====
     
     hoverEnabled: true
@@ -992,14 +1625,19 @@ MouseArea {
     activeFocusOnTab: true
     
     onClicked: mouse => {
+        if (root.screensaverActive) {
+            root.resetScreensaver()
+            return
+        }
         if (!root.showLoginView) {
             root.switchToLogin()
         } else {
             root.forceFieldFocus()
         }
     }
-    
+
     onPositionChanged: mouse => {
+        root.resetScreensaver()
         if (root.showLoginView) {
             root.forceFieldFocus()
         }
@@ -1028,7 +1666,8 @@ MouseArea {
     
     Keys.onPressed: event => {
         root.context.resetClearTimer()
-        
+        root.resetScreensaver()
+
         if (event.key === Qt.Key_Control) {
             root.ctrlHeld = true
             return
@@ -1095,6 +1734,8 @@ MouseArea {
             if (GlobalStates.screenLocked) {
                 root.currentView = "clock"
                 root.hasAttemptedUnlock = false
+                root.screensaverActive = false
+                screensaverState.reset()
                 GlobalStates.screenUnlockFailed = false
                 // Force focus when lock activates - delayed to ensure visibility
                 Qt.callLater(() => root.forceActiveFocus())
