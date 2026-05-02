@@ -2262,7 +2262,7 @@ MouseArea {
             screensaverState.reset()
         }
         screensaverIdleTimer.restart()
-=======
+    }
     // On-screen keyboard
     LockKeyboard {
         id: lockKeyboard
