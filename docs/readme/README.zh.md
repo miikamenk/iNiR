@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/snowarch/inir/releases"><img src="https://img.shields.io/badge/version-2.21.0-blue?style=flat-square" alt="Version"></a>
+  <a href="https://github.com/snowarch/inir/releases"><img src="https://img.shields.io/badge/version-2.24.0-blue?style=flat-square" alt="Version"></a>
   <a href="https://github.com/snowarch/inir/stargazers"><img src="https://img.shields.io/github/stars/snowarch/inir?style=flat-square" alt="Stars"></a>
   <a href="https://discord.gg/pAPTfAhZUJ"><img src="https://img.shields.io/badge/Discord-join-5865F2?style=flat-square&logo=discord&logoColor=white" alt="Discord"></a>
 </p>
@@ -247,7 +247,7 @@ inir update                     # 拉取 + 迁移 + 重启
 | [IPC.md](../IPC.md) | 用于脚本和快捷键的 IPC 目标 |
 | [PACKAGES.md](../PACKAGES.md) | 每个依赖及其用途 |
 | [LIMITATIONS.md](../LIMITATIONS.md) | 已知限制和解决方法 |
-| [ARCHITECTURE.md](../ARCHITECTURE.md) | 技术架构概述 |
+| [ARCHITECTURE.md](../../ARCHITECTURE.md) | 技术架构概述 |
 
 ---
 

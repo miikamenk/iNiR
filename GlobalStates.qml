@@ -12,6 +12,8 @@ Singleton {
     id: root
     // Shell entry animation gate — starts false, set true after delay so panels slide in
     property bool shellEntryReady: false
+    // Deferred panel loading gate — non-critical panels wait for this before activating
+    property bool deferredPanelsReady: false
     property bool barOpen: true
     property bool crosshairOpen: false
     property bool sidebarLeftOpen: false
@@ -21,6 +23,7 @@ Singleton {
     property bool osdVolumeOpen: false
     property bool osdMediaOpen: false
     property string osdMediaAction: "play" // "play", "pause", "next", "previous"
+    property bool osdKeyboardLayoutOpen: false
     property bool oskOpen: false
     property bool overlayOpen: false
     property bool overviewOpen: false

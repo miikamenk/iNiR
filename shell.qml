@@ -5,6 +5,7 @@
 //@ pragma Env QT_LOGGING_RULES=quickshell.dbus.properties=false
 //@ pragma Env QT_QUICK_CONTROLS_STYLE=Basic
 //@ pragma Env QT_QUICK_FLICKABLE_WHEEL_DECELERATION=10000
+//@ pragma Env QSG_RENDER_LOOP=threaded
 // Launcher keeps QT_SCALE_FACTOR=1; shell scaling lives in appearance.typography.sizeScale
 // DISABLED: webapps — requires quickshell-webengine rebuild
 //-@ pragma Env QTWEBENGINE_CHROMIUM_FLAGS=--disable-features=ThirdPartyCookieBlocking,StorageAccessAPI
@@ -22,37 +23,64 @@ import qs.services
 ShellRoot {
     id: root
 
+    readonly property bool disableHotReload: Quickshell.env("INIR_DISABLE_HOT_RELOAD") === "1"
+        || Quickshell.env("INIR_DISABLE_HOT_RELOAD") === "true"
+
     function _log(msg: string): void {
         if (Quickshell.env("QS_DEBUG") === "1") console.log(msg);
     }
 
-    // Force singleton instantiation
+    // Force singleton instantiation — startup-critical only
     property var _idleService: Idle
-    property var _gameModeService: GameMode
-    property var _windowPreviewService: WindowPreviewService
-    property var _weatherService: Weather
     property var _powerProfilePersistence: PowerProfilePersistence
-    property var _voiceSearchService: VoiceSearch
-    property var _fontSyncService: FontSyncService
+
+    // Deferred singletons — initialized after first frame to reduce boot contention
+    property var _gameModeService
+    property var _windowPreviewService
+    property var _weatherService
+    property var _voiceSearchService
+    property var _fontSyncService
 
     Component.onCompleted: {
-        Quickshell.watchFiles = true;
-        root._log("[Shell] Initializing singletons");
-        Hyprsunset.load();
+        Quickshell.watchFiles = !disableHotReload;
+        root._log("[Shell] Initializing startup-critical singletons");
         FirstRunExperience.load();
         ConflictKiller.load();
         // Reset shell entry state (hot-reload may preserve singletons)
         GlobalStates.shellEntryReady = false;
-        if (Config.ready) shellEntryTimer.start();
+        GlobalStates.deferredPanelsReady = false;
+        if (Config.ready) {
+            shellEntryTimer.start();
+            deferredInitTimer.start();
+        }
     }
 
     // Shell entry animation: panels start hidden, slide in after a brief delay
-    // 400ms ensures LazyLoader panels are created and rendered in hidden state first
+    // 200ms is enough for LazyLoader panels to be created on warm cache;
+    // on cold boot the progressive slide-in is better UX than extra blank time
     Timer {
         id: shellEntryTimer
-        interval: Appearance.animationsEnabled ? 400 : 0
+        interval: Appearance.animationsEnabled ? 200 : 0
         repeat: false
         onTriggered: GlobalStates.shellEntryReady = true
+    }
+
+    // Deferred initialization: load non-critical services and panels after the first frame
+    // is rendered, spreading startup work over time to reduce the boot contention burst
+    Timer {
+        id: deferredInitTimer
+        interval: 500
+        repeat: false
+        onTriggered: {
+            root._log("[Shell] Deferred init: loading non-critical services and panels");
+            root._gameModeService = GameMode;
+            root._windowPreviewService = WindowPreviewService;
+            root._weatherService = Weather;
+            root._voiceSearchService = VoiceSearch;
+            root._fontSyncService = FontSyncService;
+            Hyprsunset.load();
+            GlobalStates.deferredPanelsReady = true;
+        }
     }
 
     Connections {
@@ -64,6 +92,8 @@ ShellRoot {
                 Qt.callLater(() => IconThemeService.ensureInitialized());
                 // Kick off shell entry animation after panels have been created
                 shellEntryTimer.start();
+                // Schedule deferred init (non-critical services + panels) after first frame
+                deferredInitTimer.start();
                 // Only reset enabledPanels if it's empty or undefined (first run / corrupted config)
                 if (!Config.options?.enabledPanels || Config.options.enabledPanels.length === 0) {
                     const family = Config.options?.panelFamily ?? "ii"

@@ -86,8 +86,8 @@ Item {
                             SequentialAnimation on opacity {
                                 running: recordButtonWrapper.isRecording
                                 loops: Animation.Infinite
-                                NumberAnimation { to: 0.4; duration: 800 }
-                                NumberAnimation { to: 1.0; duration: 800 }
+                                NumberAnimation { to: 0.4; duration: Appearance.animation.elementMove.duration * 2 }
+                                NumberAnimation { to: 1.0; duration: Appearance.animation.elementMove.duration * 2 }
                             }
                         }
                     }
@@ -148,6 +148,29 @@ Item {
             }
         }
 
+        // Keyboard layout switch (Niri only)
+        Loader {
+            active: (Config.options?.bar?.utilButtons?.showKeyboardLayoutSwitch ?? false)
+                    && CompositorService.isNiri
+                    && NiriService.hasMultipleKeyboardLayouts
+            visible: active
+            sourceComponent: CircleUtilButton {
+                Layout.alignment: Qt.AlignVCenter
+                onClicked: NiriService.switchLayout()
+                Item {
+                    anchors.fill: parent
+                    MaterialSymbol {
+                        anchors.centerIn: parent
+                        horizontalAlignment: Qt.AlignHCenter
+                        fill: 0
+                        text: "language"
+                        iconSize: Appearance.font.pixelSize.large
+                        color: Appearance.inirEverywhere ? Appearance.inir.colText : Appearance.colors.colOnLayer2
+                    }
+                }
+            }
+        }
+
         Loader {
             readonly property bool micInUse: Privacy.micActive || (Audio?.micBeingAccessed ?? false)
             active: (Config.options?.bar?.utilButtons?.showMicToggle ?? false) || micInUse
@@ -189,8 +212,8 @@ Item {
                         SequentialAnimation on opacity {
                             running: micButton.isInUse && !micButton.isMuted
                             loops: Animation.Infinite
-                            NumberAnimation { to: 0.4; duration: 800 }
-                            NumberAnimation { to: 1.0; duration: 800 }
+                            NumberAnimation { to: 0.4; duration: Appearance.animation.elementMove.duration * 2 }
+                            NumberAnimation { to: 1.0; duration: Appearance.animation.elementMove.duration * 2 }
                         }
                     }
                 }
@@ -249,8 +272,8 @@ Item {
                         SequentialAnimation on opacity {
                             running: screenCastButton.isCasting
                             loops: Animation.Infinite
-                            NumberAnimation { to: 0.4; duration: 800 }
-                            NumberAnimation { to: 1.0; duration: 800 }
+                            NumberAnimation { to: 0.4; duration: Appearance.animation.elementMove.duration * 2 }
+                            NumberAnimation { to: 1.0; duration: Appearance.animation.elementMove.duration * 2 }
                         }
                     }
                 }

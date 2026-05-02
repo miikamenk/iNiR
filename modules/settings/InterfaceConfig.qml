@@ -14,7 +14,7 @@ ContentPage {
     property bool isIiActive: Config.options?.panelFamily !== "waffle"
 
     SettingsCardSection {
-        visible: root.isIiActive
+        visible: root.isIiActive && !(Config.options?.settingsUi?.easyMode ?? false)
         expanded: false
         icon: "keyboard_tab"
         title: Translation.tr("Alt-Tab switcher (Material ii)")
@@ -657,7 +657,7 @@ ContentPage {
     }
 
     SettingsCardSection {
-        visible: root.isIiActive
+        visible: root.isIiActive && !(Config.options?.settingsUi?.easyMode ?? false)
         expanded: false
         icon: "side_navigation"
         title: Translation.tr("Sidebars")
@@ -1441,7 +1441,7 @@ ContentPage {
     }
 
     SettingsCardSection {
-        visible: root.isIiActive
+        visible: root.isIiActive && !(Config.options?.settingsUi?.easyMode ?? false)
         expanded: false
         icon: "widgets"
         title: Translation.tr("Widgets")
@@ -1648,7 +1648,7 @@ ContentPage {
 
                                     Behavior on opacity {
                                         enabled: Appearance.animationsEnabled
-                                        NumberAnimation { duration: 150 }
+                                        NumberAnimation { duration: Appearance.animation.elementMoveFast.duration; easing.type: Appearance.animation.elementMoveFast.type; easing.bezierCurve: Appearance.animation.elementMoveFast.bezierCurve }
                                     }
 
                                     contentItem: MaterialSymbol {
@@ -2048,7 +2048,7 @@ ContentPage {
     }
 
     SettingsCardSection {
-        visible: root.isIiActive
+        visible: root.isIiActive && !(Config.options?.settingsUi?.easyMode ?? false)
         expanded: false
         icon: "overview_key"
         title: Translation.tr("Overview")

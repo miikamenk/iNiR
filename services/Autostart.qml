@@ -288,8 +288,19 @@ Singleton {
         systemdDeleteProc.remove(name)
     }
 
+    // Defer autostart execution to avoid process spawn burst during shell startup.
+    // Panels and tray need the first ~2s of CPU/IO headroom.
+    Timer {
+        id: autostartDelayTimer
+        interval: 2000
+        repeat: false
+        onTriggered: root.load()
+    }
+
     Component.onCompleted: {
-        load()
+        if (Config.ready) {
+            autostartDelayTimer.start()
+        }
         // Defer systemd scanning to keep shell startup smooth.
         root.requestRefreshSystemdUnits()
     }
@@ -298,8 +309,7 @@ Singleton {
         target: Config
         function onReadyChanged() {
             if (Config.ready && !root.hasRun) {
-                root.startFromConfig();
-                root.hasRun = true;
+                autostartDelayTimer.start()
             }
             if (Config.ready) {
                 root.requestRefreshSystemdUnits()

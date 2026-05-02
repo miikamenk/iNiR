@@ -36,6 +36,10 @@ Scope {
             id: "voiceSearch",
             sourceUrl: "indicators/VoiceSearchIndicator.qml"
         },
+        {
+            id: "keyboardLayout",
+            sourceUrl: "indicators/KeyboardLayoutIndicator.qml"
+        },
     ]
 
     function triggerOsd() {
@@ -125,6 +129,14 @@ Scope {
         }
     }
 
+    Connections {
+        target: KeyboardIndicators
+        function onPopupSequenceChanged() {
+            root.currentIndicator = "keyboardLayout";
+            root.triggerOsd();
+        }
+    }
+
     Loader {
         id: osdLoader
         active: GlobalStates.osdVolumeOpen || GlobalStates.osdMediaOpen
@@ -143,8 +155,8 @@ Scope {
             WlrLayershell.namespace: "quickshell:onScreenDisplay"
             WlrLayershell.layer: WlrLayer.Overlay
             anchors {
-                top: !(Config.options?.bar?.bottom ?? false)
-                bottom: Config.options?.bar?.bottom ?? false
+                top: root.currentIndicator === "keyboardLayout" ? true : !(Config.options?.bar?.bottom ?? false)
+                bottom: root.currentIndicator === "keyboardLayout" ? false : Config.options?.bar?.bottom ?? false
             }
             mask: Region {
                 item: osdValuesWrapper
@@ -166,7 +178,7 @@ Scope {
                 anchors.horizontalCenter: parent.horizontalCenter
 
                 // Subtle open animation for the OSD, sliding from the bar edge
-                transformOrigin: !(Config.options?.bar?.bottom ?? false) ? Item.Top : Item.Bottom
+                transformOrigin: root.currentIndicator === "keyboardLayout" || !(Config.options?.bar?.bottom ?? false) ? Item.Top : Item.Bottom
                 scale: GlobalStates.osdVolumeOpen ? 1.0 : 0.96
                 opacity: GlobalStates.osdVolumeOpen ? 1.0 : 0.0
                 Behavior on scale {

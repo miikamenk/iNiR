@@ -46,6 +46,7 @@ opencode.json
 .mcp.json
 .memory/
 .task/
+.devin/
 .tmp/
 .knowledge/
 context-architect/
@@ -129,7 +130,6 @@ sys
 *.ps
 
 # ── Wiki / MkDocs (WIP, not shipped yet) ─────────────────────
-wiki/
 mkdocs.yml
 site/
 

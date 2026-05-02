@@ -460,6 +460,7 @@ ContentPage {
     }
 
     SettingsCardSection {
+        visible: !(Config.options?.settingsUi?.easyMode ?? false)
         expanded: false
         icon: "rule"
         title: Translation.tr("Policies")
@@ -603,10 +604,128 @@ ContentPage {
                     ]
                 }
             }
+
+            SettingsDivider {}
+
+            ContentSubsection {
+                title: Translation.tr("Date formats")
+                tooltip: Translation.tr("Customize how dates are shown across the shell")
+
+                ContentSubsectionLabel {
+                    text: Translation.tr("Long date format")
+                }
+
+                MaterialTextField {
+                    Layout.fillWidth: true
+                    placeholderText: Translation.tr("e.g. dddd, MMMM dd")
+                    text: Config.options?.time?.dateFormat ?? "ddd, dd/MM"
+                    onEditingFinished: Config.setNestedValue("time.dateFormat", text)
+                }
+
+                ContentSubsectionLabel {
+                    text: Translation.tr("Short date format")
+                }
+
+                MaterialTextField {
+                    Layout.fillWidth: true
+                    placeholderText: Translation.tr("e.g. dd/MM")
+                    text: Config.options?.time?.shortDateFormat ?? "dd/MM"
+                    onEditingFinished: Config.setNestedValue("time.shortDateFormat", text)
+                }
+            }
         }
     }
 
     SettingsCardSection {
+        expanded: false
+        icon: "keyboard"
+        title: Translation.tr("Keyboard")
+
+        SettingsGroup {
+            SettingsSwitch {
+                buttonIcon: "keyboard"
+                text: Translation.tr("Keyboard popups")
+                checked: Config.options?.keyboardIndicators?.showPopup ?? true
+                onCheckedChanged: Config.setNestedValue("keyboardIndicators.showPopup", checked)
+                StyledToolTip {
+                    text: Translation.tr("Show a popup when Caps Lock, Num Lock, or the keyboard layout changes")
+                }
+            }
+
+            SettingsSwitch {
+                buttonIcon: "language"
+                text: Translation.tr("Layout popup")
+                checked: Config.options?.keyboardIndicators?.popup?.layout ?? true
+                onCheckedChanged: Config.setNestedValue("keyboardIndicators.popup.layout", checked)
+                StyledToolTip {
+                    text: Translation.tr("Show a popup when the keyboard layout changes")
+                }
+            }
+
+            SettingsSwitch {
+                buttonIcon: "keyboard_capslock"
+                text: Translation.tr("Caps Lock popup")
+                checked: Config.options?.keyboardIndicators?.popup?.caps ?? true
+                onCheckedChanged: Config.setNestedValue("keyboardIndicators.popup.caps", checked)
+                StyledToolTip {
+                    text: Translation.tr("Show a popup when Caps Lock changes")
+                }
+            }
+
+            SettingsSwitch {
+                buttonIcon: "dialpad"
+                text: Translation.tr("Num Lock popup")
+                checked: Config.options?.keyboardIndicators?.popup?.num ?? false
+                onCheckedChanged: Config.setNestedValue("keyboardIndicators.popup.num", checked)
+                StyledToolTip {
+                    text: Translation.tr("Show a popup when Num Lock changes")
+                }
+            }
+
+            SettingsSwitch {
+                buttonIcon: "dock_to_right"
+                text: Translation.tr("Keyboard panel indicators")
+                checked: Config.options?.keyboardIndicators?.showPanel ?? true
+                onCheckedChanged: Config.setNestedValue("keyboardIndicators.showPanel", checked)
+                StyledToolTip {
+                    text: Translation.tr("Show layout and lock state indicators in the bar or taskbar")
+                }
+            }
+
+            SettingsSwitch {
+                buttonIcon: "language"
+                text: Translation.tr("Layout indicator")
+                checked: Config.options?.keyboardIndicators?.panel?.layout ?? true
+                onCheckedChanged: Config.setNestedValue("keyboardIndicators.panel.layout", checked)
+                StyledToolTip {
+                    text: Translation.tr("Show the current keyboard layout in the bar or taskbar")
+                }
+            }
+
+            SettingsSwitch {
+                buttonIcon: "keyboard_capslock"
+                text: Translation.tr("Caps Lock indicator")
+                checked: Config.options?.keyboardIndicators?.panel?.caps ?? true
+                onCheckedChanged: Config.setNestedValue("keyboardIndicators.panel.caps", checked)
+                StyledToolTip {
+                    text: Translation.tr("Show Caps Lock in the bar or taskbar")
+                }
+            }
+
+            SettingsSwitch {
+                buttonIcon: "dialpad"
+                text: Translation.tr("Num Lock indicator")
+                checked: Config.options?.keyboardIndicators?.panel?.num ?? false
+                onCheckedChanged: Config.setNestedValue("keyboardIndicators.panel.num", checked)
+                StyledToolTip {
+                    text: Translation.tr("Show Num Lock in the bar or taskbar")
+                }
+            }
+        }
+    }
+
+    SettingsCardSection {
+        visible: !(Config.options?.settingsUi?.easyMode ?? false)
         expanded: false
         icon: "select_window"
         title: Translation.tr("Window Management")
@@ -627,6 +746,7 @@ ContentPage {
     }
 
     SettingsCardSection {
+        visible: !(Config.options?.settingsUi?.easyMode ?? false)
         expanded: false
         icon: "work_alert"
         title: Translation.tr("Work safety")
@@ -721,6 +841,136 @@ ContentPage {
 
             ContentSubsection {
                 title: Translation.tr("Style: general")
+
+                SettingsSwitch {
+                    buttonIcon: "notifications"
+                    text: Translation.tr('Show notifications on lock screen')
+                    checked: Config.options?.lock?.notifications?.enable ?? false
+                    onCheckedChanged: {
+                        Config.setNestedValue("lock.notifications.enable", checked);
+                    }
+                    StyledToolTip {
+                        text: Translation.tr("Display recent notifications on the lock screen clock view")
+                    }
+                }
+
+                SettingsSwitch {
+                    visible: Config.options?.lock?.notifications?.enable ?? false
+                    buttonIcon: "visibility"
+                    text: Translation.tr('Show notification body text')
+                    checked: Config.options?.lock?.notifications?.showBody ?? true
+                    onCheckedChanged: {
+                        Config.setNestedValue("lock.notifications.showBody", checked);
+                    }
+                    StyledToolTip {
+                        text: Translation.tr("Display the message content of notifications. Disable for privacy.")
+                    }
+                }
+
+                ConfigSpinBox {
+                    visible: Config.options?.lock?.notifications?.enable ?? false
+                    icon: "format_list_numbered"
+                    text: Translation.tr("Max notifications shown")
+                    value: Config.options?.lock?.notifications?.maxCount ?? 3
+                    from: 1
+                    to: 10
+                    stepSize: 1
+                    onValueChanged: {
+                        Config.setNestedValue("lock.notifications.maxCount", value);
+                    }
+                    StyledToolTip {
+                        text: Translation.tr("Maximum number of notifications to display on the lock screen")
+                    }
+                }
+            }
+
+            ContentSubsection {
+                visible: Config.options?.lock?.notifications?.enable ?? false
+                title: Translation.tr("Notification position")
+                tooltip: Translation.tr("Where notifications appear on the lock screen. Auto uses center for Material and right for Waffle.")
+
+                ConfigSelectionArray {
+                    currentValue: Config.options?.lock?.notifications?.position ?? "auto"
+                    options: [
+                        { displayName: Translation.tr("Auto"), value: "auto" },
+                        { displayName: Translation.tr("Center"), value: "center" },
+                        { displayName: Translation.tr("Left"), value: "left" },
+                        { displayName: Translation.tr("Right"), value: "right" }
+                    ]
+                    onSelected: (newValue) => Config.setNestedValue("lock.notifications.position", newValue)
+                }
+            }
+
+            ContentSubsection {
+                title: Translation.tr("Clock style")
+                tooltip: Translation.tr("Visual style for the lock screen clock")
+
+                ConfigSelectionArray {
+                    currentValue: Config.options?.lock?.clock?.style ?? "default"
+                    options: [
+                        { displayName: Translation.tr("Default"), value: "default" },
+                        { displayName: Translation.tr("Minimal"), value: "minimal" },
+                        { displayName: Translation.tr("Analog"), value: "analog" }
+                    ]
+                    onSelected: (newValue) => Config.setNestedValue("lock.clock.style", newValue)
+                }
+            }
+
+            ContentSubsection {
+                title: Translation.tr("Clock position")
+                tooltip: Translation.tr("Where the clock appears on the lock screen")
+
+                ConfigSelectionArray {
+                    currentValue: Config.options?.lock?.clock?.position ?? "center"
+                    options: [
+                        { displayName: Translation.tr("Center"), value: "center" },
+                        { displayName: Translation.tr("Top Left"), value: "topLeft" },
+                        { displayName: Translation.tr("Bottom Left"), value: "bottomLeft" }
+                    ]
+                    onSelected: (newValue) => Config.setNestedValue("lock.clock.position", newValue)
+                }
+            }
+
+            ContentSubsection {
+                title: Translation.tr("Extras")
+
+                SettingsSwitch {
+                    buttonIcon: "info"
+                    text: Translation.tr('Show status indicators')
+                    checked: Config.options?.lock?.status?.enable ?? true
+                    onCheckedChanged: {
+                        Config.setNestedValue("lock.status.enable", checked);
+                    }
+                    StyledToolTip {
+                        text: Translation.tr("Show WiFi, Bluetooth, volume and battery indicators on the lock screen")
+                    }
+                }
+
+                SettingsSwitch {
+                    buttonIcon: "brightness_6"
+                    text: Translation.tr('Dim wallpaper')
+                    checked: Config.options?.lock?.dim?.enable ?? false
+                    onCheckedChanged: {
+                        Config.setNestedValue("lock.dim.enable", checked);
+                    }
+                    StyledToolTip {
+                        text: Translation.tr("Apply a dark overlay to the wallpaper for better contrast on the lock screen")
+                    }
+                }
+
+                ConfigSpinBox {
+                    visible: Config.options?.lock?.dim?.enable ?? false
+                    text: Translation.tr("Dim amount")
+                    icon: "opacity"
+                    value: Math.round((Config.options?.lock?.dim?.opacity ?? 0.3) * 100)
+                    from: 10
+                    to: 80
+                    stepSize: 5
+                    onValueChanged: Config.setNestedValue("lock.dim.opacity", value / 100)
+                    StyledToolTip {
+                        text: Translation.tr("How much to dim the wallpaper (percentage)")
+                    }
+                }
 
                 SettingsSwitch {
                     buttonIcon: "center_focus_weak"

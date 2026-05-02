@@ -104,6 +104,7 @@ Item {
             source: playerBase.displayedArtFilePath
             fillMode: Image.PreserveAspectCrop
             asynchronous: true
+            cache: false
             visible: playerBase.displayedArtFilePath !== ""
             opacity: root.artBgOpacity
 
@@ -166,6 +167,7 @@ Item {
                             visible: playerBase.downloaded && playerBase.effectiveIsPlaying
 
                             Behavior on border.color {
+                                enabled: Appearance.animationsEnabled
                                 ColorAnimation { duration: Appearance.animation.elementMoveFast.duration }
                             }
                         }
@@ -189,7 +191,7 @@ Item {
                             color: Qt.rgba(0, 0, 0, artOverlayMA.containsPress ? 0.45 : 0.32)
                             opacity: artOverlayMA.containsMouse ? 1 : 0
                             visible: opacity > 0
-                            Behavior on opacity { NumberAnimation { duration: 120 } }
+                            Behavior on opacity { enabled: Appearance.animationsEnabled; NumberAnimation { duration: Appearance.animation.elementMoveFast.duration } }
 
                             MaterialSymbol {
                                 anchors.centerIn: parent
@@ -210,6 +212,7 @@ Item {
 
                         scale: artOverlayMA.containsMouse ? 1.04 : 1.0
                         Behavior on scale {
+                            enabled: Appearance.animationsEnabled
                             NumberAnimation {
                                 duration: Appearance.animation.elementMoveFast.duration
                                 easing.type: Easing.OutCubic
@@ -375,6 +378,7 @@ Item {
 
                 TransportBtn {
                     icon: "skip_previous"
+                    enabled: playerBase.effectiveCanGoPrevious
                     iconFill: true
                     onClicked: playerBase.previous()
                     tooltipText: Translation.tr("Previous")
@@ -399,12 +403,14 @@ Item {
                         }
 
                         Behavior on color {
+                            enabled: Appearance.animationsEnabled
                             ColorAnimation { duration: Appearance.animation.elementMoveFast.duration }
                         }
 
                         scale: playMA.containsPress ? 0.92 : 1.0
                         Behavior on scale {
-                            NumberAnimation { duration: 100; easing.type: Easing.OutCubic }
+                            enabled: Appearance.animationsEnabled
+                            NumberAnimation { duration: Appearance.animation.elementMoveFast.duration; easing.type: Easing.OutCubic }
                         }
 
                         MaterialSymbol {
@@ -438,6 +444,7 @@ Item {
 
                 TransportBtn {
                     icon: "skip_next"
+                    enabled: playerBase.effectiveCanGoNext
                     iconFill: true
                     onClicked: playerBase.next()
                     tooltipText: Translation.tr("Next")
@@ -470,7 +477,6 @@ Item {
         id: playerSwitcherMenu
 
         model: (MprisController.displayPlayers ?? []).map((player, index) => ({
-            type: "item",
             text: player?.identity ?? "",
             iconName: "",
             checkable: true,
@@ -518,6 +524,7 @@ Item {
 
         signal clicked()
 
+        enabled: true
         implicitWidth: small ? 30 : 34
         implicitHeight: small ? 30 : 34
 
@@ -539,6 +546,7 @@ Item {
             }
 
             Behavior on color {
+                enabled: Appearance.animationsEnabled
                 ColorAnimation { duration: Appearance.animation.elementMoveFast.duration }
             }
 
@@ -550,23 +558,26 @@ Item {
                 color: tBtn.toggled
                     ? (root.inirStyle ? Appearance.inir.colOnSecondaryContainer
                         : root.accentColor)
-                    : root.colText
+                    : (tBtn.enabled ? root.colText : root.colTextSecondary)
 
                 Behavior on color {
+                    enabled: Appearance.animationsEnabled
                     ColorAnimation { duration: Appearance.animation.elementMoveFast.duration }
                 }
             }
 
             scale: tBtnMA.containsPress ? 0.88 : 1.0
             Behavior on scale {
-                NumberAnimation { duration: 120; easing.type: Easing.OutCubic }
+                enabled: Appearance.animationsEnabled
+                NumberAnimation { duration: Appearance.animation.elementMoveFast.duration; easing.type: Easing.OutCubic }
             }
 
             MouseArea {
                 id: tBtnMA
                 anchors.fill: parent
+                enabled: tBtn.enabled
                 hoverEnabled: true
-                cursorShape: Qt.PointingHandCursor
+                cursorShape: tBtn.enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
                 onClicked: tBtn.clicked()
             }
 

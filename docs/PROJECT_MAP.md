@@ -4,7 +4,7 @@
 
 This document explains how iNiR is composed, how its main parts relate to each other, what each part is responsible for, and what changes usually affect when you touch it.
 
-It is written for contributors and code agents.
+It is written for contributors.
 
 The goal is not to list every file. The goal is to give you a reliable mental model of the project so you can find the right source of truth before changing behavior.
 
@@ -201,16 +201,6 @@ This is the canonical user-facing documentation source for the repository.
 If you are documenting real product behavior, this is where it should live.
 
 Examples already present in this directory include installation, setup/update behavior, IPC, package reference, limitations, and optimization guidance.
-
-### `docs-site/`
-
-This is a separate documentation web app built with Next.js.
-
-It is not the shell runtime.
-
-Its purpose is to render documentation as a website. It has its own frontend stack and its own structure, but conceptually it depends on the project documentation layer rather than the shell runtime.
-
-A change here affects documentation delivery, not shell behavior.
 
 ### `translations/`
 
@@ -717,9 +707,9 @@ Use this section as a routing index.
 - `sdata/lib/`
 - `sdata/dist-*/`
 
-### Documentation site
+### Documentation surface
 
-- `docs-site/`
+- `docs/`
 
 ### Translation surface
 

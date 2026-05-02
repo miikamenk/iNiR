@@ -4,14 +4,14 @@ Best practices for optimizing iNiR based on Qt6 QML documentation and KDAB recom
 
 ## Quick Reference
 
-| Do | Don't |
-|---|---|
-| `property int size: 10` | `property var size: 10` |
-| `visible: false` | `opacity: 0` |
-| `anchors.fill: parent` | `width: parent.width; height: parent.height` |
-| `root.myProperty` (qualified) | `myProperty` (unqualified) |
-| `asynchronous: true` on images | Sync image loading |
-| Cache lookups in loops | Repeated property access |
+| Do                             | Don't                                        |
+| ------------------------------ | -------------------------------------------- |
+| `property int size: 10`        | `property var size: 10`                      |
+| `visible: false`               | `opacity: 0`                                 |
+| `anchors.fill: parent`         | `width: parent.width; height: parent.height` |
+| `root.myProperty` (qualified)  | `myProperty` (unqualified)                   |
+| `asynchronous: true` on images | Sync image loading                           |
+| Cache lookups in loops         | Repeated property access                     |
 
 ## 1. Type Annotations
 
@@ -22,7 +22,7 @@ Always use concrete types instead of `var`:
 property var size: 10
 property var items: []
 
-// Good  
+// Good
 property int size: 10
 property list<string> items: []
 ```
@@ -49,11 +49,11 @@ Always qualify property access with object id:
 Item {
     id: root
     property int size: 10
-    
+
     Rectangle {
         // Bad - unqualified lookup
         width: size
-        
+
         // Good - qualified lookup
         width: root.size
     }
@@ -156,10 +156,10 @@ Use simplest text format possible:
 Text {
     // Best performance
     textFormat: Text.PlainText
-    
+
     // Only if you need basic formatting
     // textFormat: Text.StyledText
-    
+
     // Avoid - expensive parsing
     // textFormat: Text.AutoText
     // textFormat: Text.RichText
@@ -174,11 +174,11 @@ Keep delegates simple and avoid clipping:
 ListView {
     // Buffer delegates outside viewport
     cacheBuffer: 200
-    
+
     delegate: Item {
         // NEVER clip in delegates
         // clip: true  // BAD!
-        
+
         // Keep delegate simple
         // Avoid ShaderEffects in delegates
     }
@@ -199,7 +199,7 @@ Use LazyLoader for panels not immediately needed:
 LazyLoader {
     // Load when condition is true
     active: Config.ready && someCondition
-    
+
     HeavyComponent {}
 }
 ```
@@ -229,18 +229,22 @@ iNiR's config uses Quickshell's `JsonAdapter` + `FileView`. Every property is de
 // Config access — schema properties are guaranteed by JsonAdapter
 property int value: Config.options.bar.cornerStyle  //  always valid
 
-// Direct assignment persists to config.json automatically
-Config.options.bar.bottom = true
+// ❌ Direct assignment — persists to disk via JsonAdapter, but does NOT emit
+//    configChanged(). Listeners (settings pages, bar layout, theme reactivity)
+//    will not update. This is the #1 silent bug source in iNiR.
+// Config.options.bar.bottom = true
 
-// Use setNestedValue() when you need the configChanged() signal
-// (5 listeners depend on it — settings pages, bar layout, etc.)
+// ✅ Always use setNestedValue() — persists to disk AND emits configChanged()
+//    so every listener reacts correctly.
 Config.setNestedValue("bar.bottom", true)
 
 // Runtime data — may genuinely be null, USE optional chaining here
 property string title: NiriService.activeWindow?.title ?? ""
 ```
 
-> **Project convention:** use `?.` + `??` on config access in module code anyway. It protects against edge cases like key renames during migrations or malformed user configs. JsonAdapter guarantees schema defaults, but defensive access is the safer habit.
+> **Project rule:** always use `Config.setNestedValue("dot.path", value)` for any config write. Direct property assignment (`Config.options.x = y`) skips the `configChanged()` signal — the value reaches disk but the UI and any reactive listeners never see the change.
+
+> **Also:** use `?.` + `??` on config reads in module code. It protects against edge cases like key renames during migrations or malformed user configs. JsonAdapter guarantees schema defaults, but defensive access is the safer habit.
 
 ## Quickshell-Specific
 

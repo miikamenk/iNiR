@@ -31,9 +31,8 @@ Singleton {
         !link.source.isStream && !link.source.isSink && link.target.isStream
     ).length > 0
 
-    property bool _wpctlMicStateKnown: false
-    property bool _wpctlMicMuted: false
-    readonly property bool micMuted: _wpctlMicStateKnown ? _wpctlMicMuted : (source?.audio?.muted ?? false)
+    readonly property bool micMuted: source?.audio?.muted ?? false
+    readonly property real micVolume: source?.audio?.volume ?? 0
 
     function friendlyDeviceName(node) {
         return node ? (node.nickname || node.description || Translation.tr("Unknown")) : Translation.tr("Unknown");
@@ -68,23 +67,9 @@ Singleton {
 
         if (physicalSink) return physicalSink
 
-        // Fallback: find the first non-virtual, non-EasyEffects hardware sink.
-        // This handles cases where EasyEffects uses pw-loopback/filter-chain and
-        // driver-id doesn't point directly to the hardware sink node.
-        const fallbackSink = Pipewire.nodes.values.find(candidate => {
-            if (!root.correctType(candidate, true) || candidate.isStream) return false
-            const cProps = candidate.properties ?? {}
-            const cName = String(cProps["node.name"] ?? candidate.name ?? "")
-            const cAppId = String(cProps["application.id"] ?? "")
-            const cVirtual = String(cProps["node.virtual"] ?? "false") === "true"
-            const cPassthrough = String(cProps["monitor.passthrough"] ?? "false") === "true"
-            const isEE = cName === "easyeffects_sink"
-                || cAppId === "com.github.wwmm.easyeffects"
-                || (cVirtual && cPassthrough)
-            return !isEE
-        })
-
-        return fallbackSink ?? node
+        // Keep EasyEffects sink if physical mapping is unavailable.
+        // Avoid picking an arbitrary non-virtual sink during reconnect/profile churn.
+        return node
     }
 
     // Lists
@@ -116,81 +101,65 @@ Singleton {
     }
 
     function setSourceVolume(target: real): void {
-        const clamped = Math.max(0, Math.min(root.hardMaxValue, target))
-        if (root.source?.audio) {
-            root.source.audio.volume = clamped
-        }
-        if (wpctlSetSourceVolume.running) return
-        wpctlSetSourceVolume.command = ["wpctl", "set-volume", "@DEFAULT_AUDIO_SOURCE@", String(clamped)]
-        wpctlSetSourceVolume.running = true
+        if (!root.source?.audio) return
+        root.source.audio.volume = Math.max(0, Math.min(root.hardMaxValue, target))
     }
 
     function toggleMicMute() {
-        const shouldMute = !root.micMuted
-        if (root.source?.audio) {
-            root.source.audio.muted = shouldMute
-        }
-        if (wpctlSetMicMute.running) return
-        wpctlSetMicMute.command = ["wpctl", "set-mute", "@DEFAULT_AUDIO_SOURCE@", shouldMute ? "1" : "0"]
-        wpctlSetMicMute.running = true
-    }
-
-    function refreshMicState(): void {
-        if (wpctlGetMicState.running) return
-        wpctlGetMicState.running = true
-    }
-
-    Process {
-        id: wpctlSetMicMute
-        command: ["wpctl", "set-mute", "@DEFAULT_AUDIO_SOURCE@", "toggle"]
-        onExited: refreshMicState()
-    }
-
-    Process {
-        id: wpctlSetSourceVolume
-        command: ["wpctl", "set-volume", "@DEFAULT_AUDIO_SOURCE@", "1.0"]
-        onExited: refreshMicState()
-    }
-
-    Process {
-        id: wpctlGetMicState
-        command: ["wpctl", "get-volume", "@DEFAULT_AUDIO_SOURCE@"]
-        stdout: StdioCollector {
-            id: wpctlGetMicStateStdout
-        }
-        onExited: (exitCode, _exitStatus) => {
-            if (exitCode !== 0) return
-            const raw = (wpctlGetMicStateStdout.text?.trim() ?? "")
-            if (!raw.length) return
-            const out = raw.split(/\r?\n/).filter(l => l.trim().length > 0).slice(-1)[0] ?? ""
-            if (!out.length) return
-
-            root._wpctlMicStateKnown = true
-            root._wpctlMicMuted = out.toUpperCase().includes("MUTED")
-        }
+        if (!root.source?.audio) return
+        root.source.audio.muted = !root.source.audio.muted
     }
 
     Process {
         id: wpctlSetDefaultDevice
         command: ["wpctl", "set-default", "0"]
+        onExited: {
+            // After switching default sink, immediately nudge volume via wpctl so
+            // USB/device-route sinks (e.g. USB mic used as output) get their volume
+            // state initialised in PipeWire without requiring pavucontrol interaction.
+            if (!wpctlSetSinkVolume.running) {
+                wpctlSetSinkVolume.command = ["wpctl", "set-volume",
+                    "@DEFAULT_AUDIO_SINK@",
+                    String(root.sink?.audio?.volume ?? 0.5)]
+                wpctlSetSinkVolume.running = true
+            }
+        }
     }
 
-    Timer {
-        interval: 2000
-        repeat: true
-        running: true
-        onTriggered: refreshMicState()
+    // Sink volume via wpctl — fallback for devices whose volume control lives at
+    // the PipeWire device-route level and is not reachable through the QML binding.
+    Process {
+        id: wpctlSetSinkVolume
+        command: ["wpctl", "set-volume", "@DEFAULT_AUDIO_SINK@", "1.0"]
     }
 
-    Component.onCompleted: refreshMicState()
+    // Relative increment/decrement — does not require reading current volume from QML,
+    // so it works even when Quickshell has not yet tracked the USB sink node.
+    Process {
+        id: wpctlIncrementSinkVolume
+        command: ["wpctl", "set-volume", "@DEFAULT_AUDIO_SINK@", "2%+"]
+    }
+
+    Process {
+        id: wpctlDecrementSinkVolume
+        command: ["wpctl", "set-volume", "@DEFAULT_AUDIO_SINK@", "2%-"]
+    }
 
     // Set sink volume safely. When protection is enabled, large jumps are rejected as "Illegal increment".
     // To keep UX consistent with brightness (click anywhere on slider), we ramp in small steps.
+    // wpctl is fired before the QML guard so USB/device-route sinks are always reachable
+    // even when Quickshell has not fully tracked the node yet.
     function setSinkVolume(target: real): void {
-        if (!root.sink?.audio) return;
-
         const maxAllowed = (Config.options?.audio?.protection?.maxAllowed ?? 100) / 100;
         const clamped = Math.max(0, Math.min(Math.min(maxAllowed, root.hardMaxValue), target));
+
+        // Always send to wpctl regardless of QML node availability.
+        if (!wpctlSetSinkVolume.running) {
+            wpctlSetSinkVolume.command = ["wpctl", "set-volume", "@DEFAULT_AUDIO_SINK@", String(clamped)]
+            wpctlSetSinkVolume.running = true
+        }
+
+        if (!root.sink?.audio) return;
 
         const protectionEnabled = (Config.options?.audio?.protection?.enable ?? false);
         if (!protectionEnabled) {
@@ -237,13 +206,19 @@ Singleton {
     }
 
     function incrementVolume() {
+        // Fire wpctl relative increment first — works even when sink?.audio is not yet tracked.
+        if (!wpctlIncrementSinkVolume.running)
+            wpctlIncrementSinkVolume.running = true
         if (!root.sink?.audio) return;
         const currentVolume = root.sink.audio.volume;
         const step = currentVolume < 0.1 ? 0.01 : 0.02;
         root.sink.audio.volume = Math.min(root.hardMaxValue, currentVolume + step);
     }
-    
+
     function decrementVolume() {
+        // Fire wpctl relative decrement first — works even when sink?.audio is not yet tracked.
+        if (!wpctlDecrementSinkVolume.running)
+            wpctlDecrementSinkVolume.running = true
         if (!root.sink?.audio) return;
         const currentVolume = root.sink.audio.volume;
         const step = currentVolume <= 0.1 ? 0.01 : 0.02;

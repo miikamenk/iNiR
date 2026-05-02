@@ -50,6 +50,7 @@ KeyboardKey 1.0 KeyboardKey.qml
 LightDarkPreferenceButton 1.0 LightDarkPreferenceButton.qml
 MaterialCookie 1.0 MaterialCookie.qml
 MaterialLoadingIndicator 1.0 MaterialLoadingIndicator.qml
+MediaArtworkResolver 1.0 MediaArtworkResolver.qml
 MaterialPlaceholderMessage 1.0 MaterialPlaceholderMessage.qml
 MaterialShape 1.0 MaterialShape.qml
 MaterialShapeWrappedMaterialSymbol 1.0 MaterialShapeWrappedMaterialSymbol.qml
@@ -115,6 +116,7 @@ Toolbar 1.0 Toolbar.qml
 ToolbarTabBar 1.0 ToolbarTabBar.qml
 ToolbarTabButton 1.0 ToolbarTabButton.qml
 ToolbarTextField 1.0 ToolbarTextField.qml
+TextInputContextMenu 1.0 TextInputContextMenu.qml
 VerticalButtonGroup 1.0 VerticalButtonGroup.qml
 WaveVisualizer 1.0 WaveVisualizer.qml
 WavyLine 1.0 WavyLine.qml

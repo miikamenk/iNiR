@@ -3,10 +3,9 @@
 #
 # Race condition protection:
 # 1. We capture the focused window ID immediately (before spawn latency can shift focus).
-# 2. QS has a 2-second startup grace period where it ignores closeConfirm triggers.
-# 3. If IPC fails/times out, we close the *captured* window by ID — not whatever is
+# 2. If IPC fails/times out, we close the *captured* window by ID — not whatever is
 #    focused at fallback time.
-# 4. Because both paths target the same window by ID, an accidental double-close is a
+# 3. Because both paths target the same window by ID, an accidental double-close is a
 #    harmless no-op instead of killing a random window.
 
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"

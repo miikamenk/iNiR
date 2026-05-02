@@ -14,9 +14,13 @@ Singleton {
     property string firstRunNotifBody: "Hit Super+/ for a list of keybinds"
     property string defaultWallpaperPath: ""
     property string welcomeQmlPath: FileUtils.trimFileProtocol(Quickshell.shellPath("welcome.qml"))
+    property bool _pendingFirstRun: false
 
     function load() {
-        listWallpapersProc.running = true
+        if (checkFirstRunProc.running || listWallpapersProc.running)
+            return;
+
+        checkFirstRunProc.running = true
     }
 
     function enableNextTime() {
@@ -48,7 +52,11 @@ Singleton {
                 const idx = Math.floor(Math.random() * _candidates.length)
                 root.defaultWallpaperPath = _candidates[idx]
             }
-            checkFirstRunProc.running = true
+            if (root._pendingFirstRun) {
+                root.disableNextTime()
+                root.handleFirstRun()
+                root._pendingFirstRun = false
+            }
         }
     }
 
@@ -57,16 +65,11 @@ Singleton {
         command: ["/usr/bin/test", "-f", root.firstRunFilePath]
         onExited: (exitCode) => {
             if (exitCode !== 0) {
-                // File doesn't exist — create parent dir but DON'T write first_run.txt yet.
-                // The welcome wizard writes config keys on exit;
-                // first_run.txt is written by disableNextTime() or the welcome process itself.
+                root._pendingFirstRun = true
                 const parentDir = root.firstRunFilePath.substring(0, root.firstRunFilePath.lastIndexOf('/'))
                 Quickshell.execDetached(["/bin/sh", "-c", `mkdir -p "${parentDir}"`])
-                root.disableNextTime()
-                root.handleFirstRun()
+                listWallpapersProc.running = true
             }
         }
     }
-
-    Component.onCompleted: listWallpapersProc.running = true
 }

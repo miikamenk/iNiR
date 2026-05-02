@@ -78,11 +78,8 @@ Rectangle {
             active: Config.options?.sidebar?.quickSliders?.showMic ?? false
             sourceComponent: QuickSlider {
                 materialSymbol: "mic"
-                modelValue: Audio.source?.audio?.volume ?? 0
-                onMoved: {
-                    if (Audio.source?.audio)
-                        Audio.source.audio.volume = value
-                }
+                modelValue: Audio.micVolume
+                onMoved: Audio.setSourceVolume(value)
             }
         }
     }
@@ -125,9 +122,11 @@ Rectangle {
             text: quickSlider.materialSymbol
 
             Behavior on color {
+                enabled: Appearance.animationsEnabled
                 animation: ColorAnimation { duration: Appearance.animation.elementMoveFast.duration; easing.type: Appearance.animation.elementMoveFast.type; easing.bezierCurve: Appearance.animation.elementMoveFast.bezierCurve }
             }
             Behavior on anchors.rightMargin {
+                enabled: Appearance.animationsEnabled
                 animation: NumberAnimation { duration: Appearance.animation.elementMoveFast.duration; easing.type: Appearance.animation.elementMoveFast.type; easing.bezierCurve: Appearance.animation.elementMoveFast.bezierCurve }
             }
 

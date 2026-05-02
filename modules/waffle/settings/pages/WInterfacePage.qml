@@ -50,6 +50,14 @@ WSettingsPage {
     readonly property var recordingFpsOptions: [24, 30, 45, 60, 90, 120, 144].map(value => ({ value: value, displayName: `${value} FPS` }))
     readonly property var recordingVideoBitrateOptions: [4000, 6000, 8000, 10000, 12000, 16000, 20000, 28000].map(value => ({ value: value, displayName: `${value} kbps` }))
     readonly property var recordingAudioBitrateOptions: [96, 128, 160, 192, 256, 320].map(value => ({ value: value, displayName: `${value} kbps` }))
+    readonly property var recordingSoftwarePresetOptions: ["ultrafast", "superfast", "veryfast", "faster", "fast", "medium", "slow", "slower", "veryslow"].map(value => ({ value: value, displayName: value }))
+    readonly property var recordingDiscordTargetSizeOptions: [
+        { value: 8, displayName: Translation.tr("8 MB") },
+        { value: 10, displayName: Translation.tr("10 MB") },
+        { value: 25, displayName: Translation.tr("25 MB") },
+        { value: 50, displayName: Translation.tr("50 MB") }
+    ]
+    readonly property var recordingDiscordDimensionOptions: [540, 720, 960, 1280, 1440, 1920].map(value => ({ value: value, displayName: `${value}px` }))
     readonly property var recordingAudioBackendOptions: [
         { value: "", displayName: Translation.tr("Auto") },
         { value: "pipewire", displayName: "PipeWire" },
@@ -389,6 +397,102 @@ WSettingsPage {
             checked: Config.options?.lock?.showLockedText ?? true
             onCheckedChanged: Config.setNestedValue("lock.showLockedText", checked)
         }
+
+        WSettingsSwitch {
+            label: Translation.tr("Show notifications")
+            icon: "alert"
+            description: Translation.tr("Display recent notifications on the lock screen")
+            checked: Config.options?.lock?.notifications?.enable ?? false
+            onCheckedChanged: Config.setNestedValue("lock.notifications.enable", checked)
+        }
+
+        WSettingsSwitch {
+            visible: Config.options?.lock?.notifications?.enable ?? false
+            label: Translation.tr("Show notification body")
+            icon: "eye"
+            description: Translation.tr("Display message content. Disable for privacy.")
+            checked: Config.options?.lock?.notifications?.showBody ?? true
+            onCheckedChanged: Config.setNestedValue("lock.notifications.showBody", checked)
+        }
+
+        WSettingsSpinBox {
+            visible: Config.options?.lock?.notifications?.enable ?? false
+            label: Translation.tr("Max notifications shown")
+            icon: "list"
+            from: 1; to: 10; stepSize: 1
+            value: Config.options?.lock?.notifications?.maxCount ?? 3
+            onValueChanged: Config.setNestedValue("lock.notifications.maxCount", value)
+        }
+
+        WSettingsDropdown {
+            visible: Config.options?.lock?.notifications?.enable ?? false
+            label: Translation.tr("Notification position")
+            icon: "panel-left-expand"
+            description: Translation.tr("Where notifications appear on the lock screen")
+            currentValue: Config.options?.lock?.notifications?.position ?? "auto"
+            options: [
+                { value: "auto", displayName: Translation.tr("Auto") },
+                { value: "center", displayName: Translation.tr("Center") },
+                { value: "left", displayName: Translation.tr("Left") },
+                { value: "right", displayName: Translation.tr("Right") }
+            ]
+            onSelected: newValue => Config.setNestedValue("lock.notifications.position", newValue)
+        }
+
+        WSettingsDropdown {
+            label: Translation.tr("Clock style")
+            icon: "arrow-clockwise"
+            description: Translation.tr("Visual style for the lock screen clock")
+            currentValue: Config.options?.lock?.clock?.style ?? "default"
+            options: [
+                { value: "default", displayName: Translation.tr("Default") },
+                { value: "minimal", displayName: Translation.tr("Minimal") },
+                { value: "analog", displayName: Translation.tr("Analog") }
+            ]
+            onSelected: newValue => Config.setNestedValue("lock.clock.style", newValue)
+        }
+
+        WSettingsDropdown {
+            label: Translation.tr("Clock position")
+            icon: "pin"
+            description: Translation.tr("Where the clock appears on the lock screen")
+            currentValue: Config.options?.lock?.clock?.position ?? "center"
+            options: [
+                { value: "center", displayName: Translation.tr("Center") },
+                { value: "topLeft", displayName: Translation.tr("Top Left") },
+                { value: "bottomLeft", displayName: Translation.tr("Bottom Left") }
+            ]
+            onSelected: newValue => Config.setNestedValue("lock.clock.position", newValue)
+        }
+
+        WSettingsSwitch {
+            label: Translation.tr("Show status indicators")
+            icon: "info"
+            description: Translation.tr("Show WiFi, Bluetooth, volume and battery on the lock screen")
+            checked: Config.options?.lock?.status?.enable ?? true
+            onCheckedChanged: Config.setNestedValue("lock.status.enable", checked)
+        }
+
+        WSettingsSwitch {
+            label: Translation.tr("Dim wallpaper")
+            icon: "weather-sunny-low"
+            description: Translation.tr("Apply a dark overlay to the wallpaper for better contrast")
+            checked: Config.options?.lock?.dim?.enable ?? false
+            onCheckedChanged: Config.setNestedValue("lock.dim.enable", checked)
+        }
+
+        WSettingsSlider {
+            visible: Config.options?.lock?.dim?.enable ?? false
+            label: Translation.tr("Dim amount")
+            icon: "brightness-high"
+            description: Translation.tr("How much to dim the wallpaper")
+            from: 10
+            to: 80
+            stepSize: 5
+            value: Math.round((Config.options?.lock?.dim?.opacity ?? 0.3) * 100)
+            onMoved: Config.setNestedValue("lock.dim.opacity", value / 100)
+            suffix: "%"
+        }
     }
 
     WSettingsSection {
@@ -460,6 +564,69 @@ WSettingsPage {
             description: Translation.tr("Retry with a safer recording path if the preferred encoder fails")
             checked: Config.options?.screenRecord?.enableFallback ?? true
             onCheckedChanged: root.setRecordingConfig("screenRecord.enableFallback", checked)
+        }
+
+        WSettingsSwitch {
+            label: Translation.tr("Compress recordings for Discord")
+            icon: "record"
+            description: Translation.tr("Creates a separate H.264 copy that fits Discord upload limits")
+            checked: Config.options?.screenRecord?.discordCompress?.enabled ?? false
+            onCheckedChanged: Config.setNestedValue("screenRecord.discordCompress.enabled", checked)
+        }
+
+        WSettingsRow {
+            visible: Config.options?.screenRecord?.discordCompress?.enabled ?? false
+            label: Translation.tr("Discord compression")
+            icon: "info"
+            description: Translation.tr("Two-pass compression keeps the original recording and squeezes a sharing copy. Tiny file, less drama.")
+        }
+
+        WSettingsDropdown {
+            visible: Config.options?.screenRecord?.discordCompress?.enabled ?? false
+            label: Translation.tr("Discord target size")
+            icon: "pulse"
+            description: Translation.tr("10 MB fits Discord Free")
+            currentValue: Config.options?.screenRecord?.discordCompress?.targetSizeMb ?? 10
+            options: root.recordingDiscordTargetSizeOptions
+            onSelected: newValue => Config.setNestedValue("screenRecord.discordCompress.targetSizeMb", newValue)
+        }
+
+        WSettingsDropdown {
+            visible: Config.options?.screenRecord?.discordCompress?.enabled ?? false
+            label: Translation.tr("Discord max dimension")
+            icon: "screenshot"
+            description: Translation.tr("Lower values help long clips fit without becoming a pixel smoothie")
+            currentValue: Config.options?.screenRecord?.discordCompress?.maxDimension ?? 1280
+            options: root.recordingDiscordDimensionOptions
+            onSelected: newValue => Config.setNestedValue("screenRecord.discordCompress.maxDimension", newValue)
+        }
+
+        WSettingsDropdown {
+            visible: Config.options?.screenRecord?.discordCompress?.enabled ?? false
+            label: Translation.tr("Discord encoder speed")
+            icon: "arrow-clockwise"
+            description: Translation.tr("Slower is smaller and cleaner")
+            currentValue: Config.options?.screenRecord?.discordCompress?.preset ?? "slow"
+            options: root.recordingSoftwarePresetOptions
+            onSelected: newValue => Config.setNestedValue("screenRecord.discordCompress.preset", newValue)
+        }
+
+        WSettingsDropdown {
+            visible: Config.options?.screenRecord?.discordCompress?.enabled ?? false
+            label: Translation.tr("Discord audio bitrate")
+            icon: "speaker"
+            description: Translation.tr("Automatically reduced when video needs the budget")
+            currentValue: Config.options?.screenRecord?.discordCompress?.audioBitrateKbps ?? 96
+            options: root.recordingAudioBitrateOptions
+            onSelected: newValue => Config.setNestedValue("screenRecord.discordCompress.audioBitrateKbps", newValue)
+        }
+
+        WSettingsSwitch {
+            visible: Config.options?.screenRecord?.discordCompress?.enabled ?? false
+            label: Translation.tr("Skip compression when already under target")
+            icon: "checkmark"
+            checked: Config.options?.screenRecord?.discordCompress?.onlyIfNeeded ?? true
+            onCheckedChanged: Config.setNestedValue("screenRecord.discordCompress.onlyIfNeeded", checked)
         }
 
         WSettingsDropdown {

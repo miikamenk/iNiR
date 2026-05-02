@@ -556,6 +556,23 @@ Tiling layout overlay. Pick or cycle through tiling presets for the current work
 
 ---
 
+### keyboard
+
+Keyboard layout switching (Niri only). Cycles through configured keyboard layouts and queries layout info.
+
+| Function | Description |
+|----------|-------------|
+| `switchLayout` | Switch to next keyboard layout |
+| `switchLayoutPrevious` | Switch to previous keyboard layout |
+| `getCurrentLayout` | Get the current layout name |
+| `getLayouts` | Get all configured layout names (JSON array) |
+
+```kdl
+bind "Mod+Alt+K" { spawn "inir" "keyboard" "switchLayout"; }
+```
+
+---
+
 ## Waffle-Specific Targets
 
 These targets only work when using the Waffle (Windows 11) panel style.
@@ -649,3 +666,19 @@ Waffle Alt+Tab window switcher. Separate from the ii `altSwitcher` — supports 
 | `toggle` | Toggle switcher |
 | `next` | Focus next window |
 | `previous` | Focus previous window |
+
+---
+
+## Standalone Commands
+
+These are top-level `inir` commands that work directly, without going through IPC.
+
+### colorpicker
+
+Launch `hyprpicker` to pick a color from anywhere on the screen. The hex value is copied to the clipboard (`-a` flag).
+
+```kdl
+bind "Super+Shift+C" { spawn "inir" "colorpicker"; }
+```
+
+Requires `hyprpicker` installed.

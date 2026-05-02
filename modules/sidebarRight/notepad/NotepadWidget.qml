@@ -155,6 +155,7 @@ Item {
                     id: textArea
                     width: scrollView.availableWidth
                     wrapMode: TextArea.Wrap
+                    renderType: Text.NativeRendering
                     font.pixelSize: Appearance.inirEverywhere ? Appearance.font.pixelSize.smaller : Appearance.font.pixelSize.small
                     color: Appearance.inirEverywhere ? Appearance.inir.colText : Appearance.colors.colOnLayer0
                     placeholderText: Translation.tr("Write your notes here...")
@@ -230,6 +231,7 @@ Item {
         }
 
         Behavior on opacity {
+            enabled: Appearance.animationsEnabled
             NumberAnimation { duration: Appearance.animation.elementMoveFast.duration }
         }
 
@@ -296,7 +298,7 @@ Item {
                          : Appearance.colors.colLayer1Hover)
                 return "transparent"
             }
-            Behavior on color { ColorAnimation { duration: Appearance.animation.elementMoveFast.duration } }
+            Behavior on color { enabled: Appearance.animationsEnabled; ColorAnimation { duration: Appearance.animation.elementMoveFast.duration } }
 
             MaterialSymbol {
                 anchors.centerIn: parent

@@ -17,6 +17,7 @@ Item { // Bar content region
 
     property var screen: root.QsWindow.window?.screen
     property var brightnessMonitor: Brightness.getMonitorForScreen(screen)
+    property alias backgroundItem: barBackground
 
     // Right-click context menu anchor (invisible, positioned at click)
     Item {
@@ -188,14 +189,19 @@ Item { // Bar content region
         // Color logic per global style and corner style
         color: {
             if (root.angelEverywhere) {
-                return ColorUtils.applyAlpha((blendedColors?.colLayer0 ?? Appearance.colors.colLayer0), 1)
+                const base = blendedColors?.colLayer0 ?? Appearance.colors.colLayer0
+                if (Appearance.compositorBlurActive)
+                    return ColorUtils.transparentize(base, Appearance.angel.compositorPanelTransparentize)
+                return ColorUtils.applyAlpha(base, 1)
             }
             if (root.inirEverywhere) {
                 return Appearance.inir.colLayer0
             }
             if (auroraEverywhere) {
-                // Aurora: use solid base for non-floating, blended for floating
-                return ColorUtils.applyAlpha((blendedColors?.colLayer0 ?? Appearance.colors.colLayer0), 1)
+                const base = blendedColors?.colLayer0 ?? Appearance.colors.colLayer0
+                if (Appearance.compositorBlurActive)
+                    return ColorUtils.transparentize(base, Appearance.aurora.compositorOverlayTransparentize)
+                return ColorUtils.applyAlpha(base, 1)
             }
             // Material/Cards
             if (root.cardStyleEverywhere || cornerStyle === 3) {
@@ -267,8 +273,8 @@ Item { // Bar content region
             y: barBackground.isBottom ? -(root.screen?.height ?? 1080) + barBackground.height + barBackground.barMargin : -barBackground.barMargin
             width: root.screen?.width ?? 1920
             height: root.screen?.height ?? 1080
-            visible: barBackground.auroraEverywhere && !root.inirEverywhere && !barBackground.gameModeMinimal
-            source: root.wallpaperUrl
+            visible: barBackground.auroraEverywhere && !root.inirEverywhere && !barBackground.gameModeMinimal && !Appearance.compositorBlurActive
+            source: Appearance.compositorBlurActive ? "" : root.wallpaperUrl
             fillMode: Image.PreserveAspectCrop
             cache: true
             sourceSize.width: root.screen?.width ?? 1920
@@ -357,7 +363,7 @@ Item { // Bar content region
             LeftSidebarButton { // Left sidebar button
                 visible: Config.options?.bar?.modules?.leftSidebarButton ?? true
                 Layout.alignment: Qt.AlignVCenter
-                colBackground: barLeftSideMouseArea.hovered
+                colBackground: buttonHovered
                     ? (Appearance.auroraEverywhere ? Appearance.aurora.colSubSurface : Appearance.colors.colLayer1Hover)
                     : "transparent"
             }
@@ -577,7 +583,7 @@ Item { // Bar content region
 
                 buttonRadius: Appearance.rounding.full
 
-                colBackground: barRightSideMouseArea.hovered
+                colBackground: buttonHovered
                     ? (Appearance.auroraEverywhere ? Appearance.aurora.colSubSurface : Appearance.colors.colLayer1Hover)
                     : "transparent"
                 colBackgroundHover: Appearance.auroraEverywhere ? Appearance.aurora.colSubSurface : Appearance.colors.colLayer1Hover
@@ -631,7 +637,7 @@ Item { // Bar content region
                     }
                     HyprlandXkbIndicator {
                         Layout.alignment: Qt.AlignVCenter
-                        Layout.rightMargin: indicatorsRowLayout.realSpacing
+                        Layout.rightMargin: KeyboardIndicators.hasPanelIndicators ? indicatorsRowLayout.realSpacing : 0
                         color: rightSidebarButton.colText
                     }
                     Revealer {
@@ -641,6 +647,7 @@ Item { // Bar content region
                         implicitHeight: reveal ? notificationUnreadCount.implicitHeight : 0
                         implicitWidth: reveal ? notificationUnreadCount.implicitWidth : 0
                         Behavior on Layout.rightMargin {
+                            enabled: Appearance.animationsEnabled
                             animation: NumberAnimation { duration: Appearance.animation.elementMoveFast.duration; easing.type: Appearance.animation.elementMoveFast.type; easing.bezierCurve: Appearance.animation.elementMoveFast.bezierCurve }
                         }
                         NotificationUnreadCount {
@@ -655,7 +662,7 @@ Item { // Bar content region
                     MaterialSymbol {
                         Layout.leftMargin: indicatorsRowLayout.realSpacing
                         visible: BluetoothStatus.available
-                        text: BluetoothStatus.connected ? "bluetooth_connected" : BluetoothStatus.enabled ? "bluetooth" : "bluetooth_disabled"
+                        text: BluetoothStatus.activeIcon
                         iconSize: Appearance.font.pixelSize.larger
                         color: rightSidebarButton.colText
                     }

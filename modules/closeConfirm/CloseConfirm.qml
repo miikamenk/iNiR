@@ -13,16 +13,6 @@ Scope {
     property var targetWindow: null
     property bool dialogVisible: false
 
-    // Startup grace period - ignore IPC calls for first 2 seconds after QS starts
-    // This prevents accidental window closes when QS restarts after a crash
-    property bool _startupGrace: true
-    Timer {
-        id: startupGraceTimer
-        interval: 2000
-        running: true
-        onTriggered: root._startupGrace = false
-    }
-
     // Debounce to prevent double-trigger
     property bool _busy: false
     Timer {
@@ -40,10 +30,12 @@ Scope {
         command: ["niri", "msg", "-j", "focused-window"]
         stdout: SplitParser {
             onRead: line => {
-                if (!line?.trim()) return
+                if (!line?.trim())
+                    return;
                 try {
-                    const win = JSON.parse(line)
-                    if (win?.id) root.processWindow(win)
+                    const win = JSON.parse(line);
+                    if (win?.id)
+                        root.processWindow(win);
                 } catch (e) {}
             }
         }
@@ -51,10 +43,10 @@ Scope {
 
     function processWindow(win): void {
         if (root.confirmEnabled) {
-            root.targetWindow = win
-            root.dialogVisible = true
+            root.targetWindow = win;
+            root.dialogVisible = true;
         } else {
-            root.closeWindowFast(win)
+            root.closeWindowFast(win);
         }
     }
 
@@ -62,52 +54,49 @@ Scope {
         target: "closeConfirm"
 
         function trigger(): void {
-            // Ignore during startup grace period (prevents accidental closes after crash/restart)
-            if (root._startupGrace) {
-                console.log("closeConfirm: ignoring trigger during startup grace period")
-                return
-            }
-            if (root._busy) return
-            root._busy = true
-            debounce.restart()
+            if (root._busy)
+                return;
+            root._busy = true;
+            debounce.restart();
 
             // Try cached activeWindow first, fallback to niri query
-            const win = NiriService.activeWindow
+            const win = NiriService.activeWindow;
             if (win?.id) {
-                root.processWindow(win)
+                root.processWindow(win);
             } else {
-                focusedWindowProc.running = true
+                focusedWindowProc.running = true;
             }
         }
 
         function close(): void {
-            root.dialogVisible = false
-            root.targetWindow = null
+            root.dialogVisible = false;
+            root.targetWindow = null;
         }
     }
 
     function closeWindowFast(win): void {
-        if (!win?.id) return
-        const appId = String(win?.app_id ?? "").toLowerCase()
+        if (!win?.id)
+            return;
+        const appId = String(win?.app_id ?? "").toLowerCase();
         if (appId === "spotify") {
-            MinimizedWindows.minimize(win.id)
-            return
+            MinimizedWindows.minimize(win.id);
+            return;
         }
         // Use niri msg directly - more reliable than socket IPC for some apps
-        Quickshell.execDetached(["niri", "msg", "action", "close-window", "--id", String(win.id)])
+        Quickshell.execDetached(["niri", "msg", "action", "close-window", "--id", String(win.id)]);
     }
 
     function confirmClose(): void {
         if (targetWindow) {
-            closeWindowFast(targetWindow)
+            closeWindowFast(targetWindow);
         }
-        dialogVisible = false
-        targetWindow = null
+        dialogVisible = false;
+        targetWindow = null;
     }
 
     function cancel(): void {
-        dialogVisible = false
-        targetWindow = null
+        dialogVisible = false;
+        targetWindow = null;
     }
 
     // Dialog UI
@@ -138,7 +127,8 @@ Scope {
                     anchors.fill: parent
                     focus: true
                     sourceComponent: Config.options?.panelFamily === "waffle" ? waffleContent : iiContent
-                    onLoaded: if (item) item.forceActiveFocus()
+                    onLoaded: if (item)
+                        item.forceActiveFocus()
 
                     Component {
                         id: iiContent

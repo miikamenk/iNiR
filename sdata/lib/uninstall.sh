@@ -4,7 +4,7 @@
 
 # shellcheck shell=bash
 
-INIR_CONFIG_DIR="${DOTS_CORE_CONFDIR:-${XDG_CONFIG_HOME}/illogical-impulse}"
+INIR_CONFIG_DIR="${DOTS_CORE_CONFDIR:-${XDG_CONFIG_HOME}/inir}"
 
 ###############################################################################
 # Configuration - What iNiR installs/manages
@@ -23,6 +23,7 @@ declare -A INIR_ONLY_PATHS=(
     ["${XDG_CACHE_HOME}/quickshell/inir"]="iNiR cache"
     ["${XDG_BIN_HOME}/inir"]="iNiR launcher"
     ["${HOME}/.local/bin/inir_super_overview_daemon.py"]="iNiR super daemon"
+    ["${XDG_CONFIG_HOME}/systemd/user/inir.service"]="iNiR user service"
     ["${XDG_CONFIG_HOME}/systemd/user/inir-super-overview.service"]="iNiR daemon service"
     ["${XDG_CONFIG_HOME}/vesktop/themes/system24.theme.css"]="iNiR Vesktop theme"
     ["${XDG_CONFIG_HOME}/vesktop/themes/ii-colors.css"]="iNiR Vesktop colors"
@@ -277,12 +278,31 @@ uninstall_stop_services() {
 
     # Stop super daemon if running
     if command -v systemctl &>/dev/null && [[ -d /run/systemd/system ]]; then
+        # Stop the service
+        systemctl --user stop inir.service 2>/dev/null || true
+        # Remove all wants links (compositor-specific and legacy graphical-session)
+        local _sd_user="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user"
+        for _wd in "$_sd_user"/*.wants; do
+            [[ -d "$_wd" ]] || continue
+            rm -f "$_wd/inir.service" 2>/dev/null || true
+        done
+        # Also try legacy disable in case old [Install] symlinks exist
+        systemctl --user disable inir.service 2>/dev/null || true
+        systemctl --user reset-failed inir.service 2>/dev/null || true
+
         if systemctl --user is-active inir-super-overview.service &>/dev/null; then
             systemctl --user disable --now inir-super-overview.service 2>/dev/null || true
         fi
+        systemctl --user reset-failed inir-super-overview.service 2>/dev/null || true
     fi
 
     tui_success "Services stopped"
+}
+
+uninstall_reload_user_systemd() {
+    if command -v systemctl &>/dev/null && [[ -d /run/systemd/system ]]; then
+        systemctl --user daemon-reload 2>/dev/null || true
+    fi
 }
 
 uninstall_create_backup() {
@@ -892,6 +912,7 @@ run_uninstall() {
 
     # Remove iNiR-exclusive files (always safe)
     uninstall_remove_inir_only
+    uninstall_reload_user_systemd
 
     # Handle shared configs (ask user)
     uninstall_handle_shared_configs
@@ -969,6 +990,7 @@ run_uninstall_quick() {
     # Remove only iNiR-exclusive files
     ask=false  # Disable prompts for shared configs
     uninstall_remove_inir_only
+    uninstall_reload_user_systemd
 
     echo ""
     tui_success "iNiR removed. All shared configs and packages preserved."

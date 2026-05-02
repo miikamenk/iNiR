@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/snowarch/inir/releases"><img src="https://img.shields.io/badge/version-2.21.0-blue?style=flat-square" alt="Version"></a>
+  <a href="https://github.com/snowarch/inir/releases"><img src="https://img.shields.io/badge/version-2.24.0-blue?style=flat-square" alt="Version"></a>
   <a href="https://github.com/snowarch/inir/stargazers"><img src="https://img.shields.io/github/stars/snowarch/inir?style=flat-square" alt="Stars"></a>
   <a href="https://discord.gg/pAPTfAhZUJ"><img src="https://img.shields.io/badge/Discord-join-5865F2?style=flat-square&logo=discord&logoColor=white" alt="Discord"></a>
 </p>
@@ -247,7 +247,7 @@ inir update                     # pull + माइग्रेशन + रीस
 | [IPC.md](../IPC.md) | स्क्रिप्टिंग और कीबाइंड के लिए IPC टारगेट |
 | [PACKAGES.md](../PACKAGES.md) | हर डिपेंडेंसी और उसका कारण |
 | [LIMITATIONS.md](../LIMITATIONS.md) | ज्ञात सीमाएँ और समाधान |
-| [ARCHITECTURE.md](../ARCHITECTURE.md) | तकनीकी आर्किटेक्चर ओवरव्यू |
+| [ARCHITECTURE.md](../../ARCHITECTURE.md) | तकनीकी आर्किटेक्चर ओवरव्यू |
 
 ---
 

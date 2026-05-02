@@ -82,6 +82,7 @@ inir update
 `inir update` and `./setup update` run the same update engine. `inir update` is the convenient launcher-facing entry point; `./setup update` is the underlying maintenance command and the better choice when you also want the interactive TUI nearby.
 
 What happens:
+
 1. Checks remote for new commits
 2. Creates snapshot (for rollback)
 3. Pulls changes
@@ -113,6 +114,7 @@ inir doctor
 `inir doctor` is a wrapper around `./setup doctor`.
 
 Diagnoses and **automatically fixes** common issues:
+
 - Missing directories
 - Script permissions
 - Python packages (via uv)
@@ -146,6 +148,7 @@ For externally managed installs, `rollback` does not try to restore repo-managed
 Review and apply pending config migrations. Migrations are changes to user configs (keybinds, layer rules, etc.) required by new features.
 
 What happens:
+
 - Shows list of pending migrations
 - Displays exactly what each migration will change
 - Creates automatic backup before applying
@@ -200,6 +203,7 @@ If you want to change which apps iNiR launches, edit `~/.config/illogical-impuls
 View and manage your modifications to distributed files. The setup script tracks which files you've customized.
 
 What it shows:
+
 - List of files you've modified from defaults
 - Option to view differences
 - Option to restore original versions
@@ -209,30 +213,30 @@ Useful when you want to see what you've changed or restore defaults after custom
 
 ## Commands
 
-| Command | Description |
-|---------|-------------|
-| `./setup` | Interactive menu |
-| `./setup install` | Full installation |
-| `inir update` | Wrapper around `./setup update` |
-| `./setup status` | Show install mode, update strategy, and health |
-| `./setup migrate` | Review and apply config migrations |
-| `./setup doctor` | Diagnose and auto-fix |
-| `./setup rollback` | Restore previous snapshot |
-| `./setup my-changes` | View and restore user modifications |
-| `./setup uninstall` | Remove iNiR from system |
-| `inir install` | Wrapper around `./setup install` from the repo/runtime root |
-| `inir start` | Start iNiR (uses inir.service when enabled) |
-| `inir stop` | Stop the active runtime |
-| `inir run` | Launch iNiR from the active runtime |
-| `inir restart` | Restart the active runtime |
-| `inir settings` | Open settings via IPC |
-| `inir terminal` | Launch the configured terminal from `apps.terminal` |
-| `inir browser` | Launch the configured browser from `apps.browser` |
-| `inir doctor` | Wrapper around `./setup doctor` |
-| `inir logs` | Show recent runtime logs |
-| `inir repair` | Doctor + restart + filtered log check |
-| `inir status` | Wrapper around `./setup status` |
-| `inir test-local` | Run local distribution checks |
+| Command              | Description                                                 |
+| -------------------- | ----------------------------------------------------------- |
+| `./setup`            | Interactive menu                                            |
+| `./setup install`    | Full installation                                           |
+| `inir update`        | Wrapper around `./setup update`                             |
+| `./setup status`     | Show install mode, update strategy, and health              |
+| `./setup migrate`    | Review and apply config migrations                          |
+| `./setup doctor`     | Diagnose and auto-fix                                       |
+| `./setup rollback`   | Restore previous snapshot                                   |
+| `./setup my-changes` | View and restore user modifications                         |
+| `./setup uninstall`  | Remove iNiR from system                                     |
+| `inir install`       | Wrapper around `./setup install` from the repo/runtime root |
+| `inir start`         | Start iNiR (uses inir.service when enabled)                 |
+| `inir stop`          | Stop the active runtime                                     |
+| `inir run`           | Launch iNiR from the active runtime                         |
+| `inir restart`       | Restart the active runtime                                  |
+| `inir settings`      | Open settings via IPC                                       |
+| `inir terminal`      | Launch the configured terminal from `apps.terminal`         |
+| `inir browser`       | Launch the configured browser from `apps.browser`           |
+| `inir doctor`        | Wrapper around `./setup doctor`                             |
+| `inir logs`          | Show recent runtime logs                                    |
+| `inir repair`        | Doctor + restart + filtered log check                       |
+| `inir status`        | Wrapper around `./setup status`                             |
+| `inir test-local`    | Run local distribution checks                               |
 
 Options: `-y` (skip prompts), `-q` (quiet), `-h` (help)
 
@@ -288,28 +292,28 @@ These checks cover:
 
 ### Core Files
 
-| Source | Destination |
-|--------|-------------|
-| QML code (`./setup install`) | `~/.config/quickshell/inir/` |
+| Source                                    | Destination                                                          |
+| ----------------------------------------- | -------------------------------------------------------------------- |
+| QML code (`./setup install`)              | `~/.config/quickshell/inir/`                                         |
 | QML code (`make install` / package style) | `/usr/share/quickshell/inir/` or `/usr/local/share/quickshell/inir/` |
-| User config | `~/.config/illogical-impulse/config.json` |
-| State files | `~/.local/state/quickshell/user/` |
-| Cache | `~/.cache/quickshell/inir/` |
-| Launcher | `inir` in the install prefix |
-| Super daemon | `~/.local/bin/inir_super_overview_daemon.py` |
-| Daemon service | `~/.config/systemd/user/inir-super-overview.service` |
+| User config                               | `~/.config/illogical-impulse/config.json`                            |
+| State files                               | `~/.local/state/quickshell/user/`                                    |
+| Cache                                     | `~/.cache/quickshell/inir/`                                          |
+| Launcher                                  | `inir` in the install prefix                                         |
+| Super daemon                              | `~/.local/bin/inir_super_overview_daemon.py`                         |
+| Daemon service                            | `~/.config/systemd/user/inir-super-overview.service`                 |
 
 ### Compositor & Themes
 
-| Source | Destination |
-|--------|-------------|
-| Niri config | `~/.config/niri/config.kdl` |
-| GTK themes | `~/.config/gtk-3.0/`, `~/.config/gtk-4.0/` |
-| Qt themes | `~/.config/kdeglobals`, `~/.config/Kvantum/` |
-| Color schemes | `~/.local/share/color-schemes/` |
-| Theming templates | `~/.config/matugen/` |
-| Fuzzel config | `~/.config/fuzzel/` |
-| Vesktop themes | `~/.config/vesktop/themes/` |
+| Source          | Destination                                                                        |
+| --------------- | ---------------------------------------------------------------------------------- |
+| Niri config     | `~/.config/niri/config.kdl`                                                        |
+| GTK themes      | `~/.config/gtk-3.0/`, `~/.config/gtk-4.0/`                                         |
+| Qt themes       | `~/.config/kdeglobals`, `~/.config/Kvantum/`                                       |
+| Color schemes   | `~/.local/share/color-schemes/`                                                    |
+| Color templates | `~/.config/matugen/` _(legacy directory name — matugen binary no longer required)_ |
+| Fuzzel config   | `~/.config/fuzzel/`                                                                |
+| Vesktop themes  | `~/.config/vesktop/themes/`                                                        |
 
 ### Behavior
 
@@ -339,6 +343,7 @@ Some features need config changes (new keybinds, layer rules, etc). After `updat
 The uninstall script intelligently removes iNiR while preserving shared resources and user data:
 
 **What it does:**
+
 - Creates automatic backup before removal
 - Removes iNiR-exclusive files and directories
 - Asks before removing shared configs (Niri, GTK, themes)
@@ -349,6 +354,7 @@ The uninstall script intelligently removes iNiR while preserving shared resource
 - Shows commands to revert system changes (groups, modules)
 
 **Interactive mode:**
+
 ```bash
 ./setup uninstall
 ```
@@ -356,6 +362,7 @@ The uninstall script intelligently removes iNiR while preserving shared resource
 Asks before removing each shared config. Recommended for most users.
 
 **Quick mode:**
+
 ```bash
 ./setup uninstall -y
 ```
@@ -383,32 +390,35 @@ The following are removed without prompting (iNiR-exclusive):
 
 These may be used by other applications. The script asks before removing:
 
-| Path | Type | Default Action |
-|------|------|----------------|
-| `~/.config/niri/config.kdl` | Essential | Keep (especially if in Niri session) |
-| `~/.config/matugen/` | Optional | Ask (remove if you do not want to keep iNiR theming templates) |
-| `~/.config/fuzzel/` | Optional | Ask (remove if fuzzel not installed) |
-| `~/.config/Kvantum/` | Optional | Ask (remove if Kvantum not installed) |
-| `~/.config/kdeglobals` | Optional | Ask |
-| `~/.config/dolphinrc` | Optional | Ask (remove if not using Dolphin) |
-| `~/.config/gtk-3.0/gtk.css` | Optional | Ask |
-| `~/.config/gtk-4.0/gtk.css` | Optional | Ask |
-| `~/.config/fontconfig/` | Essential | Keep |
-| `${XDG_DATA_HOME:-~/.local/share}/color-schemes/Darkly.colors` | iNiR default | Remove |
+| Path                                                           | Type         | Default Action                                                                                          |
+| -------------------------------------------------------------- | ------------ | ------------------------------------------------------------------------------------------------------- |
+| `~/.config/niri/config.kdl`                                    | Essential    | Keep (especially if in Niri session)                                                                    |
+| `~/.config/matugen/`                                           | Optional     | Ask (remove if you do not want to keep iNiR color templates — legacy path, matugen binary not required) |
+| `~/.config/fuzzel/`                                            | Optional     | Ask (remove if fuzzel not installed)                                                                    |
+| `~/.config/Kvantum/`                                           | Optional     | Ask (remove if Kvantum not installed)                                                                   |
+| `~/.config/kdeglobals`                                         | Optional     | Ask                                                                                                     |
+| `~/.config/dolphinrc`                                          | Optional     | Ask (remove if not using Dolphin)                                                                       |
+| `~/.config/gtk-3.0/gtk.css`                                    | Optional     | Ask                                                                                                     |
+| `~/.config/gtk-4.0/gtk.css`                                    | Optional     | Ask                                                                                                     |
+| `~/.config/fontconfig/`                                        | Essential    | Keep                                                                                                    |
+| `${XDG_DATA_HOME:-~/.local/share}/color-schemes/Darkly.colors` | iNiR default | Remove                                                                                                  |
 
 ### Installed Packages
 
 The script lists packages installed by iNiR but does not remove them automatically. Review the output and remove manually if not needed by other applications.
 
 **Core packages:**
+
 - `quickshell` - Shell framework (safe to remove if no other QS configs)
 - `niri` - Wayland compositor (keep if using Niri)
 
 **System tools:**
+
 - `cliphist`, `fuzzel`, `swaylock`, `grim`, `slurp`
 - `wl-clipboard`, `brightnessctl`, `playerctl`, `dunst`
 
 **Optional tools:**
+
 - `cava`, `easyeffects`
 
 The script provides distro-specific removal commands (pacman, dnf, apt) with safety recommendations.
@@ -424,11 +434,13 @@ The following system changes are not automatically reverted. The script shows co
 ### Backup Location
 
 Backups are saved to:
+
 ```
 ~/.local/share/inir-uninstall-backup-YYYYMMDD-HHMMSS/
 ```
 
 To restore from backup:
+
 ```bash
 cp -r ~/.local/share/inir-uninstall-backup-*/quickshell-inir ~/.config/quickshell/inir
 cp -r ~/.local/share/inir-uninstall-backup-*/illogical-impulse ~/.config/illogical-impulse
@@ -457,7 +469,7 @@ rm -f ~/.config/Vesktop/themes/ii-colors.css
 
 # Remove shared configs (review before running)
 # rm -rf ~/.config/niri/config.kdl  # Only if not using Niri
-# rm -rf ~/.config/matugen          # Optional: iNiR theming templates
+# rm -rf ~/.config/matugen          # Optional: iNiR color templates (legacy path, matugen binary not required)
 # rm -rf ~/.config/fuzzel
 # rm -rf ~/.config/Kvantum
 # rm -f ~/.config/kdeglobals

@@ -402,12 +402,25 @@ Singleton {
 
     property bool _initialized: false
 
+    // Defer initial weather fetch to avoid network bursts during shell startup.
+    // Panels render in the first ~1s; this keeps CPU/IO free for the critical path.
+    Timer {
+        id: startupDelayTimer
+        interval: 3000
+        repeat: false
+        onTriggered: {
+            if (root.enabled && Config.ready && !root._initialized) {
+                root._initialized = true
+                root._retryCount = 0
+                root.location = { valid: false, lat: 0, lon: 0, name: "" }
+                root.resolveLocation()
+            }
+        }
+    }
+
     onEnabledChanged: {
         if (enabled && Config.ready && !root._initialized) {
-            root._initialized = true;
-            root._retryCount = 0;
-            root.location = { valid: false, lat: 0, lon: 0, name: "" };
-            resolveLocation();
+            startupDelayTimer.restart()
         }
     }
     onUseUSCSChanged: {
@@ -439,9 +452,7 @@ Singleton {
         target: Config
         function onReadyChanged() {
             if (Config.ready && root.enabled && !root._initialized) {
-                root._initialized = true;
-                root._retryCount = 0;
-                root.resolveLocation();
+                startupDelayTimer.restart()
             }
         }
     }
@@ -785,7 +796,7 @@ Singleton {
 
     Timer {
         id: fetchTimer
-        running: root.enabled && Config.ready
+        running: root.enabled && Config.ready && root._initialized
         repeat: true
         interval: root.fetchInterval > 0 ? root.fetchInterval : 600000
         onTriggered: root.getData()
