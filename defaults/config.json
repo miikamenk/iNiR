@@ -1185,7 +1185,11 @@
             "enable": true,
             "idleSeconds": 30,
             "wallpaperIntervalSeconds": 30,
-            "showClock": true
+            "showClock": true,
+            "blackEnable": false,
+            "blackTimeoutSeconds": 120,
+            "blackMode": "overlay",
+            "perMonitor": []
         },
         "showLockedText": true,
         "status": {

@@ -2263,6 +2263,21 @@ Singleton {
                     property bool powerButtons: true
                     property bool hintText: true
                 }
+                property JsonObject screensaver: JsonObject {
+                    property bool enable: true
+                    property int idleSeconds: 30 // Idle time before the screensaver kicks in
+                    property int wallpaperIntervalSeconds: 30 // Seconds between wallpaper crossfades
+                    property bool showClock: true // Show the drifting DVD-style clock
+                    // Black-out: after the screensaver has been running for blackTimeoutSeconds,
+                    // the monitor goes black to save power / protect the panel.
+                    property bool blackEnable: false
+                    property int blackTimeoutSeconds: 120 // Extra idle (after screensaver starts) before going black
+                    property string blackMode: "overlay" // "overlay" (black surface), "dpms" (monitor power off), or "both"
+                    // Per-monitor overrides. Each entry: { "monitor": "<output name>", ...any of the keys above }.
+                    // Missing keys fall back to the global values above.
+                    // Example: [{ "monitor": "DP-1", "idleSeconds": 60, "blackEnable": true }]
+                    property list<var> perMonitor: []
+                }
             }
 
             property JsonObject media: JsonObject {

@@ -1,4 +1,5 @@
 import QtQuick
+import Quickshell
 import Quickshell.Io
 import QtQuick.Layouts
 import qs.services
@@ -7,8 +8,202 @@ import qs.modules.common.functions
 import qs.modules.common.widgets
 
 ContentPage {
+    id: root
     settingsPageIndex: 1
     settingsPageName: Translation.tr("System")
+
+    // ===== Lock screensaver helpers (per-monitor overrides) =====
+    function ssGlobal(key, fallback) {
+        const sv = Config.options?.lock?.screensaver
+        const v = sv ? sv[key] : undefined
+        return (v === undefined || v === null) ? fallback : v
+    }
+    function ssList(): var {
+        return Config.options?.lock?.screensaver?.perMonitor ?? []
+    }
+    function ssEntry(name: string): var {
+        const list = ssList()
+        for (let i = 0; i < list.length; i++)
+            if (String(list[i]?.monitor ?? "") === name)
+                return list[i]
+        return null
+    }
+    function ssHasOverride(name: string): bool {
+        return ssEntry(name) !== null
+    }
+    // Effective value for a monitor: its override if present, else the global value
+    function ssValue(name, key, fallback) {
+        const e = ssEntry(name)
+        if (e && e[key] !== undefined && e[key] !== null)
+            return e[key]
+        return ssGlobal(key, fallback)
+    }
+    function ssConnectedScreens(): var {
+        const screens = Quickshell.screens
+        let names = []
+        for (let i = 0; i < screens.length; i++) {
+            const name = String(screens[i]?.name ?? "")
+            if (name.length > 0 && !names.includes(name))
+                names.push(name)
+        }
+        return names
+    }
+    // Enable/disable a full per-monitor override profile (seeded from current globals)
+    function ssSetOverrideEnabled(name, enabled): void {
+        if (!name || name.length === 0)
+            return
+        let list = ssList().map(e => Object.assign({}, e))
+        const idx = list.findIndex(e => String(e?.monitor ?? "") === name)
+        if (enabled) {
+            if (idx === -1)
+                list.push({
+                    "monitor": name,
+                    "enable": ssGlobal("enable", true),
+                    "idleSeconds": ssGlobal("idleSeconds", 30),
+                    "wallpaperIntervalSeconds": ssGlobal("wallpaperIntervalSeconds", 30),
+                    "showClock": ssGlobal("showClock", true),
+                    "blackEnable": ssGlobal("blackEnable", false),
+                    "blackTimeoutSeconds": ssGlobal("blackTimeoutSeconds", 120),
+                    "blackMode": ssGlobal("blackMode", "overlay")
+                })
+        } else if (idx !== -1) {
+            list.splice(idx, 1)
+        }
+        Config.setNestedValue("lock.screensaver.perMonitor", list)
+    }
+    function ssSetValue(name, key, value): void {
+        if (!name || name.length === 0)
+            return
+        let list = ssList().map(e => Object.assign({}, e))
+        let idx = list.findIndex(e => String(e?.monitor ?? "") === name)
+        if (idx === -1) {
+            list.push({ "monitor": name })
+            idx = list.length - 1
+        }
+        list[idx][key] = value
+        Config.setNestedValue("lock.screensaver.perMonitor", list)
+    }
+
+    readonly property var ssBlackModeOptions: [
+        { "displayName": Translation.tr("Black overlay"), "icon": "gradient", "value": "overlay" },
+        { "displayName": Translation.tr("Monitor off (DPMS)"), "icon": "power_settings_new", "value": "dpms" },
+        { "displayName": Translation.tr("Both"), "icon": "contrast", "value": "both" }
+    ]
+
+    // Reusable screensaver controls. monitorName == "" edits the global settings,
+    // otherwise it edits that monitor's per-monitor override profile.
+    component ScreensaverControls: ColumnLayout {
+        id: ssCtl
+        property string monitorName: ""
+        readonly property bool isGlobal: monitorName.length === 0
+        readonly property bool ssEnabled: val("enable", true)
+        readonly property bool ssBlackEnabled: val("blackEnable", false)
+        Layout.fillWidth: true
+        spacing: 4
+
+        function val(key, fallback) {
+            return isGlobal ? root.ssGlobal(key, fallback) : root.ssValue(monitorName, key, fallback)
+        }
+        function setVal(key, value) {
+            if (isGlobal)
+                Config.setNestedValue("lock.screensaver." + key, value)
+            else
+                root.ssSetValue(monitorName, key, value)
+        }
+
+        SettingsSwitch {
+            text: Translation.tr("Enable screensaver")
+            checked: ssCtl.val("enable", true)
+            onCheckedChanged: ssCtl.setVal("enable", checked)
+            StyledToolTip {
+                text: Translation.tr("Cycle through wallpapers with a drifting clock after the lock screen is idle")
+            }
+        }
+
+        ConfigSpinBox {
+            visible: ssCtl.ssEnabled
+            icon: "timer"
+            text: Translation.tr("Idle before screensaver (s)")
+            value: ssCtl.val("idleSeconds", 30)
+            from: 5
+            to: 1800
+            stepSize: 5
+            onValueChanged: ssCtl.setVal("idleSeconds", value)
+            StyledToolTip {
+                text: Translation.tr("Seconds of inactivity on the lock screen before the screensaver starts")
+            }
+        }
+
+        ConfigSpinBox {
+            visible: ssCtl.ssEnabled
+            icon: "image"
+            text: Translation.tr("Wallpaper change interval (s)")
+            value: ssCtl.val("wallpaperIntervalSeconds", 30)
+            from: 5
+            to: 600
+            stepSize: 5
+            onValueChanged: ssCtl.setVal("wallpaperIntervalSeconds", value)
+            StyledToolTip {
+                text: Translation.tr("Seconds between wallpaper crossfades while the screensaver is running")
+            }
+        }
+
+        SettingsSwitch {
+            visible: ssCtl.ssEnabled
+            buttonIcon: "schedule"
+            text: Translation.tr("Show drifting clock")
+            checked: ssCtl.val("showClock", true)
+            onCheckedChanged: ssCtl.setVal("showClock", checked)
+            StyledToolTip {
+                text: Translation.tr("Show a bouncing clock (and media) over the screensaver")
+            }
+        }
+
+        SettingsSwitch {
+            visible: ssCtl.ssEnabled
+            buttonIcon: "dark_mode"
+            text: Translation.tr("Go black after timeout")
+            checked: ssCtl.val("blackEnable", false)
+            onCheckedChanged: ssCtl.setVal("blackEnable", checked)
+            StyledToolTip {
+                text: Translation.tr("After the screensaver has run for a while, turn the screen black to save power")
+            }
+        }
+
+        ConfigSpinBox {
+            visible: ssCtl.ssEnabled && ssCtl.ssBlackEnabled
+            icon: "hourglass_empty"
+            text: Translation.tr("Black-out delay (s)")
+            value: ssCtl.val("blackTimeoutSeconds", 120)
+            from: 5
+            to: 3600
+            stepSize: 10
+            onValueChanged: ssCtl.setVal("blackTimeoutSeconds", value)
+            StyledToolTip {
+                text: Translation.tr("Seconds after the screensaver starts before the screen goes black")
+            }
+        }
+
+        ColumnLayout {
+            visible: ssCtl.ssEnabled && ssCtl.ssBlackEnabled
+            Layout.fillWidth: true
+            Layout.leftMargin: 8
+            Layout.rightMargin: 8
+            spacing: 4
+
+            StyledText {
+                text: Translation.tr("Black-out mode")
+                color: Appearance.colors.colSubtext
+                font.pixelSize: Appearance.font.pixelSize.smaller
+            }
+
+            ConfigSelectionArray {
+                currentValue: ssCtl.val("blackMode", "overlay")
+                options: root.ssBlackModeOptions
+                onSelected: newValue => ssCtl.setVal("blackMode", newValue)
+            }
+        }
+    }
 
     Process {
         id: translationProc
@@ -988,6 +1183,89 @@ ContentPage {
                     onCheckedChanged: Config.setNestedValue("lock.widgets.hintText", checked)
                 }
             }
+            ContentSubsection {
+                title: Translation.tr("Screensaver")
+                tooltip: Translation.tr("Idle animation shown on the lock screen, with optional power-saving black-out")
+
+                ScreensaverControls {
+                    monitorName: ""
+                }
+            }
+
+            ContentSubsection {
+                title: Translation.tr("Per-monitor screensaver")
+                tooltip: Translation.tr("Override the screensaver settings for individual monitors. When off, a monitor follows the global settings above.")
+
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: Appearance.sizes.spacingSmall
+
+                    Repeater {
+                        model: Quickshell.screens
+
+                        Rectangle {
+                            id: monBlock
+                            required property var modelData
+                            required property int index
+                            readonly property string screenName: String(modelData?.name ?? "")
+                            readonly property bool overridden: root.ssHasOverride(screenName)
+
+                            Layout.fillWidth: true
+                            radius: Appearance.rounding.small
+                            color: Appearance.colors.colLayer1
+                            border.width: 1
+                            border.color: overridden ? Appearance.colors.colPrimary : SettingsMaterialPreset.groupBorderColor
+                            implicitHeight: monCol.implicitHeight + Appearance.sizes.spacingSmall * 2
+
+                            ColumnLayout {
+                                id: monCol
+                                anchors.left: parent.left
+                                anchors.right: parent.right
+                                anchors.top: parent.top
+                                anchors.margins: Appearance.sizes.spacingSmall
+                                spacing: 2
+
+                                SettingsSwitch {
+                                    buttonIcon: "monitor"
+                                    text: (monBlock.screenName || (Translation.tr("Monitor ") + (monBlock.index + 1)))
+                                        + (monBlock.overridden ? "" : "  •  " + Translation.tr("global"))
+                                    enabled: monBlock.screenName.length > 0
+                                    checked: monBlock.overridden
+                                    onCheckedChanged: {
+                                        if (checked !== monBlock.overridden)
+                                            root.ssSetOverrideEnabled(monBlock.screenName, checked)
+                                    }
+                                    StyledToolTip {
+                                        text: Translation.tr("Use custom screensaver settings for this monitor")
+                                    }
+                                }
+
+                                // Destroyed (not just hidden) when the override is off, so the
+                                // controls can never write values back and re-create the override.
+                                Loader {
+                                    Layout.fillWidth: true
+                                    active: monBlock.overridden
+                                    visible: active
+                                    sourceComponent: Component {
+                                        ScreensaverControls {
+                                            monitorName: monBlock.screenName
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    StyledText {
+                        Layout.fillWidth: true
+                        visible: Quickshell.screens.length === 0
+                        text: Translation.tr("No monitors detected")
+                        color: Appearance.colors.colSubtext
+                        font.pixelSize: Appearance.font.pixelSize.smaller
+                    }
+                }
+            }
+
             ContentSubsection {
                 title: Translation.tr("Style: Blurred")
 

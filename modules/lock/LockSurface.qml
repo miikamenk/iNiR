@@ -42,6 +42,34 @@ MouseArea {
     readonly property bool enableAnimation: Config.options?.lock?.enableAnimation ?? false
     readonly property bool _zzz: Appearance.zzzEverywhere
 
+    // Name of the monitor this surface is shown on (set by Lock.qml per WlSessionLockSurface)
+    property string screenName: ""
+
+    // Screensaver config — global values, optionally overridden per-monitor.
+    // The override entry for this monitor (or {} when none); keys missing from it fall back to global.
+    readonly property var screensaverOverride: {
+        const list = Config.options?.lock?.screensaver?.perMonitor ?? []
+        if (root.screenName.length > 0) {
+            for (let i = 0; i < list.length; i++) {
+                if (String(list[i]?.monitor ?? "") === root.screenName)
+                    return list[i]
+            }
+        }
+        return ({})
+    }
+    readonly property bool screensaverEnabled: screensaverOverride.enable ?? (Config.options?.lock?.screensaver?.enable ?? true)
+    readonly property int screensaverIdleSeconds: screensaverOverride.idleSeconds ?? (Config.options?.lock?.screensaver?.idleSeconds ?? 30)
+    readonly property int screensaverWallpaperInterval: screensaverOverride.wallpaperIntervalSeconds ?? (Config.options?.lock?.screensaver?.wallpaperIntervalSeconds ?? 30)
+    readonly property bool screensaverShowClock: screensaverOverride.showClock ?? (Config.options?.lock?.screensaver?.showClock ?? true)
+    // Black-out (power saving) config
+    readonly property bool screensaverBlackEnable: screensaverOverride.blackEnable ?? (Config.options?.lock?.screensaver?.blackEnable ?? false)
+    readonly property int screensaverBlackTimeout: screensaverOverride.blackTimeoutSeconds ?? (Config.options?.lock?.screensaver?.blackTimeoutSeconds ?? 120)
+    readonly property string screensaverBlackMode: screensaverOverride.blackMode ?? (Config.options?.lock?.screensaver?.blackMode ?? "overlay")
+    readonly property bool screensaverBlackUsesOverlay: root.screensaverBlackMode === "overlay" || root.screensaverBlackMode === "both"
+    readonly property bool screensaverBlackUsesDpms: root.screensaverBlackMode === "dpms" || root.screensaverBlackMode === "both"
+    property bool screensaverActive: false
+    property bool screensaverBlack: false
+
     // Widget visibility
     readonly property bool showWeather: Config.options?.lock?.widgets?.weather ?? true
     readonly property bool showMedia: Config.options?.lock?.widgets?.media ?? true
@@ -53,13 +81,6 @@ MouseArea {
         return value.startsWith("image://qsimage/") ? "" : value
     }
     
-    // Screensaver config
-    readonly property bool screensaverEnabled: Config.options?.lock?.screensaver?.enable ?? true
-    readonly property int screensaverIdleSeconds: Config.options?.lock?.screensaver?.idleSeconds ?? 30
-    readonly property int screensaverWallpaperInterval: Config.options?.lock?.screensaver?.wallpaperIntervalSeconds ?? 30
-    readonly property bool screensaverShowClock: Config.options?.lock?.screensaver?.showClock ?? true
-    property bool screensaverActive: false
-
     // Wallpaper path resolution
     readonly property string _wallpaperSource: Config.options?.background?.wallpaperPath ?? ""
     readonly property string _wallpaperThumbnail: Config.options?.background?.thumbnailPath ?? ""
@@ -1819,9 +1840,36 @@ MouseArea {
     Timer {
         id: screensaverCycleTimer
         interval: root.screensaverWallpaperInterval * 1000
-        running: root.screensaverActive
+        running: root.screensaverActive && !root.screensaverBlack
         repeat: true
         onTriggered: screensaverState.startNextTransition()
+    }
+
+    // Black-out timer — after the screensaver runs for blackTimeoutSeconds, go black
+    Timer {
+        id: screensaverBlackTimer
+        interval: Math.max(1, root.screensaverBlackTimeout) * 1000
+        running: root.screensaverBlackEnable && root.screensaverActive && !root.screensaverBlack && GlobalStates.screenLocked
+        repeat: false
+        onTriggered: {
+            root.screensaverBlack = true
+            if (root.screensaverBlackUsesDpms)
+                root.setMonitorPower(false)
+        }
+    }
+
+    // Toggle this monitor's power (DPMS). Best-effort and compositor-specific.
+    function setMonitorPower(on: bool): void {
+        if (CompositorService.isHyprland) {
+            const target = root.screenName.length > 0 ? root.screenName : ""
+            Quickshell.execDetached(["/usr/bin/bash", "-c",
+                `hyprctl dispatch dpms ${on ? "on" : "off"} ${target}`])
+        } else if (CompositorService.isNiri) {
+            // niri turns monitors back on automatically on input; only the off action is needed.
+            Quickshell.execDetached(["/usr/bin/bash", "-c",
+                on ? "niri msg action power-on-monitors 2>/dev/null || true"
+                   : "niri msg action power-off-monitors 2>/dev/null || true"])
+        }
     }
 
     // Screensaver state management
@@ -1981,6 +2029,18 @@ MouseArea {
             gradient: Gradient {
                 GradientStop { position: 0.0; color: Qt.rgba(0, 0, 0, 0.15) }
                 GradientStop { position: 1.0; color: Qt.rgba(0, 0, 0, 0.35) }
+            }
+        }
+
+        // Black-out overlay — covers everything once the black timeout elapses
+        Rectangle {
+            anchors.fill: parent
+            z: 100
+            color: "black"
+            visible: opacity > 0
+            opacity: (root.screensaverBlack && root.screensaverBlackUsesOverlay) ? 1 : 0
+            Behavior on opacity {
+                NumberAnimation { duration: 800; easing.type: Easing.InOutQuad }
             }
         }
 
@@ -2405,6 +2465,11 @@ MouseArea {
 
     // Exit screensaver on any interaction (resets idle timer too)
     function resetScreensaver(): void {
+        if (root.screensaverBlack) {
+            root.screensaverBlack = false
+            if (root.screensaverBlackUsesDpms)
+                root.setMonitorPower(true)
+        }
         if (root.screensaverActive) {
             root.screensaverActive = false
             screensaverState.reset()
@@ -2418,6 +2483,9 @@ MouseArea {
     acceptedButtons: Qt.LeftButton
     focus: true
     activeFocusOnTab: true
+    // Hide the pointer while the screensaver is showing; any real movement fires
+    // onPositionChanged → resetScreensaver(), which brings the cursor back.
+    cursorShape: root.screensaverActive ? Qt.BlankCursor : Qt.ArrowCursor
     
     onClicked: mouse => {
         if (root.screensaverActive) {
@@ -2527,6 +2595,9 @@ MouseArea {
     }
     
     Component.onDestruction: {
+        // Safety net: never leave a monitor powered off after the surface goes away
+        if (root.screensaverBlack && root.screensaverBlackUsesDpms)
+            root.setMonitorPower(true)
         const message = ["[LockSurface] Component destroying — screenLocked:",
                          GlobalStates.screenLocked, "hasAttemptedUnlock:", root.hasAttemptedUnlock]
         if (GlobalStates.screenLocked)
@@ -2543,10 +2614,16 @@ MouseArea {
                 root.currentView = "clock"
                 root.hasAttemptedUnlock = false
                 root.screensaverActive = false
+                root.screensaverBlack = false
                 screensaverState.reset()
                 GlobalStates.screenUnlockFailed = false
                 // Force focus when lock activates - delayed to ensure visibility
                 Qt.callLater(() => root.forceActiveFocus())
+            } else if (root.screensaverBlack) {
+                // Unlocked while blacked out (e.g. fingerprint with no input) — restore power
+                root.screensaverBlack = false
+                if (root.screensaverBlackUsesDpms)
+                    root.setMonitorPower(true)
             }
         }
     }

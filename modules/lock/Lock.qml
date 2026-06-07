@@ -232,6 +232,18 @@ Scope {
                     }
                 }
             }
+
+            // Reactively push THIS surface's monitor name into the loaded ii lock
+            // surface. Declared inside the replicated WlSessionLockSurface subtree,
+            // so `lockSurface` is the local per-monitor replica; using a Binding
+            // (not a one-shot assignment) covers `screen` being populated after load.
+            Binding {
+                target: lockSurfaceLoader.item
+                property: "screenName"
+                value: lockSurface.screen?.name ?? ""
+                when: lockSurfaceLoader.item !== null && !root._cachedUseWaffleLock
+                restoreMode: Binding.RestoreNone
+            }
             
             // Ensure focus is given to lock surface when screen locks
             Connections {
