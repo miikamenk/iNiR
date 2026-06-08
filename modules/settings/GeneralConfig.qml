@@ -112,6 +112,7 @@ ContentPage {
         }
 
         SettingsSwitch {
+            buttonIcon: "wallpaper_slideshow"
             text: Translation.tr("Enable screensaver")
             checked: ssCtl.val("enable", true)
             onCheckedChanged: ssCtl.setVal("enable", checked)
