@@ -104,12 +104,33 @@ Singleton {
                 property JsonObject compactGroup: JsonObject {
                     property int tab: 0
                 }
+                property JsonObject denseGroup: JsonObject {
+                    property int toolsTab: 0
+                    property int miscTab: 0
+                }
             }
 
             property JsonObject booru: JsonObject {
                 property bool allowNsfw: false
                 property bool showTagsOnHover: true
                 property string provider: "yandere"
+            }
+
+            // Wallhaven search filters (https://wallhaven.cc/help/api#search)
+            property JsonObject wallhaven: JsonObject {
+                property bool catGeneral: true
+                property bool catAnime: true
+                property bool catPeople: true
+                property bool puritySfw: true
+                property bool puritySketchy: false
+                // NSFW purity intentionally reuses booru.allowNsfw so /safe & /lewd commands keep working
+                property string sorting: "date_added" // date_added | relevance | random | views | favorites | toplist | hot
+                property string order: "desc" // desc | asc
+                property string topRange: "1M" // 1d | 3d | 1w | 1M | 3M | 6M | 1y (toplist only)
+                property string atleast: "" // minimum resolution, e.g. 1920x1080
+                property string resolutions: "" // exact resolutions, comma separated
+                property string ratios: "" // e.g. 16x9,16x10 or landscape/portrait
+                property string downloadFolder: "" // custom download folder; empty = default
             }
 
             property JsonObject idle: JsonObject {

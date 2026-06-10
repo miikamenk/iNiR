@@ -414,14 +414,27 @@ Scope {
     }
 
     Component {
+        id: denseSystemContentComponent
+
+        DenseSidebarRightContent {
+            screenWidth: sidebarRoot.screen?.width ?? 1920
+            screenHeight: sidebarRoot.screen?.height ?? 1080
+            panelScreen: sidebarRoot.screen ?? null
+            panelVisible: root.presentationOpen || sidebarContentLoader.animating
+        }
+    }
+
+    Component {
         id: systemContentComponent
 
         Item {
             id: systemContentStack
-            readonly property bool isCompact:
-                (Config.options?.sidebar?.layout ?? "default") === "compact"
-            readonly property var activeContentItem: isCompact
-                ? compactSystemLoader.item : defaultSystemLoader.item
+            readonly property string layoutName: Config.options?.sidebar?.layout ?? "default"
+            readonly property bool isCompact: layoutName === "compact"
+            readonly property bool isDense: layoutName === "dense"
+            readonly property var activeContentItem: isDense
+                ? denseSystemLoader.item
+                : (isCompact ? compactSystemLoader.item : defaultSystemLoader.item)
             readonly property real preferredContentHeight:
                 activeContentItem?.preferredContentHeight ?? -1
             readonly property real minimumUsefulHeight:
@@ -438,8 +451,8 @@ Scope {
             FadeLoader {
                 id: defaultSystemLoader
                 anchors.fill: parent
-                shown: !systemContentStack.isCompact
-                scale: systemContentStack.isCompact ? 0.96 : 1
+                shown: !systemContentStack.isCompact && !systemContentStack.isDense
+                scale: shown ? 1 : 0.96
                 transformOrigin: Item.Center
                 Behavior on scale {
                     enabled: Appearance.animationsEnabled
@@ -456,7 +469,7 @@ Scope {
                 id: compactSystemLoader
                 anchors.fill: parent
                 shown: systemContentStack.isCompact
-                scale: systemContentStack.isCompact ? 1 : 0.96
+                scale: shown ? 1 : 0.96
                 transformOrigin: Item.Center
                 Behavior on scale {
                     enabled: Appearance.animationsEnabled
@@ -467,6 +480,23 @@ Scope {
                     }
                 }
                 sourceComponent: compactSystemContentComponent
+            }
+
+            FadeLoader {
+                id: denseSystemLoader
+                anchors.fill: parent
+                shown: systemContentStack.isDense
+                scale: shown ? 1 : 0.96
+                transformOrigin: Item.Center
+                Behavior on scale {
+                    enabled: Appearance.animationsEnabled
+                    NumberAnimation {
+                        duration: Appearance.animation.elementResize.duration
+                        easing.type: Appearance.animation.elementResize.type
+                        easing.bezierCurve: Appearance.animation.elementResize.bezierCurve
+                    }
+                }
+                sourceComponent: denseSystemContentComponent
             }
         }
     }

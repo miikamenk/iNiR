@@ -1331,12 +1331,12 @@ Item {
                                 anchors.fill: parent
                                 hoverEnabled: true
                                 cursorShape: Qt.PointingHandCursor
-                                onClicked: Config.setNestedValue("sidebar.layout", "default")
+                                onClicked: Config.setNestedValue("sidebar.layout", "dense")
                             }
                             BubbleToolTip {
                                 visible: layoutMA.containsMouse
                                 position: "left"
-                                text: Translation.tr("Switch to default layout")
+                                text: Translation.tr("Switch to dense layout")
                             }
                         }
                     }

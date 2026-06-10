@@ -517,8 +517,8 @@ QtObject {
     property string apiKey: Config.options?.sidebar?.wallhaven?.apiKey ?? ""
     property int defaultLimit: Config.options?.sidebar?.wallhaven?.limit ?? 24
     property bool allowNsfw: Persistent.states?.booru?.allowNsfw ?? false
-    property string sortingMode: "date_added"
-    property string topRange: "1M"
+    property string sortingMode: Persistent.states?.wallhaven?.sorting ?? "date_added"
+    property string topRange: Persistent.states?.wallhaven?.topRange ?? "1M"
 
     function clearResponses() {
         const previous = root.responses
@@ -552,20 +552,41 @@ QtObject {
         var effLimit = (limit && limit > 0) ? limit : defaultLimit
         params.push("per_page=" + effLimit)
 
-        params.push("categories=111")
+        var wh = Persistent.states?.wallhaven
 
-        var purity = "100"
-        if (nsfw && apiKey && apiKey.length > 0) {
-            purity = "111"
-        }
+        var categories = ((wh?.catGeneral ?? true) ? "1" : "0")
+            + ((wh?.catAnime ?? true) ? "1" : "0")
+            + ((wh?.catPeople ?? true) ? "1" : "0")
+        if (categories === "000")
+            categories = "111"
+        params.push("categories=" + categories)
+
+        var hasKey = apiKey && apiKey.length > 0
+        var purity = ((wh?.puritySfw ?? true) ? "1" : "0")
+            + ((wh?.puritySketchy ?? false) ? "1" : "0")
+            + ((nsfw && hasKey) ? "1" : "0")
+        if (purity === "000")
+            purity = "100"
         params.push("purity=" + purity)
 
         var sorting = sortingMode
         params.push("sorting=" + sorting)
-        params.push("order=desc")
+        params.push("order=" + (wh?.order === "asc" ? "asc" : "desc"))
         if (sorting === "toplist" && topRange.length > 0) {
             params.push("topRange=" + topRange)
         }
+
+        var atleast = (wh?.atleast ?? "").trim()
+        if (atleast.length > 0)
+            params.push("atleast=" + encodeURIComponent(atleast))
+
+        var resolutions = (wh?.resolutions ?? "").trim()
+        if (resolutions.length > 0)
+            params.push("resolutions=" + encodeURIComponent(resolutions))
+
+        var ratios = (wh?.ratios ?? "").trim()
+        if (ratios.length > 0)
+            params.push("ratios=" + encodeURIComponent(ratios))
 
         if (apiKey && apiKey.length > 0) {
             params.push("apikey=" + encodeURIComponent(apiKey))
