@@ -47,6 +47,16 @@ output_path = '~/.local/state/quickshell/user/generated/color.txt'
 input_path = '~/.config/matugen/templates/wallpaper.txt'
 output_path = '~/.local/state/quickshell/user/generated/wallpaper/path.txt'
 
+# Hyprland border/focus colors (required after hyprland/general.lua, overrides it)
+[templates.hyprland_colors]
+input_path = '~/.config/matugen/templates/hyprland/colors.lua'
+output_path = '~/.config/hypr/hyprland/colors.lua'
+
+# Hyprlock colors
+[templates.hyprlock_colors]
+input_path = '~/.config/matugen/templates/hyprland/hyprlock-colors.conf'
+output_path = '~/.config/hypr/hyprlock/colors.conf'
+
 # Firefox Material Fox theme (easier to distribute than pywalfox)
 # Setup: Link output to ~/.mozilla/firefox/<profile>/chrome/theme-material-blue.css
 # See: https://github.com/edelvarden/material-fox-updated

@@ -29,6 +29,16 @@
       "name": "firefox_materialfox",
       "input": "firefox/materialfox.css",
       "output": "~/.local/state/quickshell/user/generated/firefox-materialfox.css"
+    },
+    {
+      "name": "hyprland_colors",
+      "input": "hyprland/colors.lua",
+      "output": "~/.config/hypr/hyprland/colors.lua"
+    },
+    {
+      "name": "hyprlock_colors",
+      "input": "hyprland/hyprlock-colors.conf",
+      "output": "~/.config/hypr/hyprlock/colors.conf"
     }
   ]
 }
