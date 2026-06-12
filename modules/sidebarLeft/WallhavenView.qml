@@ -9,6 +9,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import Qt5Compat.GraphicalEffects
 import Quickshell
+import Quickshell.Io
 
 Item {
     id: root
@@ -17,8 +18,11 @@ Item {
     property var inputField: tagInputField
     readonly property var responses: Wallhaven.responses
     property string previewDownloadPath: Directories.booruPreviews
-    property string downloadPath: Directories.booruDownloads
-    property string nsfwPath: Directories.booruDownloadsNsfw
+    readonly property string customDownloadFolder: Persistent.states?.wallhaven?.downloadFolder ?? ""
+    property string downloadPath: customDownloadFolder.length > 0 ? customDownloadFolder : Directories.booruDownloads
+    property string nsfwPath: customDownloadFolder.length > 0 ? customDownloadFolder : Directories.booruDownloadsNsfw
+    property bool showFilters: false
+    readonly property bool hasApiKey: (Config.options?.sidebar?.wallhaven?.apiKey ?? "").length > 0
     property string commandPrefix: "/"
     property real scrollOnNewResponse: 100
     property int tagSuggestionDelay: 210
@@ -605,6 +609,207 @@ Item {
             }
         }
 
+        // ── Wallhaven filter panel ───────────────────────────────────────
+        Revealer {
+            id: filterRevealer
+            vertical: true
+            reveal: root.showFilters
+            Layout.fillWidth: true
+
+            Rectangle {
+                id: filterPanel
+                anchors.left: parent.left
+                anchors.right: parent.right
+                radius: Appearance.rounding.normal - root.padding
+                color: Appearance.angelEverywhere ? Appearance.angel.colGlassCard
+                    : Appearance.inirEverywhere ? Appearance.inir.colLayer2
+                    : Appearance.auroraEverywhere ? Appearance.aurora.colElevatedSurface
+                    : Appearance.colors.colLayer2
+                implicitHeight: filterColumn.implicitHeight + 16
+
+                ColumnLayout {
+                    id: filterColumn
+                    anchors {
+                        left: parent.left
+                        right: parent.right
+                        top: parent.top
+                        margins: 8
+                    }
+                    spacing: 6
+
+                    FilterSectionLabel { text: Translation.tr("Categories") }
+                    Flow {
+                        Layout.fillWidth: true
+                        spacing: 4
+                        FilterChip {
+                            chipText: Translation.tr("General")
+                            toggled: Persistent.states.wallhaven.catGeneral
+                            downAction: () => Persistent.states.wallhaven.catGeneral = !Persistent.states.wallhaven.catGeneral
+                        }
+                        FilterChip {
+                            chipText: Translation.tr("Anime")
+                            toggled: Persistent.states.wallhaven.catAnime
+                            downAction: () => Persistent.states.wallhaven.catAnime = !Persistent.states.wallhaven.catAnime
+                        }
+                        FilterChip {
+                            chipText: Translation.tr("People")
+                            toggled: Persistent.states.wallhaven.catPeople
+                            downAction: () => Persistent.states.wallhaven.catPeople = !Persistent.states.wallhaven.catPeople
+                        }
+                    }
+
+                    FilterSectionLabel { text: Translation.tr("Purity") }
+                    Flow {
+                        Layout.fillWidth: true
+                        spacing: 4
+                        FilterChip {
+                            chipText: Translation.tr("SFW")
+                            toggled: Persistent.states.wallhaven.puritySfw
+                            downAction: () => Persistent.states.wallhaven.puritySfw = !Persistent.states.wallhaven.puritySfw
+                        }
+                        FilterChip {
+                            chipText: Translation.tr("Sketchy")
+                            toggled: Persistent.states.wallhaven.puritySketchy
+                            downAction: () => Persistent.states.wallhaven.puritySketchy = !Persistent.states.wallhaven.puritySketchy
+                        }
+                        FilterChip {
+                            chipText: Translation.tr("NSFW")
+                            enabled: root.hasApiKey
+                            toggled: Persistent.states.booru.allowNsfw && root.hasApiKey
+                            downAction: () => Persistent.states.booru.allowNsfw = !Persistent.states.booru.allowNsfw
+                            StyledToolTip {
+                                text: root.hasApiKey ? Translation.tr("Include NSFW results")
+                                    : Translation.tr("Requires a Wallhaven API key (set in config)")
+                            }
+                        }
+                    }
+
+                    FilterSectionLabel { text: Translation.tr("Sorting") }
+                    Flow {
+                        Layout.fillWidth: true
+                        spacing: 4
+                        Repeater {
+                            model: [
+                                { value: "date_added", label: Translation.tr("Latest") },
+                                { value: "relevance", label: Translation.tr("Relevance") },
+                                { value: "random", label: Translation.tr("Random") },
+                                { value: "views", label: Translation.tr("Views") },
+                                { value: "favorites", label: Translation.tr("Favorites") },
+                                { value: "toplist", label: Translation.tr("Toplist") },
+                                { value: "hot", label: Translation.tr("Hot") },
+                            ]
+                            delegate: FilterChip {
+                                required property var modelData
+                                chipText: modelData.label
+                                toggled: (Persistent.states.wallhaven.sorting ?? "date_added") === modelData.value
+                                downAction: () => Persistent.states.wallhaven.sorting = modelData.value
+                            }
+                        }
+                    }
+
+                    FilterSectionLabel {
+                        visible: Persistent.states.wallhaven.sorting === "toplist"
+                        text: Translation.tr("Toplist range")
+                    }
+                    Flow {
+                        Layout.fillWidth: true
+                        spacing: 4
+                        visible: Persistent.states.wallhaven.sorting === "toplist"
+                        Repeater {
+                            model: ["1d", "3d", "1w", "1M", "3M", "6M", "1y"]
+                            delegate: FilterChip {
+                                required property string modelData
+                                chipText: modelData
+                                toggled: (Persistent.states.wallhaven.topRange ?? "1M") === modelData
+                                downAction: () => Persistent.states.wallhaven.topRange = modelData
+                            }
+                        }
+                    }
+
+                    FilterSectionLabel { text: Translation.tr("Order") }
+                    Flow {
+                        Layout.fillWidth: true
+                        spacing: 4
+                        FilterChip {
+                            chipText: Translation.tr("Descending")
+                            toggled: (Persistent.states.wallhaven.order ?? "desc") !== "asc"
+                            downAction: () => Persistent.states.wallhaven.order = "desc"
+                        }
+                        FilterChip {
+                            chipText: Translation.tr("Ascending")
+                            toggled: Persistent.states.wallhaven.order === "asc"
+                            downAction: () => Persistent.states.wallhaven.order = "asc"
+                        }
+                    }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 6
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 2
+                            FilterSectionLabel { text: Translation.tr("Min resolution") }
+                            FilterTextField {
+                                Layout.fillWidth: true
+                                placeholderText: "1920x1080"
+                                text: Persistent.states.wallhaven.atleast
+                                onEditingFinished: Persistent.states.wallhaven.atleast = text.trim()
+                            }
+                        }
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 2
+                            FilterSectionLabel { text: Translation.tr("Ratios") }
+                            FilterTextField {
+                                Layout.fillWidth: true
+                                placeholderText: "16x9,landscape"
+                                text: Persistent.states.wallhaven.ratios
+                                onEditingFinished: Persistent.states.wallhaven.ratios = text.trim()
+                            }
+                        }
+                    }
+
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 2
+                        FilterSectionLabel { text: Translation.tr("Exact resolutions") }
+                        FilterTextField {
+                            Layout.fillWidth: true
+                            placeholderText: "2560x1440,3840x2160"
+                            text: Persistent.states.wallhaven.resolutions
+                            onEditingFinished: Persistent.states.wallhaven.resolutions = text.trim()
+                        }
+                    }
+
+                    FilterSectionLabel { text: Translation.tr("Download folder") }
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 4
+                        FilterTextField {
+                            Layout.fillWidth: true
+                            placeholderText: Directories.booruDownloads
+                            text: Persistent.states.wallhaven.downloadFolder
+                            onEditingFinished: Persistent.states.wallhaven.downloadFolder = text.trim()
+                        }
+                        FilterIconButton {
+                            buttonIcon: "folder_open"
+                            tooltipText: Translation.tr("Browse…")
+                            onClicked: {
+                                if (!folderPickerProcess.running)
+                                    folderPickerProcess.running = true
+                            }
+                        }
+                        FilterIconButton {
+                            buttonIcon: "restart_alt"
+                            tooltipText: Translation.tr("Reset to default")
+                            visible: root.customDownloadFolder.length > 0
+                            onClicked: Persistent.states.wallhaven.downloadFolder = ""
+                        }
+                    }
+                }
+            }
+        }
+
         Rectangle {
             id: tagInputContainer
             property real columnSpacing: 5
@@ -837,6 +1042,26 @@ Item {
 
                 Item { Layout.fillWidth: true }
 
+                RippleButton {
+                    id: filterToggleButton
+                    implicitWidth: 30
+                    implicitHeight: 30
+                    buttonRadius: Appearance.rounding.small
+                    toggled: root.showFilters
+                    onClicked: root.showFilters = !root.showFilters
+                    contentItem: MaterialSymbol {
+                        anchors.centerIn: parent
+                        horizontalAlignment: Text.AlignHCenter
+                        iconSize: 18
+                        text: "tune"
+                        color: filterToggleButton.toggled ? Appearance.m3colors.m3onPrimary
+                            : Appearance.inirEverywhere ? Appearance.inir.colText : Appearance.colors.colOnLayer2
+                    }
+                    StyledToolTip {
+                        text: Translation.tr("Search filters")
+                    }
+                }
+
                 ButtonGroup {
                     padding: 0
                     Repeater {
@@ -863,6 +1088,86 @@ Item {
                         }
                     }
                 }
+            }
+        }
+    }
+
+    // System folder picker for the download folder (kdialog, same convention as switchwall.sh)
+    Process {
+        id: folderPickerProcess
+        command: ["/usr/bin/kdialog", "--getexistingdirectory", root.downloadPath, "--title", Translation.tr("Choose download folder")]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const path = text.trim()
+                if (path.length > 0) {
+                    Persistent.states.wallhaven.downloadFolder = path
+                }
+            }
+        }
+    }
+
+    component FilterSectionLabel: StyledText {
+        font.pixelSize: Appearance.font.pixelSize.smaller
+        font.weight: Font.Medium
+        color: Appearance.inirEverywhere ? Appearance.inir.colTextSecondary
+            : Appearance.angelEverywhere ? Appearance.angel.colTextSecondary
+            : Appearance.colors.colSubtext
+    }
+
+    component FilterChip: RippleButton {
+        id: chip
+        property string chipText
+        implicitHeight: 26
+        implicitWidth: chipLabel.implicitWidth + 20
+        buttonRadius: Appearance.rounding.full
+        opacity: enabled ? 1 : 0.5
+        contentItem: StyledText {
+            id: chipLabel
+            anchors.centerIn: parent
+            horizontalAlignment: Text.AlignHCenter
+            font.pixelSize: Appearance.font.pixelSize.smaller
+            text: chip.chipText
+            color: chip.toggled ? Appearance.m3colors.m3onPrimary
+                : Appearance.inirEverywhere ? Appearance.inir.colText : Appearance.colors.colOnLayer2
+        }
+    }
+
+    component FilterIconButton: RippleButton {
+        id: iconBtn
+        property string buttonIcon
+        property string tooltipText
+        implicitWidth: 30
+        implicitHeight: 30
+        buttonRadius: Appearance.rounding.small
+        contentItem: MaterialSymbol {
+            anchors.centerIn: parent
+            horizontalAlignment: Text.AlignHCenter
+            iconSize: 17
+            text: iconBtn.buttonIcon
+            color: Appearance.inirEverywhere ? Appearance.inir.colText : Appearance.colors.colOnLayer2
+        }
+        StyledToolTip {
+            text: iconBtn.tooltipText
+        }
+    }
+
+    component FilterTextField: StyledTextArea {
+        id: filterField
+        wrapMode: TextEdit.NoWrap
+        padding: 6
+        font.pixelSize: Appearance.font.pixelSize.smaller
+        color: Appearance.inirEverywhere ? Appearance.inir.colText : Appearance.m3colors.m3onSurface
+        background: Rectangle {
+            radius: Appearance.rounding.small
+            color: Appearance.inirEverywhere ? Appearance.inir.colLayer1
+                : Appearance.angelEverywhere ? Appearance.angel.colGlassCardActive
+                : Appearance.colors.colLayer1
+        }
+        Keys.onPressed: (event) => {
+            // editingFinished fires on focus loss; Enter should commit too
+            if (event.key === Qt.Key_Enter || event.key === Qt.Key_Return) {
+                filterField.editingFinished()
+                event.accepted = true
             }
         }
     }
