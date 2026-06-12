@@ -1,5 +1,6 @@
 import qs
 import qs.services
+import qs.services.deferred
 import qs.modules.common
 import qs.modules.common.widgets
 import QtQuick
@@ -171,12 +172,17 @@ Item {
         // Keyboard layout switch (Niri only)
         Loader {
             active: (Config.options?.bar?.utilButtons?.showKeyboardLayoutSwitch ?? false)
-                    && CompositorService.isNiri
-                    && NiriService.hasMultipleKeyboardLayouts
+                    && ((CompositorService.isNiri && NiriService.hasMultipleKeyboardLayouts)
+                        || (CompositorService.isHyprland && HyprlandXkb.layoutCodes.length > 1))
             visible: active
             sourceComponent: CircleUtilButton {
                 Layout.alignment: Qt.AlignVCenter
-                onClicked: NiriService.switchLayout()
+                onClicked: {
+                    if (CompositorService.isNiri)
+                        NiriService.switchLayout()
+                    else
+                        Quickshell.execDetached(["hyprctl", "switchxkblayout", "all", "next"])
+                }
                 Item {
                     anchors.fill: parent
                     MaterialSymbol {

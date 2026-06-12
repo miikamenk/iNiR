@@ -136,7 +136,11 @@ WPanelPageColumn {
     function getRecentApps() {
         const seen = new Set()
         const recent = []
-        const windowList = CompositorService.isNiri ? (NiriService.windows ?? []) : []
+        const windowList = CompositorService.isNiri
+            ? (NiriService.windows ?? [])
+            : CompositorService.isHyprland
+                ? (HyprlandData.windowList ?? []).map(w => ({ app_id: w.class }))
+                : []
         for (const w of windowList) {
             const appId = w.app_id ?? ""
             if (appId && !seen.has(appId) && recent.length < 4) {

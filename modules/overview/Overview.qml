@@ -242,7 +242,7 @@ Scope {
                     if (!root.monitorIsFocused)
                         return;
                     const wsNumber = ov.switchWorkspaceIndex;
-                    Hyprland.dispatch(`workspace ${wsNumber}`);
+                    CompositorService.hyprDispatch(`workspace ${wsNumber}`);
                 }
             }
 
@@ -354,7 +354,7 @@ Scope {
                                 if (targetIdx >= 1)
                                     NiriService.switchToWorkspace(targetIdx);
                             } else {
-                                Hyprland.dispatch("workspace r-1");
+                                CompositorService.hyprDispatch("workspace r-1");
                             }
                         }
                     } else if (event.key === Qt.Key_Right) {
@@ -364,7 +364,7 @@ Scope {
                                 const targetIdx = currentIdx + 1;
                                 NiriService.switchToWorkspace(targetIdx);
                             } else {
-                                Hyprland.dispatch("workspace r+1");
+                                CompositorService.hyprDispatch("workspace r+1");
                             }
                         }
                     }

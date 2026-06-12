@@ -48,6 +48,20 @@ Singleton {
 
     function _hasWindowsOnActiveWorkspace(outputName: string): bool {
         try {
+            if (CompositorService.isHyprland) {
+                if (!Array.isArray(HyprlandData.windowList))
+                    return false;
+                const activeIds = (HyprlandData.monitors ?? [])
+                    .filter(monitor =>
+                        outputName.length === 0 || monitor?.name === outputName)
+                    .map(monitor => monitor?.activeWorkspace?.id)
+                    .filter(id => id !== undefined && id !== null);
+                if (activeIds.length === 0)
+                    return false;
+                return HyprlandData.windowList.some(window =>
+                    window?.mapped !== false
+                        && activeIds.includes(window.workspace?.id));
+            }
             if (!CompositorService.isNiri || !Array.isArray(NiriService.windows))
                 return false;
             const allWorkspaces = Object.values(NiriService.workspaces ?? {});

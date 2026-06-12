@@ -98,9 +98,9 @@ Item {
             root.wheelStepCounter = 0
 
             if (deltaY < 0)
-                Hyprland.dispatch(`workspace r+1`)
+                CompositorService.hyprDispatch(`workspace r+1`)
             else if (deltaY > 0)
-                Hyprland.dispatch(`workspace r-1`)
+                CompositorService.hyprDispatch(`workspace r-1`)
         }
     }
 
@@ -211,7 +211,7 @@ Item {
                                     if (root.draggingTargetWorkspace === -1) {
                                         GlobalStates.overviewOpen = false
                                         if (CompositorService.isHyprland)
-                                            Hyprland.dispatch(`workspace ${workspace.workspaceValue}`)
+                                            CompositorService.hyprDispatch(`workspace ${workspace.workspaceValue}`)
                                     }
                                 }
                             }
@@ -340,7 +340,7 @@ Item {
                         window.Drag.active = false
                         root.draggingFromWorkspace = -1
                         if (targetWorkspace !== -1 && targetWorkspace !== windowData?.workspace.id) {
-                            Hyprland.dispatch(`movetoworkspacesilent ${targetWorkspace}, address:${window.windowData?.address}`)
+                            CompositorService.hyprDispatch(`movetoworkspacesilent ${targetWorkspace}, address:${window.windowData?.address}`)
                             updateWindowPosition.restart()
                         }
                         else {
@@ -348,9 +348,13 @@ Item {
                                 updateWindowPosition.restart()
                                 return
                             }
-                            const percentageX = Math.round((window.x - xOffset) / root.workspaceImplicitWidth * 100)
-                            const percentageY = Math.round((window.y - yOffset) / root.workspaceImplicitHeight * 100)
-                            Hyprland.dispatch(`movewindowpixel exact ${percentageX}% ${percentageY}%, address:${window.windowData?.address}`)
+                            // The Lua window.move API takes pixels, so resolve the
+                            // percentage against the real monitor size up front
+                            const fracX = (window.x - xOffset) / root.workspaceImplicitWidth
+                            const fracY = (window.y - yOffset) / root.workspaceImplicitHeight
+                            const pixelX = Math.round(fracX * (root.monitorData?.width ?? root.monitor.width))
+                            const pixelY = Math.round(fracY * (root.monitorData?.height ?? root.monitor.height))
+                            CompositorService.hyprDispatch(`movewindowpixel exact ${pixelX} ${pixelY}, address:${window.windowData?.address}`)
                         }
                     }
                     onClicked: (event) => {
@@ -358,10 +362,10 @@ Item {
 
                         if (event.button === Qt.LeftButton) {
                             GlobalStates.overviewOpen = false
-                            Hyprland.dispatch(`focuswindow address:${windowData.address}`)
+                            CompositorService.hyprDispatch(`focuswindow address:${windowData.address}`)
                             event.accepted = true
                         } else if (event.button === Qt.MiddleButton) {
-                            Hyprland.dispatch(`closewindow address:${windowData.address}`)
+                            CompositorService.hyprDispatch(`closewindow address:${windowData.address}`)
                             event.accepted = true
                         }
                     }

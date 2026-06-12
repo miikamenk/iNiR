@@ -3,6 +3,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import Quickshell
+import Quickshell.Io
 import Quickshell.Wayland
 import Quickshell.Hyprland
 
@@ -406,7 +407,7 @@ Singleton {
         if (isNiri)
             return NiriService.powerOffMonitors()
         if (isHyprland)
-            return Hyprland.dispatch("dpms off")
+            return hyprDispatch("dpms off")
         console.warn("CompositorService: Cannot power off monitors, unknown compositor")
     }
 
@@ -414,7 +415,123 @@ Singleton {
         if (isNiri)
             return NiriService.powerOnMonitors()
         if (isHyprland)
-            return Hyprland.dispatch("dpms on")
+            return hyprDispatch("dpms on")
         console.warn("CompositorService: Cannot power on monitors, unknown compositor")
+    }
+
+    // ── Hyprland Lua IPC compatibility ──────────────────────────────────────
+    // Hyprland 0.55+ replaced the legacy dispatch string syntax with a Lua API
+    // (`hyprctl dispatch` evaluates `hl.dispatch(<expr>)`). Detect that at
+    // startup and translate the legacy strings used throughout the shell.
+    property bool hyprlandLuaIpc: false
+
+    Process {
+        id: luaIpcProbe
+        running: root.isHyprland
+        command: ["/usr/bin/hyprctl", "dispatch", "hl.dsp"]
+        stdout: StdioCollector {
+            id: luaProbeOut
+            onStreamFinished: root._evalLuaProbe(luaProbeOut.text)
+        }
+        stderr: StdioCollector {
+            id: luaProbeErr
+            onStreamFinished: root._evalLuaProbe(luaProbeErr.text)
+        }
+    }
+
+    function _evalLuaProbe(text) {
+        if (text && text.includes("hl.dispatch")) {
+            root.hyprlandLuaIpc = true
+            console.info("CompositorService: Hyprland Lua IPC detected; translating legacy dispatches")
+        }
+    }
+
+    // Drop-in replacement for Hyprland.dispatch() that handles both IPC styles
+    function hyprDispatch(cmd) {
+        if (!isHyprland) return
+        if (!hyprlandLuaIpc) {
+            Hyprland.dispatch(cmd)
+            return
+        }
+        const translated = translateLegacyDispatch(cmd)
+        if (translated === null) return // handled out-of-band (reload/keyword)
+        Hyprland.dispatch(translated)
+    }
+
+    function _luaWorkspaceRef(ws) {
+        return /^-?\d+$/.test(ws) ? ws : `"${ws}"`
+    }
+
+    // Translate a legacy dispatch string to the hl.dsp Lua API.
+    // Returns null when the command was executed through another channel.
+    function translateLegacyDispatch(cmd) {
+        cmd = cmd.trim()
+        if (cmd.startsWith("hl.")) return cmd // already new-style
+        const sp = cmd.indexOf(" ")
+        const name = sp === -1 ? cmd : cmd.slice(0, sp)
+        const args = sp === -1 ? "" : cmd.slice(sp + 1).trim()
+
+        switch (name) {
+        case "focuswindow":
+            return `hl.dsp.focus({window = "${args}"})`
+        case "workspace":
+            return `hl.dsp.focus({workspace = ${_luaWorkspaceRef(args)}})`
+        case "closewindow":
+            return `hl.dsp.window.close({window = "${args}"})`
+        case "movetoworkspacesilent":
+        case "movetoworkspace": {
+            const ci = args.indexOf(",")
+            const ws = args.slice(0, ci).trim()
+            const win = args.slice(ci + 1).trim()
+            const follow = name === "movetoworkspace"
+            return `hl.dsp.window.move({workspace = ${_luaWorkspaceRef(ws)}, follow = ${follow}, window = "${win}"})`
+        }
+        case "movewindowpixel": {
+            // "exact X Y, address:0x..."
+            const ci = args.indexOf(",")
+            const coords = args.slice(0, ci).trim().split(/\s+/)
+            const win = args.slice(ci + 1).trim()
+            const x = coords.length > 1 ? coords[1] : "0"
+            const y = coords.length > 2 ? coords[2] : "0"
+            return `hl.dsp.window.move({x = "${x}", y = "${y}", window = "${win}"})`
+        }
+        case "pseudo":
+            return args ? `hl.dsp.window.pseudo({window = "${args}"})` : "hl.dsp.window.pseudo()"
+        case "setfloating":
+            return args ? `hl.dsp.window.float({action = "enable", window = "${args}"})` : `hl.dsp.window.float({action = "enable"})`
+        case "settiled":
+            return args ? `hl.dsp.window.float({action = "disable", window = "${args}"})` : `hl.dsp.window.float({action = "disable"})`
+        case "togglespecialworkspace":
+            return `hl.dsp.workspace.toggle_special("${args || "special"}")`
+        case "dpms":
+            return `hl.dsp.dpms({action = "${args === "on" ? "enable" : "disable"}"})`
+        case "global":
+            return `hl.dsp.global("${args}")`
+        case "exec":
+            return `hl.dsp.exec_cmd(${JSON.stringify(args)})`
+        case "keyword": {
+            // No keyword dispatcher in Lua IPC; apply via `hyprctl eval hl.config(...)`
+            const ksp = args.indexOf(" ")
+            if (ksp === -1) return null
+            const key = args.slice(0, ksp)
+            let value = args.slice(ksp + 1).trim()
+            if (!/^(true|false|-?\d+(\.\d+)?)$/.test(value)) {
+                if (value === "yes" || value === "1") value = "true"
+                else if (value === "no" || value === "0") value = "false"
+                else value = `"${value}"`
+            }
+            let lua = value
+            const parts = key.split(":")
+            for (let i = parts.length - 1; i >= 0; i--)
+                lua = `{${parts[i]} = ${lua}}`
+            Quickshell.execDetached(["/usr/bin/hyprctl", "eval", `hl.config(${lua})`])
+            return null
+        }
+        case "reload":
+            Quickshell.execDetached(["/usr/bin/hyprctl", "reload"])
+            return null
+        }
+        console.warn("CompositorService: No Lua translation for dispatch:", cmd)
+        return cmd
     }
 }

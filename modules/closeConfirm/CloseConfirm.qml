@@ -3,6 +3,7 @@ import qs
 import qs.services
 import qs.modules.common
 import Quickshell
+import Quickshell.Hyprland
 import Quickshell.Io
 import Quickshell.Wayland
 
@@ -65,6 +66,14 @@ Scope {
             if (!root._acceptTrigger())
                 return;
 
+            if (CompositorService.isHyprland) {
+                const hw = (HyprlandData.windowList ?? []).find(w => w.focusHistoryID === 0);
+                if (hw?.address) {
+                    root.processWindow({ id: hw.address, app_id: hw.class, title: hw.title });
+                }
+                return;
+            }
+
             // Try cached activeWindow first, fallback to niri query
             const win = NiriService.activeWindow;
             if (win?.id) {
@@ -95,6 +104,10 @@ Scope {
         const appId = String(win?.app_id ?? "").toLowerCase();
         if (appId === "spotify") {
             MinimizedWindows.minimize(win.id);
+            return;
+        }
+        if (CompositorService.isHyprland) {
+            CompositorService.hyprDispatch(`closewindow address:${win.id}`);
             return;
         }
         // Use niri msg directly - more reliable than socket IPC for some apps

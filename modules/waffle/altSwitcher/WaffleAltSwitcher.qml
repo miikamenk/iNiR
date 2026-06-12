@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
+import Quickshell.Hyprland
 import Quickshell.Io
 import Quickshell.Wayland
 import qs
@@ -76,6 +77,53 @@ Scope {
         return parts.join(" ")
     }
 
+    // Compositor abstraction: Hyprland windows are normalized to the Niri
+    // shape used by buildItemsFrom (id, app_id, title, workspace_id, ...)
+    function compositorWindows() {
+        if (CompositorService.isHyprland) {
+            return (HyprlandData.windowList || [])
+                .filter(w => w.mapped !== false && w.hidden !== true)
+                .map(w => ({
+                    id: w.address,
+                    app_id: w.class,
+                    title: w.title,
+                    workspace_id: w.workspace?.id ?? 0,
+                    is_focused: w.focusHistoryID === 0,
+                    is_floating: w.floating === true
+                }))
+        }
+        return NiriService.windows || []
+    }
+
+    function compositorWorkspaces() {
+        if (CompositorService.isHyprland) {
+            const map = {}
+            const list = HyprlandData.workspaces || []
+            for (let i = 0; i < list.length; i++)
+                map[list[i].id] = { idx: list[i].id }
+            return map
+        }
+        return NiriService.workspaces || {}
+    }
+
+    function compositorMruIds() {
+        if (CompositorService.isHyprland) {
+            // focusHistoryID: 0 = most recently focused
+            return [...(HyprlandData.windowList || [])]
+                .sort((a, b) => (a.focusHistoryID ?? 0) - (b.focusHistoryID ?? 0))
+                .map(w => w.address)
+        }
+        return NiriService.mruWindowIds || []
+    }
+
+    function focusWindowById(id) {
+        if (CompositorService.isHyprland) {
+            CompositorService.hyprDispatch(`focuswindow address:${id}`)
+            return
+        }
+        NiriService.focusWindow(id)
+    }
+
     function buildItemsFrom(windows, workspaces, mruIds) {
         if (!windows || !windows.length) return []
 
@@ -117,7 +165,10 @@ Scope {
             if (ia !== ib) return ia - ib
             const cmp = (a.appName || a.title || "").localeCompare(b.appName || b.title || "")
             if (cmp !== 0) return cmp
-            return a.id - b.id
+            // Niri ids are numbers, Hyprland ids are address strings
+            if (typeof a.id === "number" && typeof b.id === "number")
+                return a.id - b.id
+            return String(a.id).localeCompare(String(b.id))
         })
 
         // MRU ordering
@@ -139,21 +190,13 @@ Scope {
     }
 
     function rebuildSnapshot() {
-        itemSnapshot = buildItemsFrom(
-            NiriService.windows || [],
-            NiriService.workspaces || {},
-            NiriService.mruWindowIds || []
-        )
+        itemSnapshot = buildItemsFrom(compositorWindows(), compositorWorkspaces(), compositorMruIds())
         currentIndex = 0
         _warmedUp = true
     }
 
     function rebuildNoUiSnapshot() {
-        root.noUiSnapshot = buildItemsFrom(
-            NiriService.windows || [],
-            NiriService.workspaces || {},
-            NiriService.mruWindowIds || []
-        )
+        root.noUiSnapshot = buildItemsFrom(compositorWindows(), compositorWorkspaces(), compositorMruIds())
         root.noUiIndex = 0
     }
 
@@ -164,14 +207,15 @@ Scope {
         const idx = Math.max(0, Math.min(len - 1, root.noUiIndex))
         const id = root.noUiSnapshot[idx]?.id
         if (id !== undefined)
-            NiriService.focusWindow(id)
+            root.focusWindowById(id)
     }
 
     // Pre-warm al inicio
     Timer {
         id: warmUpTimer
         interval: 2000
-        running: !root._warmedUp && (NiriService.windows?.length ?? 0) > 0
+        running: !root._warmedUp
+                 && ((NiriService.windows?.length ?? 0) > 0 || (HyprlandData.windowList?.length ?? 0) > 0)
         onTriggered: {
             root.rebuildSnapshot()
             Qt.callLater(function() {
@@ -214,7 +258,7 @@ Scope {
             root.cardVisible = true
         }
         maybeOpenOverview()
-        if (CompositorService.isNiri && root.getPreset() === "skew") {
+        if (WindowPreviewService.available && root.getPreset() === "skew") {
             Qt.callLater(() => WindowPreviewService.captureForTaskView())
         }
         if (root.getAutoHide() && root.getPreset() !== "skew")
@@ -264,7 +308,7 @@ Scope {
     function activateCurrent() {
         const item = itemSnapshot[currentIndex]
         if (item?.id !== undefined) {
-            NiriService.focusWindow(item.id)
+            root.focusWindowById(item.id)
         }
     }
 
@@ -274,7 +318,7 @@ Scope {
     }
 
     function activateAndClose(windowId) {
-        NiriService.focusWindow(windowId)
+        root.focusWindowById(windowId)
         if (root.getCloseOnFocus()) {
             closeSwitcher()
         } else if (root.getAutoHide()) {
@@ -304,12 +348,10 @@ Scope {
     }
 
     // Window list sync
-    Connections {
-        target: NiriService
-        function onWindowsChanged() {
+    function pruneSnapshot() {
             if (!GlobalStates.waffleAltSwitcherOpen || !root.itemSnapshot.length) return
 
-            const wins = NiriService.windows || []
+            const wins = root.compositorWindows()
             if (!wins.length) {
                 root.closeSwitcher()
                 return
@@ -327,6 +369,21 @@ Scope {
             if (root.currentIndex >= filtered.length) {
                 root.currentIndex = filtered.length - 1
             }
+    }
+
+    Connections {
+        target: NiriService
+        enabled: CompositorService.isNiri
+        function onWindowsChanged() {
+            root.pruneSnapshot()
+        }
+    }
+
+    Connections {
+        target: HyprlandData
+        enabled: CompositorService.isHyprland
+        function onWindowListChanged() {
+            root.pruneSnapshot()
         }
     }
 
@@ -507,7 +564,7 @@ Scope {
                 if (root.getQuickSwitch() && root.itemSnapshot.length > 1 && !root.quickSwitchDone) {
                     root.quickSwitchDone = true
                     root.currentIndex = 1
-                    NiriService.focusWindow(root.itemSnapshot[1].id)
+                    root.focusWindowById(root.itemSnapshot[1].id)
                     // Start a timer to reset quickSwitchDone if user doesn't press again
                     quickSwitchResetTimer.restart()
                     return

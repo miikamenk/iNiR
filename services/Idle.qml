@@ -68,6 +68,12 @@ Singleton {
 
         if (screenOffTimeout > 0 && CompositorService.isNiri) {
             cmd.push("timeout", screenOffTimeout.toString(), "/usr/bin/niri msg action power-off-monitors", "resume", "/usr/bin/niri msg action power-on-monitors")
+        } else if (screenOffTimeout > 0 && CompositorService.isHyprland) {
+            // Legacy syntax first; fall back to the Lua IPC of Hyprland 0.55+
+            cmd.push("timeout", screenOffTimeout.toString(),
+                     "/usr/bin/hyprctl dispatch 'dpms off' || /usr/bin/hyprctl dispatch \"hl.dsp.dpms({ action = 'disable' })\"",
+                     "resume",
+                     "/usr/bin/hyprctl dispatch 'dpms on' || /usr/bin/hyprctl dispatch \"hl.dsp.dpms({ action = 'enable' })\"")
         }
 
         // Determine effective lock timeout

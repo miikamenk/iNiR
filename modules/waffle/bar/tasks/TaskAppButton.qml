@@ -6,6 +6,7 @@ import qs.modules.common.functions
 import qs.modules.waffle.looks
 import qs.modules.waffle.bar
 import Quickshell
+import Quickshell.Hyprland
 
 AppButton {
     id: root
@@ -75,6 +76,21 @@ AppButton {
         return ids
     }
 
+    // Hyprland has no niriWindowId on toplevels, so match by class instead.
+    // Results are normalized to the Niri field names used by the callers.
+    function findAppWindows() {
+        const appId = root.appEntry.appId.toLowerCase();
+        return (HyprlandData.windowList ?? []).filter(w => {
+            const wAppId = (w.class ?? "").toLowerCase();
+            return wAppId === appId || wAppId.includes(appId) || appId.includes(wAppId);
+        }).map(w => ({
+            id: w.address,
+            app_id: w.class,
+            title: w.title,
+            is_focused: w.focusHistoryID === 0
+        }));
+    }
+
     function fluentIconForDesktopAction(iconName, actionName): string {
         const icon = String(iconName ?? "").toLowerCase();
         const name = String(actionName ?? "").toLowerCase();
@@ -114,7 +130,28 @@ AppButton {
         
         const isAppFocused = root.wasActive;
 
-        if (CompositorService.isNiri) {
+        if (CompositorService.isHyprland) {
+            const appWindows = root.findAppWindows()
+
+            // Case 1: App is focused -> minimize the exact active window.
+            if (isAppFocused && appWindows.length > 0) {
+                const focused = appWindows.find(w => w.is_focused) ?? appWindows[0]
+                MinimizedWindows.minimize(focused.id)
+                return
+            }
+
+            // Case 2: App has minimized windows -> restore the latest.
+            if (root.hasMinimized) {
+                MinimizedWindows.restoreLatestForApp(root.appEntry.appId)
+                return
+            }
+
+            // Case 3: App has visible windows but is not focused.
+            if (appWindows.length > 0) {
+                CompositorService.hyprDispatch(`focuswindow address:${appWindows[0].id}`)
+                return
+            }
+        } else if (CompositorService.isNiri) {
             const windowIds = root.niriWindowIds()
 
             // Case 1: App is focused -> minimize the exact active window.
@@ -270,8 +307,13 @@ AppButton {
                     iconName: "caret-down",
                     text: root.multiple ? Translation.tr("Move all down") : Translation.tr("Move down"),
                     action: () => {
-                        for (const id of root.niriWindowIds())
-                            MinimizedWindows.minimize(id)
+                        if (CompositorService.isHyprland) {
+                            for (const win of root.findAppWindows())
+                                MinimizedWindows.minimize(win.id)
+                        } else {
+                            for (const id of root.niriWindowIds())
+                                MinimizedWindows.minimize(id)
+                        }
                     }
                 }
             ] : []),

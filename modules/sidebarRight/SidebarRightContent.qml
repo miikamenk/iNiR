@@ -89,7 +89,7 @@ Item {
         reloadButtonCooldown.restart();
 
         if (CompositorService.isHyprland) {
-            Hyprland.dispatch("reload");
+            CompositorService.hyprDispatch("reload");
         } else if (CompositorService.isNiri) {
             Quickshell.execDetached(["/usr/bin/niri", "msg", "action", "load-config-file"]);
         }

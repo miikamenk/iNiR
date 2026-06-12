@@ -2,6 +2,7 @@ import qs.modules.bar.weather
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
+import Quickshell.Hyprland
 import Quickshell.Services.UPower
 import qs
 import qs.services
@@ -214,7 +215,7 @@ Item { // Bar content region
                 if (up) NiriService.focusWorkspaceUp();
                 else NiriService.focusWorkspaceDown();
             } else if (CompositorService.isHyprland) {
-                Hyprland.dispatch(up ? "workspace r-1" : "workspace r+1");
+                CompositorService.hyprDispatch(up ? "workspace r-1" : "workspace r+1");
             }
         }
     }

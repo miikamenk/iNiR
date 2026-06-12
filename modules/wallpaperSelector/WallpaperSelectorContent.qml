@@ -9,6 +9,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import Qt5Compat.GraphicalEffects as GE
 import Quickshell
+import Quickshell.Hyprland
 import Quickshell.Io
 
 MouseArea {

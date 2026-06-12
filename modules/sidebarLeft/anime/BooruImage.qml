@@ -224,9 +224,9 @@ Button {
                     monochromeIcon: true,
                     text: Translation.tr("Open file link"),
                     action: () => {
-                        if (CompositorService.isHyprland) Hyprland.dispatch("keyword cursor:no_warps true")
+                        if (CompositorService.isHyprland) CompositorService.hyprDispatch("keyword cursor:no_warps true")
                         Qt.openUrlExternally(root.imageData.file_url)
-                        if (CompositorService.isHyprland) Hyprland.dispatch("keyword cursor:no_warps false")
+                        if (CompositorService.isHyprland) CompositorService.hyprDispatch("keyword cursor:no_warps false")
                     }
                 },
                 ...(root.imageData.source && root.imageData.source.length > 0 ? [{
@@ -234,9 +234,9 @@ Button {
                     monochromeIcon: true,
                     text: Translation.tr("Go to source (%1)").arg(StringUtils.getDomain(root.imageData.source)),
                     action: () => {
-                        if (CompositorService.isHyprland) Hyprland.dispatch("keyword cursor:no_warps true")
+                        if (CompositorService.isHyprland) CompositorService.hyprDispatch("keyword cursor:no_warps true")
                         Qt.openUrlExternally(root.imageData.source)
-                        if (CompositorService.isHyprland) Hyprland.dispatch("keyword cursor:no_warps false")
+                        if (CompositorService.isHyprland) CompositorService.hyprDispatch("keyword cursor:no_warps false")
                     }
                 }] : []),
                 { type: "separator" },

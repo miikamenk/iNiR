@@ -149,6 +149,13 @@ Singleton {
     // accounts for sub-pixel rounding differences.
     function isWindowFullscreen(window) {
         if (!window) return false
+
+        if (CompositorService.isHyprland) {
+            // hyprctl clients: fullscreen is 0/1/2/3 (>=2 means real fullscreen)
+            // on modern Hyprland, a plain bool on older versions
+            return window.fullscreen === true || window.fullscreen >= 2
+        }
+
         if (!CompositorService.isNiri) return false
 
         // If niri ever adds is_fullscreen back, prefer it
@@ -197,8 +204,9 @@ Singleton {
 
     // Check if ANY window across all workspaces is fullscreen
     function checkAnyFullscreenWindow(): bool {
-        if (!CompositorService.isNiri) return false
-        const windows = NiriService.windows
+        const windows = CompositorService.isHyprland
+            ? HyprlandData.windowList
+            : CompositorService.isNiri ? NiriService.windows : null
         if (!windows || !Array.isArray(windows)) return false
         
         for (let i = 0; i < windows.length; i++) {
@@ -220,7 +228,7 @@ Singleton {
     }
 
     function _doCheckFullscreen() {
-        if (!CompositorService.isNiri) {
+        if (!CompositorService.isNiri && !CompositorService.isHyprland) {
             _autoActive = false
             _focusedIsFullscreen = false
             return
@@ -230,9 +238,14 @@ Singleton {
         // activeWindow is only refreshed on focus-change events, so it's stale
         // when a window changes fullscreen state without changing focus
         // (e.g. pressing F11 on the already-focused window).
-        const windows = NiriService.windows
-        const focusedWindow = (Array.isArray(windows) && windows.find(w => w.is_focused))
-            || NiriService.activeWindow
+        let focusedWindow = null
+        if (CompositorService.isHyprland) {
+            focusedWindow = (HyprlandData.windowList ?? []).find(w => w.focusHistoryID === 0) ?? null
+        } else {
+            const windows = NiriService.windows
+            focusedWindow = (Array.isArray(windows) && windows.find(w => w.is_focused))
+                || NiriService.activeWindow
+        }
 
         // Focus flags can lag behind WindowLayoutsChanged on Niri. The
         // per-output path is already reactive and is what background surfaces
@@ -305,11 +318,20 @@ Singleton {
         }
     }
 
+    Connections {
+        target: HyprlandData
+        enabled: CompositorService.isHyprland && root._initialized
+
+        function onWindowListChanged() {
+            root.checkFullscreen()
+        }
+    }
+
     // Periodic check as fallback - uses config interval
     Timer {
         id: fallbackTimer
         interval: root.checkInterval
-        running: root.autoDetect && CompositorService.isNiri && root._initialized
+        running: root.autoDetect && (CompositorService.isNiri || CompositorService.isHyprland) && root._initialized
         repeat: true
         onTriggered: {
             if (!checkDebounce.running) {
@@ -333,6 +355,8 @@ Singleton {
             if (CompositorService.isNiri) {
                 root.checkFullscreen()
                 startupNiriSyncTimer.restart()
+            } else if (CompositorService.isHyprland) {
+                root.checkFullscreen()
             }
         }
     }
@@ -397,6 +421,48 @@ Singleton {
         }
     }
 
+    // Hyprland performance toggles — same keywords as end-4's dots-hyprland
+    // game mode. Restoring is a plain `hyprctl reload` of the user config.
+    readonly property bool controlHyprlandPerformance: Config.options?.gameMode?.disableHyprlandAnimations ?? true
+    property bool _lastHyprPerfState: false
+
+    function setHyprlandPerformance(gameModeOn) {
+        if (!controlHyprlandPerformance) return
+        if (gameModeOn) {
+            if (CompositorService.hyprlandLuaIpc) {
+                hyprPerfProcess.command = ["/usr/bin/hyprctl", "eval",
+                    "hl.config({ animations = { enabled = false }, decoration = { shadow = { enabled = false }, blur = { enabled = false }, rounding = 0 }, general = { gaps_in = 0, gaps_out = 0, border_size = 1, allow_tearing = true } })"]
+            } else {
+                hyprPerfProcess.command = ["/usr/bin/bash", "-c",
+                    'hyprctl --batch "keyword animations:enabled 0; keyword decoration:shadow:enabled 0; keyword decoration:blur:enabled 0; keyword general:gaps_in 0; keyword general:gaps_out 0; keyword general:border_size 1; keyword decoration:rounding 0; keyword general:allow_tearing 1"']
+            }
+        } else {
+            hyprPerfProcess.command = ["/usr/bin/hyprctl", "reload"]
+        }
+        hyprPerfProcess.running = true
+    }
+
+    Process {
+        id: hyprPerfProcess
+        onExited: (code, status) => {
+            if (code === 0) {
+                root._log("[GameMode] Hyprland performance settings updated")
+            }
+        }
+    }
+
+    Timer {
+        id: hyprPerfDebounce
+        interval: 500
+        onTriggered: {
+            const gameModeOn = root.active
+            if (gameModeOn !== root._lastHyprPerfState) {
+                root._lastHyprPerfState = gameModeOn
+                root.setHyprlandPerformance(gameModeOn)
+            }
+        }
+    }
+
     // Track last niri animation state to avoid redundant updates
     property bool _lastNiriAnimState: true
 
@@ -418,6 +484,9 @@ Singleton {
         if (CompositorService.isNiri && controlNiriAnimations) {
             root.suppressNiriToast = true
             niriAnimDebounce.restart()
+        }
+        if (CompositorService.isHyprland && controlHyprlandPerformance) {
+            hyprPerfDebounce.restart()
         }
 
         // External processes control

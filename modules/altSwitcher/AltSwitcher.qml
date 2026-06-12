@@ -9,6 +9,7 @@ import QtQuick.Effects
 import QtQuick.Shapes
 import Qt5Compat.GraphicalEffects
 import Quickshell
+import Quickshell.Hyprland
 import Quickshell.Wayland
 import Quickshell.Io
 import Quickshell.Widgets
@@ -197,6 +198,62 @@ Scope {
         return icon
     }
 
+    // Compositor abstraction: window data + actions for both Niri and Hyprland.
+    // Hyprland windows are normalized to the Niri shape used by buildItemsFrom
+    // (id, app_id, title, workspace_id, is_focused, is_floating).
+    function compositorWindows() {
+        if (CompositorService.isHyprland) {
+            return (HyprlandData.windowList || [])
+                .filter(w => w.mapped !== false && w.hidden !== true)
+                .map(w => ({
+                    id: w.address,
+                    app_id: w.class,
+                    title: w.title,
+                    workspace_id: w.workspace?.id ?? 0,
+                    is_focused: w.focusHistoryID === 0,
+                    is_floating: w.floating === true
+                }))
+        }
+        return NiriService.windows || []
+    }
+
+    function compositorWorkspaces() {
+        if (CompositorService.isHyprland) {
+            const map = {}
+            const list = HyprlandData.workspaces || []
+            for (let i = 0; i < list.length; i++)
+                map[list[i].id] = { idx: list[i].id }
+            return map
+        }
+        return NiriService.workspaces || {}
+    }
+
+    function compositorMruIds() {
+        if (CompositorService.isHyprland) {
+            // focusHistoryID: 0 = most recently focused
+            return [...(HyprlandData.windowList || [])]
+                .sort((a, b) => (a.focusHistoryID ?? 0) - (b.focusHistoryID ?? 0))
+                .map(w => w.address)
+        }
+        return NiriService.mruWindowIds || []
+    }
+
+    function focusWindowById(id) {
+        if (CompositorService.isHyprland) {
+            CompositorService.hyprDispatch(`focuswindow address:${id}`)
+            return
+        }
+        NiriService.focusWindow(id)
+    }
+
+    function closeWindowById(id) {
+        if (CompositorService.isHyprland) {
+            CompositorService.hyprDispatch(`closewindow address:${id}`)
+            return
+        }
+        NiriService.closeWindow(id)
+    }
+
     function buildItemsFrom(windows, workspaces, mruIds) {
         if (!windows || !windows.length)
             return []
@@ -249,7 +306,10 @@ Scope {
             if (cmp !== 0)
                 return cmp
 
-            return a.id - b.id
+            // Niri ids are numbers, Hyprland ids are address strings
+            if (typeof a.id === "number" && typeof b.id === "number")
+                return a.id - b.id
+            return String(a.id).localeCompare(String(b.id))
         })
 
         const useMostRecentFirst = root.altUseMostRecentFirst
@@ -287,28 +347,19 @@ Scope {
         
         Qt.callLater(function() {
             _rebuildPending = false
-            const windows = NiriService.windows || []
-            const workspaces = NiriService.workspaces || {}
-            const mruIds = NiriService.mruWindowIds || []
-            itemSnapshot = buildItemsFrom(windows, workspaces, mruIds)
+            itemSnapshot = buildItemsFrom(compositorWindows(), compositorWorkspaces(), compositorMruIds())
         })
     }
 
     function rebuildSnapshotSync() {
-        const windows = NiriService.windows || []
-        const workspaces = NiriService.workspaces || {}
-        const mruIds = NiriService.mruWindowIds || []
-        itemSnapshot = buildItemsFrom(windows, workspaces, mruIds)
+        itemSnapshot = buildItemsFrom(compositorWindows(), compositorWorkspaces(), compositorMruIds())
     }
 
     property bool _noUiRebuildPending: false
     
     // Synchronous version for immediate use in noVisualUi mode
     function rebuildNoUiSnapshotSync() {
-        const windows = NiriService.windows || []
-        const workspaces = NiriService.workspaces || {}
-        const mruIds = NiriService.mruWindowIds || []
-        root.noUiSnapshot = buildItemsFrom(windows, workspaces, mruIds)
+        root.noUiSnapshot = buildItemsFrom(compositorWindows(), compositorWorkspaces(), compositorMruIds())
         root.noUiIndex = 0
     }
     
@@ -329,7 +380,7 @@ Scope {
         const idx = Math.max(0, Math.min(len - 1, root.noUiIndex))
         const id = root.noUiSnapshot[idx]?.id
         if (id !== undefined)
-            NiriService.focusWindow(id)
+            root.focusWindowById(id)
     }
 
     function ensureSnapshot() {
@@ -741,6 +792,8 @@ Scope {
                     }
 
                     function refreshPreview(): void {
+                        if (!WindowPreviewService.available)
+                            return
                         if (modelData?.id === undefined)
                             return
                         const url = WindowPreviewService.getPreviewUrl(modelData.id)
@@ -784,7 +837,7 @@ Scope {
 
                     Connections {
                         target: WindowPreviewService
-                        function onPreviewUpdated(updatedId: int): void {
+                        function onPreviewUpdated(updatedId): void {
                             if (updatedId === skewSlice.modelData?.id)
                                 skewSlice.previewUrl = WindowPreviewService.getPreviewUrl(updatedId)
                         }
@@ -1207,7 +1260,7 @@ Scope {
                             onClicked: {
                                 listView.currentIndex = index
                                 if (modelData && modelData.id !== undefined) {
-                                    NiriService.focusWindow(modelData.id)
+                                    root.focusWindowById(modelData.id)
                                 }
                             }
                         }
@@ -1354,7 +1407,7 @@ Scope {
                                 onClicked: {
                                     listView.currentIndex = index
                                     if (modelData?.id !== undefined) {
-                                        NiriService.focusWindow(modelData.id)
+                                        root.focusWindowById(modelData.id)
                                     }
                                 }
 
@@ -1649,7 +1702,7 @@ Scope {
 
                         function activate() {
                             if (modelData && modelData.id !== undefined) {
-                                NiriService.focusWindow(modelData.id)
+                                root.focusWindowById(modelData.id)
                             }
                         }
                     }
@@ -1679,16 +1732,31 @@ Scope {
 
         Connections {
             target: NiriService
+            enabled: CompositorService.isNiri
             function onWindowsChanged() {
+                window.scheduleSnapshotPrune()
+            }
+        }
+
+        Connections {
+            target: HyprlandData
+            enabled: CompositorService.isHyprland
+            function onWindowListChanged() {
+                window.scheduleSnapshotPrune()
+            }
+        }
+
+        // Drop closed windows from the open switcher's snapshot (debounced)
+        function scheduleSnapshotPrune() {
                 if (GameMode.active) {
                     return
                 }
-                
+
                 if (!GlobalStates.altSwitcherOpen || !root.itemSnapshot || root.itemSnapshot.length === 0)
                     return
 
                 root._pendingWindowsUpdate = function() {
-                    const wins = NiriService.windows || []
+                    const wins = root.compositorWindows()
                     if (!wins.length) {
                         root.itemSnapshot = []
                         listView.currentIndex = -1
@@ -1722,7 +1790,6 @@ Scope {
                     }
                 }
                 windowsUpdateDebounce.restart()
-            }
         }
 
         NumberAnimation {
@@ -1759,7 +1826,7 @@ Scope {
         } else {
             rebuildSnapshot()
         }
-        if (CompositorService.isNiri && root.skewStyle)
+        if (WindowPreviewService.available && root.skewStyle)
             Qt.callLater(() => WindowPreviewService.captureForTaskView())
         panelVisible = true
         if (animationsEnabled && !centerPanel && !compactStyle && !root.listStyle && !root.skewStyle) {
@@ -1828,7 +1895,7 @@ Scope {
             return
         const win = itemSnapshot[idx]
         if (win?.id !== undefined)
-            NiriService.closeWindow(win.id)
+            root.closeWindowById(win.id)
     }
 
     function confirmCurrentSelection() {
@@ -1870,7 +1937,7 @@ Scope {
             if (idx >= 0 && idx < (itemSnapshot?.length ?? 0)) {
                 const item = itemSnapshot[idx]
                 if (item?.id !== undefined)
-                    NiriService.focusWindow(item.id)
+                    root.focusWindowById(item.id)
             }
             return
         }
@@ -1884,7 +1951,8 @@ Scope {
     Timer {
         id: warmUpTimer
         interval: 2000  // 2 segundos después del inicio
-        running: !root._warmedUp && (NiriService.windows?.length ?? 0) > 0
+        running: !root._warmedUp
+                 && ((NiriService.windows?.length ?? 0) > 0 || (HyprlandData.windowList?.length ?? 0) > 0)
         onTriggered: {
             root.rebuildSnapshot()
             root._warmedUp = true
@@ -1897,23 +1965,35 @@ Scope {
     }
 
     // Re-warm cuando cambian las ventanas (solo si no está abierto)
-    Connections {
-        target: NiriService
-        enabled: root._warmedUp && !GlobalStates.altSwitcherOpen
-        function onWindowsChanged() {
-            if (GameMode.active) return
-            
-            const wins = NiriService.windows || []
-            for (let i = 0; i < wins.length; i++) {
-                const w = wins[i]
-                const key = w.app_id || ""
-                if (key && root.iconCache[key] === undefined) {
-                    root.getCachedIcon(w.app_id, "", w.title)
-                }
+    function prewarmIcons() {
+        if (GameMode.active) return
+
+        const wins = root.compositorWindows()
+        for (let i = 0; i < wins.length; i++) {
+            const w = wins[i]
+            const key = w.app_id || ""
+            if (key && root.iconCache[key] === undefined) {
+                root.getCachedIcon(w.app_id, "", w.title)
             }
         }
     }
-    
+
+    Connections {
+        target: NiriService
+        enabled: root._warmedUp && !GlobalStates.altSwitcherOpen && CompositorService.isNiri
+        function onWindowsChanged() {
+            root.prewarmIcons()
+        }
+    }
+
+    Connections {
+        target: HyprlandData
+        enabled: root._warmedUp && !GlobalStates.altSwitcherOpen && CompositorService.isHyprland
+        function onWindowListChanged() {
+            root.prewarmIcons()
+        }
+    }
+
     Timer {
         id: noUiSnapshotUpdateTimer
         interval: GameMode.active ? 10000 : 3000
@@ -1921,13 +2001,11 @@ Scope {
         running: root.effectiveNoVisualUi && !GlobalStates.altSwitcherOpen
         onTriggered: {
             if (GameMode.active) return
-            
-            if (NiriService.windows?.length > 0) {
+
+            const windows = root.compositorWindows()
+            if (windows.length > 0) {
                 Qt.callLater(function() {
-                    const windows = NiriService.windows || []
-                    const workspaces = NiriService.workspaces || {}
-                    const mruIds = NiriService.mruWindowIds || []
-                    root.noUiSnapshot = buildItemsFrom(windows, workspaces, mruIds)
+                    root.noUiSnapshot = buildItemsFrom(root.compositorWindows(), root.compositorWorkspaces(), root.compositorMruIds())
                 })
             }
         }

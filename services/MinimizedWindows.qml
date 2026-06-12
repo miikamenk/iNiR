@@ -2,13 +2,15 @@ pragma Singleton
 
 import QtQuick
 import Quickshell
+import Quickshell.Hyprland
 import Quickshell.Io
 import qs.modules.common
 import qs.services
 
 /**
- * Service to manage "minimized" windows in Niri.
- * Since Niri doesn't have native minimize, we move windows to a hidden workspace (index 99).
+ * Service to manage "minimized" windows.
+ * Niri: windows are moved to a far-away workspace (no native minimize).
+ * Hyprland: windows are moved to the special:minimized workspace.
  */
 Singleton {
     id: root
@@ -20,7 +22,8 @@ Singleton {
     property var minimizedWindows: ({})
     
     // List of minimized window IDs for easy iteration
-    property list<int> minimizedIds: []
+    // (Niri numeric ids or Hyprland address strings)
+    property var minimizedIds: []
     
     // Check if a window is minimized
     function isMinimized(windowId) {
@@ -43,6 +46,10 @@ Singleton {
     
     // Minimize the focused window or a specific window
     function minimize(windowId = null) {
+        if (CompositorService.isHyprland) {
+            minimizeHyprland(windowId);
+            return;
+        }
         if (!CompositorService.isNiri) return;
         
         // Get window info
@@ -88,8 +95,48 @@ Singleton {
         moveToWorkspaceProc.running = true;
     }
     
+    function minimizeHyprland(windowId) {
+        let targetWindow;
+        if (windowId) {
+            targetWindow = HyprlandData.windowList?.find(w => w.address === windowId);
+        } else {
+            targetWindow = HyprlandData.windowList?.find(w => w.focusHistoryID === 0);
+            windowId = targetWindow?.address;
+        }
+
+        if (!targetWindow || !windowId) return;
+        if (isMinimized(windowId)) return;
+
+        minimizedWindows[windowId] = {
+            appId: targetWindow.class || "",
+            title: targetWindow.title || "",
+            originalWorkspace: targetWindow.workspace?.id ?? 1
+        };
+        minimizedIds = [...minimizedIds, windowId];
+
+        CompositorService.hyprDispatch(`movetoworkspacesilent special:minimized,address:${windowId}`);
+    }
+
+    function restoreHyprland(windowId) {
+        if (!isMinimized(windowId)) return;
+        const info = minimizedWindows[windowId];
+        if (!info) return;
+
+        delete minimizedWindows[windowId];
+        minimizedIds = minimizedIds.filter(id => id !== windowId);
+
+        // Match Niri behavior: restore onto the currently focused workspace
+        const targetWorkspace = HyprlandData.activeWorkspace?.id ?? info.originalWorkspace ?? 1;
+        CompositorService.hyprDispatch(`movetoworkspacesilent ${targetWorkspace},address:${windowId}`);
+        CompositorService.hyprDispatch(`focuswindow address:${windowId}`);
+    }
+
     // Restore a minimized window
     function restore(windowId) {
+        if (CompositorService.isHyprland) {
+            restoreHyprland(windowId);
+            return;
+        }
         if (!CompositorService.isNiri) return;
         if (!isMinimized(windowId)) return;
         
@@ -157,7 +204,7 @@ Singleton {
             root.minimize();
         }
         
-        function restore(windowId: int): void {
+        function restore(windowId: var): void {
             root.restore(windowId);
         }
     }

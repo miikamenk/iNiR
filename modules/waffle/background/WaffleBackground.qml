@@ -135,6 +135,10 @@ Variants {
             if (CompositorService.isNiri) {
                 return GameMode.hasFullscreenOnOutput(modelData?.name ?? "")
             }
+            if (CompositorService.isHyprland && HyprlandData.windowList) {
+                return HyprlandData.windowList.some(w => w.focusHistoryID === 0
+                    && (w.fullscreen === true || w.fullscreen >= 2))
+            }
             return false
         }
 
@@ -155,6 +159,11 @@ Variants {
                         && ws.is_active);
                     if (!currentWs) return false;
                     return NiriService.windows.some(w => w.workspace_id === currentWs.id);
+                }
+                if (CompositorService.isHyprland && HyprlandData.windowList) {
+                    const activeWs = HyprlandData.activeWorkspace?.id;
+                    if (activeWs === undefined || activeWs === null) return false;
+                    return HyprlandData.windowList.some(w => w.workspace?.id === activeWs && w.mapped !== false);
                 }
                 return false;
             } catch (e) { return false; }

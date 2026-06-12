@@ -63,17 +63,17 @@ Scope {
         Quickshell.execDetached(["/usr/bin/hyprctl", "keyword", "dwindle:pseudotile", "true"])
         root.windowData = HyprlandData.windowList.filter(w => (w.floating && w.workspace.id === HyprlandData.activeWorkspace.id))
         root.windowData.forEach(w => {
-			Hyprland.dispatch(`pseudo address:${w.address}`)
-            Hyprland.dispatch(`settiled address:${w.address}`)
-			Hyprland.dispatch(`movetoworkspacesilent ${w.workspace.id},address:${w.address}`)
+			CompositorService.hyprDispatch(`pseudo address:${w.address}`)
+            CompositorService.hyprDispatch(`settiled address:${w.address}`)
+			CompositorService.hyprDispatch(`movetoworkspacesilent ${w.workspace.id},address:${w.address}`)
         })
     }
     function restoreWindowPositionAndTile() {
         if (!CompositorService.isHyprland) return;
         root.windowData.forEach(w => {
-            Hyprland.dispatch(`setfloating address:${w.address}`)
-            Hyprland.dispatch(`movewindowpixel exact ${w.at[0]} ${w.at[1]}, address:${w.address}`)
-			Hyprland.dispatch(`pseudo address:${w.address}`)
+            CompositorService.hyprDispatch(`setfloating address:${w.address}`)
+            CompositorService.hyprDispatch(`movewindowpixel exact ${w.at[0]} ${w.at[1]}, address:${w.address}`)
+			CompositorService.hyprDispatch(`pseudo address:${w.address}`)
         })
 		Quickshell.execDetached(["/usr/bin/hyprctl", "keyword", "dwindle:pseudotile", "false"])
     }
@@ -113,7 +113,10 @@ Scope {
             
             // Refocus last focused window on unlock (hack)
             if (CompositorService.isHyprland) {
-                Quickshell.execDetached(["/usr/bin/bash", "-lc", "/usr/bin/sleep 0.2; /usr/bin/hyprctl --batch 'dispatch togglespecialworkspace; dispatch togglespecialworkspace'"])
+                Quickshell.execDetached(["/usr/bin/bash", "-lc",
+                    "/usr/bin/sleep 0.2; " +
+                    "/usr/bin/hyprctl --batch 'dispatch togglespecialworkspace; dispatch togglespecialworkspace' || " +
+                    "{ /usr/bin/hyprctl dispatch 'hl.dsp.workspace.toggle_special(\"special\")'; /usr/bin/hyprctl dispatch 'hl.dsp.workspace.toggle_special(\"special\")'; }"])
             }
 
             // Reset
@@ -375,7 +378,7 @@ Scope {
         if ((Config.options?.lock?.launchOnStartup ?? false) && Persistent.isNewHyprlandInstance) {
             // Launch lock screen on startup
             if (CompositorService.isHyprland) {
-                Hyprland.dispatch("global quickshell:lock")
+                CompositorService.hyprDispatch("global quickshell:lock")
             } else {
                 if (!GlobalStates.screenLocked && !root._lockActivating)
                     lockActivateDelay.restart();

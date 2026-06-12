@@ -62,10 +62,10 @@ PopupWindow {
         closeAnimTimer.restart();
     }
 
-    // Fullscreen transparent backdrop for Niri to detect clicks outside
+    // Fullscreen transparent backdrop to detect clicks outside
     PanelWindow {
         id: clickOutsideBackdrop
-        visible: root.visible && CompositorService.isNiri
+        visible: root.visible
         color: "transparent"
         exclusiveZone: 0
         WlrLayershell.layer: WlrLayer.Top

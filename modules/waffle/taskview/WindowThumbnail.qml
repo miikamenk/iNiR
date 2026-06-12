@@ -302,7 +302,7 @@ Item {
                 // Listen for preview updates
                 Connections {
                     target: WindowPreviewService
-                    function onPreviewUpdated(updatedId: int): void {
+                    function onPreviewUpdated(updatedId): void {
                         if (updatedId === previewArea.windowId) {
                             const url = WindowPreviewService.getPreviewUrl(updatedId)
                             previewArea.previewUrl = url

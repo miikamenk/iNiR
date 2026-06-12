@@ -5,6 +5,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import Qt5Compat.GraphicalEffects
 import Quickshell
+import Quickshell.Hyprland
 import Quickshell.Wayland
 import Quickshell.Widgets
 import qs.services
@@ -127,9 +128,12 @@ Button {
             implicitWidth: 140
             implicitHeight: 90
 
-            readonly property int windowId: CompositorService.isNiri
-                ? (root.toplevel?.niriWindowId ?? root.toplevel?.id ?? 0)
-                : (root.toplevel?.id ?? 0)
+            // Window id for WindowPreviewService: Niri numeric id or Hyprland address
+            readonly property var windowId: CompositorService.isHyprland
+                ? ("0x" + (root.toplevel?.HyprlandToplevel?.address ?? ""))
+                : CompositorService.isNiri
+                    ? (root.toplevel?.niriWindowId ?? root.toplevel?.id ?? 0)
+                    : (root.toplevel?.id ?? 0)
             property string previewUrl: ""
 
             Rectangle {
@@ -214,7 +218,7 @@ Button {
 
             Connections {
                 target: WindowPreviewService
-                function onPreviewUpdated(updatedId: int): void {
+                function onPreviewUpdated(updatedId): void {
                     if (updatedId === previewArea.windowId) {
                         previewArea.previewUrl = WindowPreviewService.getPreviewUrl(updatedId)
                     }

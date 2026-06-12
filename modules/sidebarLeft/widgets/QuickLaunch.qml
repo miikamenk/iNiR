@@ -27,6 +27,12 @@ Item {
     function isAppRunning(cmd) {
         if (!cmd) return false
         const appName = cmd.split("/").pop().toLowerCase()
+        if (CompositorService.isHyprland) {
+            return (HyprlandData.windowList ?? []).some(w =>
+                w.class?.toLowerCase().includes(appName) ||
+                w.title?.toLowerCase().includes(appName)
+            )
+        }
         return NiriService.windows.some(w => 
             w.app_id?.toLowerCase().includes(appName) ||
             w.title?.toLowerCase().includes(appName)

@@ -1862,8 +1862,10 @@ MouseArea {
     function setMonitorPower(on: bool): void {
         if (CompositorService.isHyprland) {
             const target = root.screenName.length > 0 ? root.screenName : ""
+            const action = on ? "enable" : "disable"
+            const luaMonitor = target.length > 0 ? `, monitor = '${target}'` : ""
             Quickshell.execDetached(["/usr/bin/bash", "-c",
-                `hyprctl dispatch dpms ${on ? "on" : "off"} ${target}`])
+                `hyprctl dispatch dpms ${on ? "on" : "off"} ${target} || hyprctl dispatch "hl.dsp.dpms({ action = '${action}'${luaMonitor} })"`])
         } else if (CompositorService.isNiri) {
             // niri turns monitors back on automatically on input; only the off action is needed.
             Quickshell.execDetached(["/usr/bin/bash", "-c",

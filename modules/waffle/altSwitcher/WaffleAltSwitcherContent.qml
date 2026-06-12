@@ -379,7 +379,7 @@ Item {
 
                     Connections {
                         target: WindowPreviewService
-                        function onPreviewUpdated(updatedId: int): void {
+                        function onPreviewUpdated(updatedId): void {
                             if (updatedId === skewSlice.modelData?.id)
                                 skewSlice.previewUrl = WindowPreviewService.getPreviewUrl(updatedId)
                         }

@@ -8,6 +8,7 @@ import qs.modules.common.functions
 import qs.modules.waffle.looks
 import qs.modules.waffle.bar
 import Quickshell
+import Quickshell.Hyprland
 
 Button {
     id: root
@@ -18,9 +19,13 @@ Button {
     padding: Looks.dp(5)
     Layout.fillHeight: true
 
-    // Get Niri window ID from toplevel for WindowPreviewService
-    readonly property int niriWindowId: {
+    // Window id for WindowPreviewService: Niri numeric id or Hyprland address
+    readonly property var previewWindowId: {
         if (!root.toplevel) return -1
+        if (CompositorService.isHyprland) {
+            const addr = root.toplevel.HyprlandToplevel?.address
+            return addr ? ("0x" + addr) : -1
+        }
         if (root.toplevel.niriWindowId)
             return root.toplevel.niriWindowId
         const match = NiriService.findNiriWindow(root.toplevel)
@@ -28,8 +33,8 @@ Button {
     }
 
     onClicked: {
-        if (CompositorService.isNiri && root.niriWindowId > 0) {
-            NiriService.focusWindow(root.niriWindowId)
+        if (CompositorService.isNiri && root.previewWindowId > 0) {
+            NiriService.focusWindow(root.previewWindowId)
         } else {
             root.toplevel?.activate()
         }
@@ -105,7 +110,7 @@ Button {
                     opacity: 0.5
                 }
 
-                // Window preview using WindowPreviewService (works with Niri)
+                // Window preview using WindowPreviewService (Niri + Hyprland)
                 Image {
                     id: previewImage
                     anchors.fill: parent
@@ -132,14 +137,14 @@ Button {
                     // Listen for preview updates from WindowPreviewService
                     Connections {
                         target: WindowPreviewService
-                        function onPreviewUpdated(updatedId: int): void {
-                            if (updatedId === root.niriWindowId) {
+                        function onPreviewUpdated(updatedId): void {
+                            if (updatedId === root.previewWindowId) {
                                 previewImage.previewUrl = WindowPreviewService.getPreviewUrl(updatedId)
                             }
                         }
                         function onCaptureComplete(): void {
-                            if (root.niriWindowId > 0) {
-                                const url = WindowPreviewService.getPreviewUrl(root.niriWindowId)
+                            if (root.previewWindowId !== -1) {
+                                const url = WindowPreviewService.getPreviewUrl(root.previewWindowId)
                                 if (url) previewImage.previewUrl = url
                             }
                         }
@@ -147,9 +152,9 @@ Button {
 
                     Component.onCompleted: {
                         WindowPreviewService.initialize()
-                        if (root.niriWindowId > 0) {
+                        if (root.previewWindowId !== -1) {
                             Qt.callLater(() => {
-                                const url = WindowPreviewService.getPreviewUrl(root.niriWindowId)
+                                const url = WindowPreviewService.getPreviewUrl(root.previewWindowId)
                                 if (url) previewImage.previewUrl = url
                             })
                         }
@@ -174,8 +179,8 @@ Button {
         Layout.leftMargin: Looks.dp(4)
         radius: Looks.radius.large - root.padding
         onClicked: {
-            if (CompositorService.isNiri && root.niriWindowId > 0) {
-                NiriService.closeWindow(root.niriWindowId)
+            if (CompositorService.isNiri && root.previewWindowId > 0) {
+                NiriService.closeWindow(root.previewWindowId)
             } else {
                 root.toplevel?.close()
             }

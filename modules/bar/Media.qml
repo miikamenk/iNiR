@@ -158,9 +158,9 @@ Item {
         }
     }
 
-    // Backdrop for click-outside-to-close (Niri)
+    // Backdrop for click-outside-to-close
     Loader {
-        active: root.barMediaPopupVisible && root.popupMode === "bar" && CompositorService.isNiri
+        active: root.barMediaPopupVisible && root.popupMode === "bar"
         sourceComponent: PanelWindow {
             anchors { top: true; bottom: true; left: true; right: true }
             color: "transparent"
