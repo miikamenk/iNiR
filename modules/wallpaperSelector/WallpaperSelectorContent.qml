@@ -14,11 +14,124 @@ import Quickshell.Io
 
 MouseArea {
     id: root
-    property int columns: 4
+    readonly property bool previewPaneVisible: Config.options?.wallpaperSelector?.showPreviewPane ?? true
+    // Fewer, larger cells when the hero pane is eating horizontal space.
+    property int columns: root.previewPaneVisible ? 3 : 4
     property real previewCellAspectRatio: 4 / 3
     property bool useDarkMode: Appearance.m3colors.darkmode
     property string _lastThumbnailSizeName: ""
     readonly property real _dpr: root.window ? root.window.devicePixelRatio : 1
+
+    // ------------------------------------------------------------------
+    // Highlight tracking — what the hero pane and live preview follow.
+    // Hover and keyboard navigation both funnel into grid.currentIndex.
+    // ------------------------------------------------------------------
+    // Path and directory-ness travel together in one object. Splitting them into
+    // two properties let consumers observe a half-updated pair — briefly pairing a
+    // folder's path with isDir:false, which made the hero pane try to decode a
+    // directory as an image.
+    property var _highlight: ({
+        path: "",
+        isDir: false
+    })
+    readonly property string highlightPath: root._highlight.path
+    readonly property bool highlightIsDir: root._highlight.isDir
+
+    function syncHighlight(): void {
+        const model = Wallpapers.folderModel;
+        const index = grid.currentIndex;
+        if (!model || index < 0 || index >= model.count) {
+            root._highlight = {
+                path: "",
+                isDir: false
+            };
+            return;
+        }
+        root._highlight = {
+            path: FileUtils.trimFileProtocol(String(model.get(index, "filePath") ?? "")),
+            isDir: model.get(index, "fileIsDir") === true
+        };
+    }
+
+    // ------------------------------------------------------------------
+    // Live theme preview — recolours the shell from the highlighted image
+    // without committing it as the wallpaper. Reverted on close unless the
+    // user actually applies something.
+    // ------------------------------------------------------------------
+    property bool livePreviewEnabled: Config.options?.wallpaperSelector?.livePreview ?? false
+    property bool _livePreviewDirty: false
+    property string _originalPreviewSource: ""
+
+    function toggleLivePreview(): void {
+        const next = !root.livePreviewEnabled;
+        Config.setNestedValue("wallpaperSelector.livePreview", next);
+        if (next)
+            livePreviewTimer.restart();
+        else {
+            livePreviewTimer.stop();
+            root.revertLivePreview();
+        }
+    }
+
+    function revertLivePreview(): void {
+        if (!root._livePreviewDirty)
+            return;
+        root._livePreviewDirty = false;
+        Config.setNestedValue("appearance.wallpaperTheming.previewSourcePath", root._originalPreviewSource);
+        // Give the config write timer a beat to land before regenerating, so the
+        // palette is rebuilt from the real wallpaper and not the stale preview.
+        revertTimer.restart();
+    }
+
+    Timer {
+        id: livePreviewTimer
+        interval: Config.options?.wallpaperSelector?.livePreviewDelayMs ?? 450
+        onTriggered: {
+            if (!root.livePreviewEnabled || !GlobalStates.wallpaperSelectorOpen)
+                return;
+            if (root.highlightIsDir || root.highlightPath.length === 0)
+                return;
+            // Videos would need a first-frame extraction round trip; the colours
+            // you'd get are the same ones the commit path generates anyway.
+            if (Images.isValidVideoByName(root.highlightPath))
+                return;
+            root._livePreviewDirty = true;
+            Wallpapers.applyColorsOnly(root.highlightPath, root.useDarkMode);
+        }
+    }
+
+    Timer {
+        id: revertTimer
+        interval: 160
+        onTriggered: ThemeService.regenerateAutoTheme()
+    }
+
+    onHighlightPathChanged: {
+        if (root.livePreviewEnabled)
+            livePreviewTimer.restart();
+    }
+
+    // ------------------------------------------------------------------
+    // Peek — fades the panel out of the way so the live desktop is visible.
+    // ------------------------------------------------------------------
+    property bool peeking: false
+
+    // ------------------------------------------------------------------
+    // Cascade — the staggered entrance only runs right after the panel opens
+    // or the folder changes, so delegates recycled by scrolling appear at once.
+    // ------------------------------------------------------------------
+    property bool cascadeActive: false
+    function startCascade(): void {
+        if (!Appearance.animationsEnabled)
+            return;
+        root.cascadeActive = true;
+        cascadeTimer.restart();
+    }
+    Timer {
+        id: cascadeTimer
+        interval: 900
+        onTriggered: root.cascadeActive = false
+    }
 
     // Multi-monitor support — capture focused monitor at open time
     property string _lockedTarget: ""
@@ -57,12 +170,17 @@ MouseArea {
                 _capturedMonitor = Hyprland.focusedMonitor?.name ?? ""
             }
         }
+        root._originalPreviewSource = Config.options?.appearance?.wallpaperTheming?.previewSourcePath ?? ""
         Qt.callLater(() => {
             Wallpapers.searchQuery = ""
             root.syncDirectoryToCurrentSelection()
             root.updateThumbnails()
+            root.syncHighlight()
+            root.startCascade()
         })
     }
+
+    Component.onDestruction: root.revertLivePreview()
 
     function updateThumbnails() {
         const totalImageMargin = (Appearance.sizes.wallpaperSelectorItemMargins + Appearance.sizes.wallpaperSelectorItemPadding) * 2
@@ -82,11 +200,17 @@ MouseArea {
         function onDirectoryChanged() {
             root.updateThumbnails()
         }
+        function onFolderChanged() {
+            // Don't sweep the selection ring across the whole grid on a folder jump.
+            selectionRing.snapNext()
+            root.startCascade()
+        }
     }
 
     Connections {
         target: Wallpapers.folderModel
         function onCountChanged() {
+            root.syncHighlight()
             if (!GlobalStates.wallpaperSelectorOpen) return;
             if (!root._lastThumbnailSizeName || root._lastThumbnailSizeName.length === 0) return;
         }
@@ -106,6 +230,11 @@ MouseArea {
     function selectWallpaperPath(filePath) {
         if (filePath && filePath.length > 0) {
             const normalizedPath = FileUtils.trimFileProtocol(String(filePath))
+            // Committing supersedes any live preview — drop the pending revert and
+            // clear the colours-only override so theming follows the real wallpaper.
+            livePreviewTimer.stop();
+            root._livePreviewDirty = false;
+            Config.setNestedValue("appearance.wallpaperTheming.previewSourcePath", "")
             Wallpapers.applySelectionTarget(normalizedPath, Wallpapers.currentSelectionTarget(), root.useDarkMode, root.selectedMonitor);
             Config.setNestedValue("wallpaperSelector.selectionTarget", "main")
             Config.setNestedValue("wallpaperSelector.targetMonitor", "")
@@ -164,6 +293,12 @@ MouseArea {
             event.accepted = true;
         } else if ((event.modifiers & Qt.ControlModifier) && event.key === Qt.Key_V) { // Intercept Ctrl+V to handle "paste to go to" in pickers
             root.handleFilePasting(event);
+        } else if ((event.modifiers & Qt.ControlModifier) && event.key === Qt.Key_Space) {
+            root.peeking = !root.peeking;
+            event.accepted = true;
+        } else if ((event.modifiers & Qt.ControlModifier) && event.key === Qt.Key_P) {
+            root.toggleLivePreview();
+            event.accepted = true;
         } else if (event.modifiers & Qt.AltModifier && event.key === Qt.Key_Up) {
             Wallpapers.navigateUp();
             event.accepted = true;
@@ -216,6 +351,7 @@ MouseArea {
     StyledRectangularShadow {
         target: wallpaperGridBackground
         visible: !Appearance.inirEverywhere && !Appearance.zzzEverywhere
+        opacity: wallpaperGridBackground.opacity
     }
     GlassBackground {
         id: wallpaperGridBackground
@@ -225,6 +361,17 @@ MouseArea {
         }
         focus: true
         Keys.forwardTo: [root]
+
+        // Peek mode: get the panel out of the way so the desktop underneath is
+        // readable. Kept slightly visible so it's obvious the picker is still up.
+        opacity: root.peeking ? 0.12 : 1.0
+        Behavior on opacity {
+            enabled: Appearance.animationsEnabled
+            NumberAnimation {
+                duration: root.peeking ? Appearance.animation.menuExit.duration : Appearance.animation.menuEnter.duration
+                easing.type: root.peeking ? Appearance.animation.menuExit.type : Appearance.animation.menuEnter.type
+            }
+        }
         border.width: (Appearance.inirEverywhere || Appearance.auroraEverywhere) ? 1 : 1
         border.color: Appearance.zzzEverywhere ? Appearance.zzz.hairlineStrong
             : Appearance.angelEverywhere ? Appearance.angel.colCardBorder
@@ -493,6 +640,7 @@ MouseArea {
                         model: Wallpapers.folderModelReady ? Wallpapers.folderModel : null
                         onModelChanged: currentIndex = 0
                         onCountChanged: currentIndex = count > 0 ? Math.min(currentIndex, count - 1) : 0
+                        onCurrentIndexChanged: root.syncHighlight()
                         delegate: WallpaperDirectoryItem {
                             required property int index
                             required property string filePath
@@ -512,13 +660,16 @@ MouseArea {
                             })
                             width: grid.cellWidth
                             height: grid.cellHeight
+                            isCurrent: _isCurrent
+                            staggerIndex: index
+                            cascade: root.cascadeActive
                             colBackground: (index === grid?.currentIndex || containsMouse) ? Appearance.colors.colPrimary : _isCurrent ? Appearance.colors.colSecondaryContainer : ColorUtils.transparentize(Appearance.colors.colPrimaryContainer)
                             colText: (index === grid.currentIndex || containsMouse) ? Appearance.colors.colOnPrimary : _isCurrent ? Appearance.colors.colOnSecondaryContainer : Appearance.colors.colOnLayer0
 
                             onEntered: {
                                 grid.currentIndex = index;
                             }
-                            
+
                             onActivated: {
                                 if (fileIsDir) {
                                     Wallpapers.setDirectory(filePath);
@@ -526,6 +677,96 @@ MouseArea {
                                     root.selectWallpaperPath(filePath);
                                 }
                             }
+                        }
+
+                        // Traveling selection ring.
+                        //
+                        // Each edge is animated independently: the edge leading the
+                        // move arrives first and the trailing edge lags, so the ring
+                        // stretches toward its destination instead of sliding rigidly.
+                        // Lives inside contentItem so it scrolls with the cells.
+                        Rectangle {
+                            id: selectionRing
+                            parent: grid.contentItem
+                            z: 2
+
+                            readonly property real inset: Appearance.sizes.wallpaperSelectorItemMargins
+
+                            property bool goingRight: true
+                            property bool goingDown: true
+                            // Set for one frame to teleport instead of sweeping (folder jumps).
+                            property bool snapping: true
+                            property int prevIndex: -1
+
+                            // Edge positions are assigned, never bound, so the direction
+                            // flags are always settled before the Behaviors read them.
+                            property real animL: 0
+                            property real animT: 0
+                            property real animR: 0
+                            property real animB: 0
+
+                            function retarget(): void {
+                                const cols = Math.max(1, grid.columns);
+                                const index = Math.max(0, grid.currentIndex);
+                                const prev = selectionRing.prevIndex < 0 ? index : selectionRing.prevIndex;
+                                selectionRing.goingRight = (index % cols) >= (prev % cols);
+                                selectionRing.goingDown = Math.floor(index / cols) >= Math.floor(prev / cols);
+                                selectionRing.prevIndex = index;
+
+                                const left = (index % cols) * grid.cellWidth + selectionRing.inset;
+                                const top = Math.floor(index / cols) * grid.cellHeight + selectionRing.inset;
+                                selectionRing.animL = left;
+                                selectionRing.animT = top;
+                                selectionRing.animR = left + grid.cellWidth - selectionRing.inset * 2;
+                                selectionRing.animB = top + grid.cellHeight - selectionRing.inset * 2;
+                            }
+
+                            function snapNext(): void {
+                                selectionRing.snapping = true;
+                                selectionRing.prevIndex = -1;
+                                selectionRing.retarget();
+                                Qt.callLater(() => selectionRing.snapping = false);
+                            }
+
+                            Connections {
+                                target: grid
+                                function onCurrentIndexChanged() { selectionRing.retarget() }
+                                function onCellWidthChanged() { selectionRing.snapNext() }
+                                function onCellHeightChanged() { selectionRing.snapNext() }
+                            }
+
+                            readonly property int fastMs: selectionRing.snapping ? 0 : Appearance.animation.travel.duration
+                            readonly property int slowMs: selectionRing.snapping ? 0 : Math.round(Appearance.animation.travel.duration * 1.6)
+
+                            Behavior on animL {
+                                enabled: Appearance.animationsEnabled
+                                NumberAnimation { duration: selectionRing.goingRight ? selectionRing.slowMs : selectionRing.fastMs; easing.type: Appearance.animation.travel.type }
+                            }
+                            Behavior on animR {
+                                enabled: Appearance.animationsEnabled
+                                NumberAnimation { duration: selectionRing.goingRight ? selectionRing.fastMs : selectionRing.slowMs; easing.type: Appearance.animation.travel.type }
+                            }
+                            Behavior on animT {
+                                enabled: Appearance.animationsEnabled
+                                NumberAnimation { duration: selectionRing.goingDown ? selectionRing.slowMs : selectionRing.fastMs; easing.type: Appearance.animation.travel.type }
+                            }
+                            Behavior on animB {
+                                enabled: Appearance.animationsEnabled
+                                NumberAnimation { duration: selectionRing.goingDown ? selectionRing.fastMs : selectionRing.slowMs; easing.type: Appearance.animation.travel.type }
+                            }
+
+                            x: selectionRing.animL
+                            y: selectionRing.animT
+                            width: Math.max(0, selectionRing.animR - selectionRing.animL)
+                            height: Math.max(0, selectionRing.animB - selectionRing.animT)
+
+                            visible: grid.visible && grid.count > 0 && grid.currentIndex >= 0
+                            color: "transparent"
+                            radius: Appearance.rounding.normal
+                            border.width: 2
+                            border.color: Appearance.colors.colPrimary
+
+                            Component.onCompleted: selectionRing.snapNext()
                         }
 
                         layer.enabled: true
@@ -624,6 +865,18 @@ MouseArea {
                                     root.handleFilePasting(event);
                                     return;
                                 }
+                                // The search field holds focus while browsing, so the
+                                // peek/live shortcuts have to be caught here too.
+                                else if ((event.modifiers & Qt.ControlModifier) && event.key === Qt.Key_Space) {
+                                    root.peeking = !root.peeking;
+                                    event.accepted = true;
+                                    return;
+                                }
+                                else if ((event.modifiers & Qt.ControlModifier) && event.key === Qt.Key_P) {
+                                    root.toggleLivePreview();
+                                    event.accepted = true;
+                                    return;
+                                }
                                 else if (text.length !== 0) {
                                     // No filtering, just navigate grid
                                     if (event.key === Qt.Key_Down) {
@@ -638,6 +891,26 @@ MouseArea {
                                     }
                                 }
                                 event.accepted = false;
+                            }
+                        }
+
+                        IconToolbarButton {
+                            implicitWidth: height
+                            toggled: root.peeking
+                            onClicked: root.peeking = !root.peeking
+                            text: root.peeking ? "visibility_off" : "visibility"
+                            StyledToolTip {
+                                text: Translation.tr("Peek at the desktop (Ctrl+Space)\nFades the picker so you can see the wallpaper behind it")
+                            }
+                        }
+
+                        IconToolbarButton {
+                            implicitWidth: height
+                            toggled: root.previewPaneVisible
+                            onClicked: Config.setNestedValue("wallpaperSelector.showPreviewPane", !root.previewPaneVisible)
+                            text: "splitscreen_right"
+                            StyledToolTip {
+                                text: Translation.tr("Toggle the large preview")
                             }
                         }
 
@@ -667,6 +940,39 @@ MouseArea {
                     }
                 }
             }
+
+            // Hero preview. Width animates so toggling it feels like the panel
+            // reflows rather than the pane blinking in and out.
+            WallpaperPreviewPane {
+                id: previewPane
+                Layout.fillHeight: true
+                Layout.margins: 4
+                Layout.leftMargin: 0
+                Layout.preferredWidth: root.previewPaneVisible ? 400 : 0
+                visible: Layout.preferredWidth > 1
+                clip: true
+
+                // Bound to _highlight directly, not the split convenience properties,
+                // so path and isDir are always read from the same consistent snapshot.
+                sourcePath: root._highlight.isDir ? "" : root._highlight.path
+                isDirectory: root._highlight.isDir
+                livePreviewActive: root.livePreviewEnabled
+                targetMonitor: root.selectedMonitor
+                selectionTarget: root.currentSelectionTarget
+                isApplied: !root._highlight.isDir && root._highlight.path.length > 0 && Wallpapers.isCurrentWallpaperPath(root._highlight.path, root.currentSelectionTarget, root.selectedMonitor)
+
+                onApplyRequested: root.selectWallpaperPath(root.highlightPath)
+                onLivePreviewToggled: root.toggleLivePreview()
+
+                Behavior on Layout.preferredWidth {
+                    enabled: Appearance.animationsEnabled
+                    NumberAnimation {
+                        duration: Appearance.animation.elementResize.duration
+                        easing.type: Appearance.animation.elementResize.type
+                        easing.bezierCurve: Appearance.animation.elementResize.bezierCurve
+                    }
+                }
+            }
         }
     }
 
@@ -675,13 +981,22 @@ MouseArea {
         function onWallpaperSelectorOpenChanged() {
             if (GlobalStates.wallpaperSelectorOpen) {
                 Wallpapers.searchQuery = ""
+                root._originalPreviewSource = Config.options?.appearance?.wallpaperTheming?.previewSourcePath ?? ""
+                root.peeking = false
                 Qt.callLater(() => {
                     root.syncDirectoryToCurrentSelection()
                     root.updateThumbnails()
+                    root.syncHighlight()
+                    root.startCascade()
                 })
                 if (monitorIsFocused) {
                     filterField.forceActiveFocus();
                 }
+            } else {
+                // Closed without committing — put the palette back.
+                livePreviewTimer.stop()
+                root.peeking = false
+                root.revertLivePreview()
             }
         }
     }

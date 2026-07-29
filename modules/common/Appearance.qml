@@ -771,6 +771,65 @@ Singleton {
             property int type: Easing.OutExpo
         }
 
+        // Class C: "morph" motion. Surfaces that glide/resize between layouts rather than
+        // popping in place, plus the asymmetric enter/exit pairing that makes menus feel
+        // responsive (exits are always quicker than entrances, and use an accelerating curve).
+        property QtObject morph: QtObject {
+            property int duration: root.calcEffectiveDuration(230)
+            property int type: Easing.OutCubic
+            property Component numberAnimation: Component { NumberAnimation {
+                duration: root.animation.morph.duration
+                easing.type: root.animation.morph.type
+            }}
+        }
+        // Cross-fade of the *contents* while a morph container is travelling.
+        property QtObject morphSwap: QtObject {
+            property int duration: root.calcEffectiveDuration(210)
+            property int type: Easing.OutQuint
+            property real scaleFrom: 0.98
+        }
+        property QtObject menuEnter: QtObject {
+            property int duration: root.calcEffectiveDuration(260)
+            property int type: Easing.OutCubic
+            property Component numberAnimation: Component { NumberAnimation {
+                duration: root.animation.menuEnter.duration
+                easing.type: root.animation.menuEnter.type
+            }}
+        }
+        property QtObject menuExit: QtObject {
+            property int duration: root.calcEffectiveDuration(160)
+            property int type: Easing.InCubic
+            property Component numberAnimation: Component { NumberAnimation {
+                duration: root.animation.menuExit.duration
+                easing.type: root.animation.menuExit.type
+            }}
+        }
+        // Physical entrance with a gentle overshoot — for staggered reveals.
+        property QtObject overshootEnter: QtObject {
+            property int duration: root.calcEffectiveDuration(500)
+            property int type: Easing.OutBack
+            property real overshoot: 1.1
+        }
+        // Punchier overshoot, for "this is now selected" feedback.
+        property QtObject selectionPop: QtObject {
+            property int duration: root.calcEffectiveDuration(420)
+            property int type: Easing.OutBack
+            property real overshoot: 1.5
+        }
+        // Retargetable travel for sliding indicators. Animate leading/trailing edges
+        // independently with this so the indicator stretches toward its target.
+        property QtObject travel: QtObject {
+            property int duration: root.calcEffectiveDuration(250)
+            property int type: Easing.OutExpo
+        }
+        // Per-index delay for cascade reveals: `index * Appearance.animation.staggerStepMs`.
+        // Clamp the index so long lists don't take seconds to finish appearing.
+        readonly property int staggerStepMs: root.animationsEnabled ? 32 : 0
+        readonly property int staggerMaxSteps: 14
+        function staggerDelay(index: int): int {
+            return Math.min(Math.max(0, index), root.animation.staggerMaxSteps) * root.animation.staggerStepMs
+        }
+
         // Class B: physical, velocity-carrying motion for retargetable props (traveling indicators,
         // drag-follow, value bars). Gate Behaviors on animationsEnabled. See MORPH_ENGINE_DESIGN.md.
         property QtObject spatialFollow: QtObject {
@@ -1529,8 +1588,10 @@ Singleton {
         property real verticalBarWidth: (((Config.options?.bar?.cornerStyle ?? 0) === 1) || ((Config.options?.bar?.cornerStyle ?? 0) === 3)) ? 
             (baseVerticalBarWidth + root.sizes.hyprlandGapsOut * 2) : baseVerticalBarWidth
         // Legacy selector fixed-card sizing (kept for compatibility; skwd-wall selector computes layout internally)
-        property real wallpaperSelectorWidth: 1200
-        property real wallpaperSelectorHeight: 690
+        // Wide enough for the grid plus the hero preview pane; the selector clamps
+        // this to the screen so smaller displays just get a narrower panel.
+        property real wallpaperSelectorWidth: 1360
+        property real wallpaperSelectorHeight: 720
         property real wallpaperSelectorItemMargins: 8
         property real wallpaperSelectorItemPadding: 6
     }

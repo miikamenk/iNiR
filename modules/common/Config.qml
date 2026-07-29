@@ -2889,6 +2889,11 @@ Singleton {
                 property string targetMonitor: ""
                 property string style: "grid" // "grid" | "coverflow" | "launcher"
                 property string coverflowView: "gallery" // "gallery" | "skew"
+                property bool showPreviewPane: true // Large hero preview beside the grid
+                // Re-theme the whole shell from whatever is highlighted, without committing
+                // the wallpaper. Off by default: each preview respawns the palette generator.
+                property bool livePreview: false
+                property int livePreviewDelayMs: 450 // Settle time before a live preview fires
             }
 
             property JsonObject screenRecord: JsonObject {

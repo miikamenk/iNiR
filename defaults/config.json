@@ -1785,7 +1785,10 @@
         "coverflowView": "gallery",
         "targetMonitor": "",
         "useSystemFileDialog": false,
-        "animatePreview": false
+        "animatePreview": false,
+        "showPreviewPane": true,
+        "livePreview": false,
+        "livePreviewDelayMs": 450
     },
     "screenRecord": {
         "recordingOsd": {

@@ -100,24 +100,40 @@ Scope {
                     horizontalCenter: parent.horizontalCenter
                     topMargin: (Config.options?.bar?.vertical ?? false) ? Appearance.sizes.hyprlandGapsOut : Appearance.sizes.barHeight + Appearance.sizes.hyprlandGapsOut
                 }
-                implicitHeight: Appearance.sizes.wallpaperSelectorHeight
-                implicitWidth: Appearance.sizes.wallpaperSelectorWidth
-                // Subtle scale + fade when opening/closing the wallpaper selector
+                // Clamp to the screen so the wide layout degrades to a narrower
+                // panel on small displays instead of overflowing off-screen.
+                readonly property real _gaps: Appearance.sizes.hyprlandGapsOut * 2
+                implicitHeight: Math.min(Appearance.sizes.wallpaperSelectorHeight, panelWindow.height - content.anchors.topMargin - content._gaps)
+                implicitWidth: Math.min(Appearance.sizes.wallpaperSelectorWidth, panelWindow.width - content._gaps)
+
+                // Scale + fade + a short drop, with an asymmetric curve pair: the
+                // entrance decelerates in, the exit accelerates away and is quicker.
                 transformOrigin: Item.Top
                 scale: root._presentedOpen ? 1.0 : 0.93
                 opacity: root._presentedOpen ? 1.0 : 0.0
+                transform: Translate {
+                    y: root._presentedOpen ? 0 : -22
+                    Behavior on y {
+                        enabled: Appearance.animationsEnabled
+                        NumberAnimation {
+                            duration: root._presentedOpen ? Appearance.animation.overshootEnter.duration : Appearance.animation.menuExit.duration
+                            easing.type: root._presentedOpen ? Appearance.animation.overshootEnter.type : Appearance.animation.menuExit.type
+                            easing.overshoot: Appearance.animation.overshootEnter.overshoot
+                        }
+                    }
+                }
                 Behavior on scale {
                     enabled: Appearance.animationsEnabled
                     NumberAnimation {
-                        duration: root._presentedOpen ? 250 : 180
-                        easing.type: Easing.OutCubic
+                        duration: root._presentedOpen ? Appearance.animation.menuEnter.duration : Appearance.animation.menuExit.duration
+                        easing.type: root._presentedOpen ? Appearance.animation.menuEnter.type : Appearance.animation.menuExit.type
                     }
                 }
                 Behavior on opacity {
                     enabled: Appearance.animationsEnabled
                     NumberAnimation {
-                        duration: root._presentedOpen ? 250 : 180
-                        easing.type: Easing.OutCubic
+                        duration: root._presentedOpen ? Appearance.animation.menuEnter.duration : Appearance.animation.menuExit.duration
+                        easing.type: root._presentedOpen ? Appearance.animation.menuEnter.type : Appearance.animation.menuExit.type
                     }
                 }
             }
