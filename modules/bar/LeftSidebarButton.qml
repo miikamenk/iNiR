@@ -2,6 +2,7 @@ import QtQuick
 import qs
 import qs.services
 import qs.modules.common
+import qs.modules.common.functions
 import qs.modules.common.widgets
 import qs.modules.common.functions
 
@@ -21,31 +22,42 @@ RippleButton {
     // surface; it renders a real chamfer, while this Control's own
     // background is a plain rounded Rectangle that would otherwise poke
     // out past the chamfered cut (matches CircleUtilButton.qml).
+    // Liquid is checked before aurora in every chain below: liquid is an aurora
+    // superset, so the aurora branch would otherwise swallow it and paint this
+    // button with aurora's much more solid surfaces — most visibly in the
+    // toggled state, which is what you see the whole time the sidebar is open.
     colBackgroundHover: Appearance.zzzEverywhere ? "transparent"
         : Appearance.angelEverywhere ? Appearance.angel.colGlassCardHover
         : Appearance.inirEverywhere ? Appearance.inir.colLayer1Hover
+        : Appearance.liquidEverywhere ? Appearance.liquid.colGlassCardHover
         : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurface
         : Appearance.colors.colLayer1Hover
     colRipple: Appearance.zzzEverywhere ? Appearance.colors.colLayer1Active
         : Appearance.angelEverywhere ? Appearance.angel.colGlassCardActive
         : Appearance.inirEverywhere ? Appearance.inir.colLayer1Active
+        : Appearance.liquidEverywhere ? Appearance.liquid.colGlassCardActive
         : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurfaceActive
         : Appearance.colors.colLayer1Active
     colBackgroundToggled: Appearance.zzzEverywhere ? Appearance.zzz.sticker
         : Appearance.angelEverywhere ? Appearance.angel.colGlassCard
         : Appearance.inirEverywhere ? Appearance.inir.colPrimaryContainer
+        : Appearance.liquidEverywhere ? ColorUtils.transparentize(Appearance.liquid.colPrimary, 0.4)
         : Appearance.auroraEverywhere ? Appearance.aurora.colElevatedSurface
         : Appearance.colors.colSecondaryContainer
     colBackgroundToggledHover: Appearance.zzzEverywhere ? "transparent"
         : Appearance.angelEverywhere ? Appearance.angel.colGlassCardHover
         : Appearance.inirEverywhere ? Appearance.inir.colSelectionHover
+        : Appearance.liquidEverywhere ? ColorUtils.transparentize(Appearance.liquid.colPrimary, 0.25)
         : Appearance.auroraEverywhere ? Appearance.aurora.colElevatedSurfaceHover
         : Appearance.colors.colSecondaryContainerHover
     colRippleToggled: Appearance.zzzEverywhere ? Appearance.colors.colPrimaryActive
         : Appearance.angelEverywhere ? Appearance.angel.colGlassCardActive
         : Appearance.inirEverywhere ? Appearance.inir.colPrimaryActive
+        : Appearance.liquidEverywhere ? Appearance.liquid.colGlassCardActive
         : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurfaceActive
         : Appearance.colors.colSecondaryContainerActive
+    // Nothing to trim while the button rests transparent.
+    liquidRim: root.toggled || root.buttonHovered
     // Spatial control: addresses whatever sidebar role occupies the left slot.
     toggled: ShellLayoutController.sidebarOpenAtSlot("left")
 

@@ -40,6 +40,10 @@ Button {
         const withinControlAspect = w / h <= 2.2 && h / w <= 2.2
         return withinControlAspect ? h / 2 : Appearance.cookie.roundNormal
     }
+    // Liquid draws a faint glass rim on every button. Set false where the button
+    // rests transparent or near-transparent — otherwise the rim outlines a box
+    // around nothing, which is louder than the fill it is supposed to trim.
+    property bool liquidRim: true
     property var downAction // When left clicking (down)
     property var releaseAction // When left clicking (release)
     property var moveAction // When mouse moves while pressed (for drag support)
@@ -196,7 +200,7 @@ Button {
         // Cookie has no rectangular chrome: a pill focus ring fights the organic
         // silhouette. cookieMorphing surfaces still show focus through CookieFace.
         border.width: Appearance.cookieEverywhere ? 0
-            : (Appearance.angelEverywhere || Appearance.liquidEverywhere) ? 1 : 0
+            : (Appearance.angelEverywhere || (Appearance.liquidEverywhere && root.liquidRim)) ? 1 : 0
         // Liquid buttons carry a faint glass rim that brightens on hover.
         border.color: Appearance.cookieEverywhere ? "transparent"
             : Appearance.angelEverywhere

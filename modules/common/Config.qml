@@ -792,6 +792,13 @@ Singleton {
                         property bool enable: true      // Diagonal gleam across the glass
                         property real opacity: 0.07
                     }
+                    // Analytic SDF glass edges instead of the gradient stack.
+                    property JsonObject shader: JsonObject {
+                        property bool enable: false
+                        property real bevel: 0.5        // Inner glass thickness (maps to 4-24 px)
+                        property real dispersion: 0.35  // Chromatic split on the rim hairline
+                        property real refraction: 0.5   // Wallpaper displacement at the rim
+                    }
                     property JsonObject rounding: JsonObject {
                         property int small: 12
                         property int normal: 17

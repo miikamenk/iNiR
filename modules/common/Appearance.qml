@@ -1618,6 +1618,13 @@ Singleton {
             root.colors.colLayer2Base, cardTransparentize * 0.9)
         readonly property color colGlassElevatedHover: ColorUtils.transparentize(
             ColorUtils.mix(root.colors.colLayer2Base, root.colors.colOnLayer2, 0.94), cardTransparentize * 0.9)
+        // Interactive chips on a borderless bar want far less fill than a card.
+        // At card alpha they are the only solid objects in the centre cluster and
+        // read as grey blocks rather than glass. Derived from the user's card
+        // transparency rather than hardcoded, so the slider still moves them.
+        readonly property real chipTransparentize: 1.0 - ((1.0 - cardTransparentize) * 0.28)
+        readonly property color colGlassChip: ColorUtils.transparentize(
+            root.colors.colLayer1Base, chipTransparentize)
 
         // ─── REAL TRANSPARENCY ───
         // niri cannot blur behind a layer surface (no `blur` in layer-rule), so
@@ -1668,6 +1675,24 @@ Singleton {
         readonly property real specularOpacity: (Config.options?.appearance?.liquid?.specular?.opacity ?? 0.07)
         readonly property color colSpecular: ColorUtils.transparentize("#FFFFFF", 1.0 - specularOpacity)
         readonly property color colSpecularSoft: ColorUtils.transparentize("#FFFFFF", 1.0 - (specularOpacity * 0.45))
+
+        // ─── SHADER GLASS (analytic SDF edges — opt-in) ───
+        // Replaces the five stacked gradient rectangles in LiquidGlassEdges with
+        // one ShaderEffect pass. The win is that rim brightness follows the SDF
+        // normal, so the highlight wraps the rounded corners instead of running
+        // as a straight 1px line across the top.
+        readonly property bool shaderEnabled: Config.options?.appearance?.liquid?.shader?.enable ?? false
+        // Config carries a 0-1 strength like every other liquid knob; the pixel
+        // mapping lives here so the editor stays a plain percentage slider.
+        readonly property real shaderBevel: 4 + 20 * Math.max(0, Math.min(1,
+            Config.options?.appearance?.liquid?.shader?.bevel ?? 0.5))
+        readonly property real shaderDispersion: Math.max(0, Math.min(1,
+            Config.options?.appearance?.liquid?.shader?.dispersion ?? 0.35))
+        readonly property real shaderRefraction: 64 * Math.max(0, Math.min(1,
+            Config.options?.appearance?.liquid?.shader?.refraction ?? 0.5))
+        readonly property real shaderRimWidth: 1.0
+        // Light from the upper left, screen space with +y down.
+        readonly property point shaderLightDir: Qt.point(-0.55, -0.83)
 
         // ─── SHEEN (subtle diagonal light gradient over panels) ───
         readonly property bool sheenEnabled: Config.options?.appearance?.liquid?.sheen?.enable ?? true

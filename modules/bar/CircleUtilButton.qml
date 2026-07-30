@@ -1,4 +1,5 @@
 import qs.modules.common
+import qs.modules.common.functions
 import qs.modules.common.widgets
 import qs.modules.common.functions
 import QtQuick
@@ -15,17 +16,25 @@ RippleButton {
     cookieMorphing: true
     contentItem: content
     buttonRadius: Appearance.zzzEverywhere ? Appearance.zzz.controlRadius : Appearance.rounding.full
-    colBackground: "transparent"
+    colBackground: Appearance.liquidEverywhere ? Appearance.liquid.colGlassChip : "transparent"
     colBackgroundHover: Appearance.zzzEverywhere ? "transparent"
         : Appearance.angelEverywhere ? Appearance.angel.colGlassCardHover
         : Appearance.inirEverywhere ? Appearance.inir.colLayer1Hover
+        : Appearance.liquidEverywhere ? Appearance.liquid.colGlassCardHover
         : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurfaceHover
         : Appearance.colors.colLayer1Hover
     colRipple: Appearance.zzzEverywhere ? ColorUtils.applyAlpha(Appearance.zzz.accent, 0.20)
         : Appearance.angelEverywhere ? Appearance.angel.colGlassCardActive
         : Appearance.inirEverywhere ? Appearance.inir.colLayer1Active
+        : Appearance.liquidEverywhere ? Appearance.liquid.colGlassCardActive
         : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurfaceActive
         : Appearance.colors.colLayer1Active
+    colBackgroundToggled: Appearance.liquidEverywhere
+        ? ColorUtils.transparentize(Appearance.liquid.colPrimary, 0.4)
+        : Appearance.colors.colPrimary
+    colBackgroundToggledHover: Appearance.liquidEverywhere
+        ? ColorUtils.transparentize(Appearance.liquid.colPrimary, 0.25)
+        : Appearance.colors.colPrimaryHover
 
     ZzzPlate {
         anchors.fill: parent

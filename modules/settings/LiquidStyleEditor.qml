@@ -153,4 +153,54 @@ ColumnLayout {
         checked: Config.options?.appearance?.liquid?.sheen?.enable ?? true
         onCheckedChanged: Config.setNestedValue("appearance.liquid.sheen.enable", checked)
     }
+
+    // ─── Shader glass ───
+    ConfigSwitch {
+        Layout.fillWidth: true
+        text: Translation.tr("Shader glass")
+        checked: Config.options?.appearance?.liquid?.shader?.enable ?? false
+        onCheckedChanged: Config.setNestedValue("appearance.liquid.shader.enable", checked)
+    }
+
+    StyledText {
+        Layout.fillWidth: true
+        text: Translation.tr("Draws the glass in one shader pass instead of stacked gradients. The highlight follows the rounded corners instead of running straight across the top, the edge gains thickness and a faint chromatic fringe, and with real transparency off it refracts the wallpaper. Falls back to the gradient look in low power and game mode.")
+        font.pixelSize: Appearance.font.pixelSize.smallest
+        color: Appearance.colors.colSubtext
+        opacity: 0.7
+        wrapMode: Text.WordWrap
+    }
+
+    SliderRow {
+        label: Translation.tr("Glass thickness")
+        icon: "layers"
+        description: Translation.tr("How far the bevel reaches in from the edge. Higher reads as a thicker slab of glass.")
+        from: 0.0
+        to: 1.0
+        configValue: Config.options?.appearance?.liquid?.shader?.bevel ?? 0.5
+        configPath: "appearance.liquid.shader.bevel"
+        enabled: Config.options?.appearance?.liquid?.shader?.enable ?? false
+    }
+
+    SliderRow {
+        label: Translation.tr("Dispersion")
+        icon: "gradient"
+        description: Translation.tr("Splits the rim into a warm and a cool fringe, like light through a real bevel.")
+        from: 0.0
+        to: 1.0
+        configValue: Config.options?.appearance?.liquid?.shader?.dispersion ?? 0.35
+        configPath: "appearance.liquid.shader.dispersion"
+        enabled: Config.options?.appearance?.liquid?.shader?.enable ?? false
+    }
+
+    SliderRow {
+        label: Translation.tr("Edge refraction")
+        icon: "blur_on"
+        description: Translation.tr("Bends and saturates the wallpaper at the rim like a real lens. With real transparency on, the rim refracts the wallpaper while the body still shows the windows behind it — so over a maximised window the very edge reads as wallpaper rather than that window.")
+        from: 0.0
+        to: 1.0
+        configValue: Config.options?.appearance?.liquid?.shader?.refraction ?? 0.5
+        configPath: "appearance.liquid.shader.refraction"
+        enabled: Config.options?.appearance?.liquid?.shader?.enable ?? false
+    }
 }

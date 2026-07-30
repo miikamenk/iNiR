@@ -42,6 +42,13 @@ Rectangle {
             ? Appearance.effectsEnabled
             : (Appearance.blurBackendFor("panels", Appearance.blurTopology.unsupported) === "wallpaper"
                 && root.wallpaperBackdropEnabled)
+    // The shader's edge refraction needs a wallpaper texture even in real-glass
+    // mode, where nothing is painted from it. Loading it here (without painting)
+    // is what lets panels refract at all — the bar already had one, because it
+    // paints its wallpaper copy regardless of realGlass.
+    readonly property bool wantsRefractionTexture: root.liquidEverywhere
+        && Appearance.liquid.shaderEnabled && Appearance.effectsEnabled
+        && Appearance.liquid.shaderRefraction > 0
 
     color: root.realGlass ? Appearance.liquid.colGlassReal
         : root.useWallpaperBackdrop ? "transparent"
@@ -76,7 +83,11 @@ Rectangle {
         width: root.screenWidth
         height: root.screenHeight
         visible: root.useWallpaperBackdrop && status === Image.Ready
-        source: root.useWallpaperBackdrop ? Wallpapers.effectiveWallpaperUrl : ""
+        // Loaded — but not painted — when only the shader wants it. An Image is
+        // a texture provider regardless of visibility (the documented Qt
+        // ShaderEffect pattern), so this costs a shared pixmap, not a draw.
+        source: (root.useWallpaperBackdrop || root.wantsRefractionTexture)
+            ? Wallpapers.effectiveWallpaperUrl : ""
         fillMode: Image.PreserveAspectCrop
         // All GlassBackground instances share the same wallpaper URL and sourceSize,
         // so Qt's QPixmapCache serves a single decoded pixmap to all of them.
@@ -121,6 +132,19 @@ Rectangle {
     LiquidGlassEdges {
         sheenOverContent: root.useWallpaperBackdrop || root.realGlass
         surfaceRadius: root.radius
+        // The shader can refract the wallpaper at the rim, but only where the
+        // surface genuinely paints it. In real-glass mode the compositor shows
+        // the actual windows, so there is nothing of ours to bend.
+        // An Image is a texture provider natively, so this costs no extra FBO —
+        // and it hands over the *sharp* wallpaper, since an item's provider
+        // exposes its pre-effect content rather than the MultiEffect blur. That
+        // is the right source anyway: a real bevel is sharper than the body.
+        // Ready rather than visible: in real-glass mode the image is loaded for
+        // the shader but never painted. Sampling an unloaded provider would fall
+        // back to Qt's dummy texture.
+        backdropSource: blurredWallpaper.status === Image.Ready ? blurredWallpaper : null
+        backdropOrigin: Qt.point(root.screenX, root.screenY)
+        backdropScreen: Qt.size(root.screenWidth, root.screenHeight)
     }
 
     // Inset glow — light-from-above on top edge, angel only

@@ -121,8 +121,9 @@ Singleton {
         root._log("[ThemeService] setGlobalStyle:", styleId)
         const cards = styleId === "cards"
         let cornerStyle = root.cornerStyleForGlobalStyle(styleId)
-        // Hug (0) leaves no float gap for angel's escalonado shadows to land in.
-        if (styleId === "angel" && cornerStyle === 0)
+        // Hug (0) leaves no float gap for angel's escalonado shadows to land in,
+        // nor for liquid's edge highlight to read against.
+        if ((styleId === "angel" || styleId === "liquid") && cornerStyle === 0)
             cornerStyle = 1
         Config.setNestedValues({
             "appearance.globalStyle": styleId,

@@ -123,6 +123,12 @@
                 "enable": true,
                 "opacity": 0.07
             },
+            "shader": {
+                "enable": false,
+                "bevel": 0.5,
+                "dispersion": 0.35,
+                "refraction": 0.5
+            },
             "rounding": {
                 "small": 12,
                 "normal": 17,

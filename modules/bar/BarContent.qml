@@ -468,8 +468,12 @@ Item { // Bar content region
             // Inside a capsule the hover/toggled plate must sit clearly within
             // the island — at the classic padding it nearly filled its height.
             buttonPadding: root.isIslands ? 3 : 5
+            // Liquid before aurora: liquid is an aurora superset, so the aurora
+            // arm would otherwise hand this button aurora's more solid hover.
             colBackground: buttonHovered
-                ? (root.auroraEverywhere ? Appearance.aurora.colSubSurfaceHover : Appearance.colors.colLayer1Hover)
+                ? (Appearance.liquidEverywhere ? Appearance.liquid.colGlassCardHover
+                    : root.auroraEverywhere ? Appearance.aurora.colSubSurfaceHover
+                    : Appearance.colors.colLayer1Hover)
                 : "transparent"
         }
     }
@@ -838,6 +842,16 @@ Item { // Bar content region
         // Liquid glass decorations — sheen + edge highlight
         LiquidGlassEdges {
             visible: root.liquidEverywhere && !barBackground.gameModeMinimal
+            // Refract the wallpaper copy the bar already paints. blurredWallpaper
+            // is an Image, so it is a texture provider at no extra FBO cost, and
+            // it hands over the sharp source rather than the MultiEffect blur.
+            // Sampling an unloaded provider would fall back to Qt's dummy texture.
+            backdropSource: (blurredWallpaper.visible && blurredWallpaper.status === Image.Ready)
+                ? blurredWallpaper : null
+            // Inverse of the image's own offset: it is placed at -origin so that
+            // a screen-sized copy lines up behind the bar.
+            backdropOrigin: Qt.point(-blurredWallpaper.x, -blurredWallpaper.y)
+            backdropScreen: Qt.size(root.screen?.width ?? 1920, root.screen?.height ?? 1080)
         }
 
         // Angel inset glow — top edge
@@ -1323,20 +1337,32 @@ Item { // Bar content region
             // the ZzzPlate below is the only hover/toggle surface. Matches
             // LeftSidebarButton.qml/CircleUtilButton.qml; leaving these as a
             // plain rounded fill let it poke out past the ZzzPlate's chamfer.
+            // Liquid before aurora throughout: liquid is an aurora superset, so
+            // the aurora arm would otherwise swallow it — most visibly in the
+            // toggled state, which is what shows the whole time the sidebar is
+            // open, and which aurora paints far more solidly than liquid glass.
             colBackground: buttonHovered
                 ? (root.zzzEverywhere ? "transparent"
+                : Appearance.liquidEverywhere ? Appearance.liquid.colGlassCardHover
                 : root.auroraEverywhere ? Appearance.aurora.colSubSurfaceHover : Appearance.colors.colLayer1Hover)
                 : "transparent"
             colBackgroundHover: root.zzzEverywhere ? "transparent"
+                : Appearance.liquidEverywhere ? Appearance.liquid.colGlassCardHover
                 : root.auroraEverywhere ? Appearance.aurora.colSubSurfaceHover : Appearance.colors.colLayer1Hover
             colRipple: root.zzzEverywhere ? ColorUtils.applyAlpha(Appearance.zzz.accent, 0.20)
+                : Appearance.liquidEverywhere ? Appearance.liquid.colGlassCardActive
                 : root.auroraEverywhere ? Appearance.aurora.colSubSurfaceActive : Appearance.colors.colLayer1Active
             colBackgroundToggled: root.zzzEverywhere ? "transparent"
+                : Appearance.liquidEverywhere ? ColorUtils.transparentize(Appearance.liquid.colPrimary, 0.4)
                 : root.auroraEverywhere ? Appearance.aurora.colElevatedSurface : Appearance.colors.colSecondaryContainer
             colBackgroundToggledHover: root.zzzEverywhere ? "transparent"
+                : Appearance.liquidEverywhere ? ColorUtils.transparentize(Appearance.liquid.colPrimary, 0.25)
                 : root.auroraEverywhere ? Appearance.aurora.colElevatedSurfaceHover : Appearance.colors.colSecondaryContainerHover
             colRippleToggled: root.zzzEverywhere ? ColorUtils.applyAlpha(Appearance.zzz.accent, 0.20)
+                : Appearance.liquidEverywhere ? Appearance.liquid.colGlassCardActive
                 : root.auroraEverywhere ? Appearance.aurora.colSubSurfaceActive : Appearance.colors.colSecondaryContainerActive
+            // Nothing to trim while the button rests transparent.
+            liquidRim: rightSidebarButton.toggled || rightSidebarButton.buttonHovered
 
             // Same chamfer-grows-on-hover language as LeftSidebarButton.qml —
             // the right sidebar button previously had no zzz plate at all.

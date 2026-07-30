@@ -300,7 +300,11 @@ Item { // Bar content region
             Bar.LeftSidebarButton { // Left sidebar button
                 Layout.alignment: Qt.AlignHCenter
                 Layout.topMargin: (Appearance.sizes.baseVerticalBarWidth - implicitWidth) / 2 + Appearance.sizes.hyprlandGapsOut
-                colBackground: buttonHovered ? Appearance.colors.colLayer1Hover : ColorUtils.transparentize(Appearance.colors.colLayer1Hover, 1)
+                // Liquid before aurora: liquid is an aurora superset, so without
+                // this the aurora arm hands the button a much more solid hover.
+                colBackground: buttonHovered
+                    ? (Appearance.liquidEverywhere ? Appearance.liquid.colGlassCardHover : Appearance.colors.colLayer1Hover)
+                    : ColorUtils.transparentize(Appearance.colors.colLayer1Hover, 1)
             }
 
             Item {
