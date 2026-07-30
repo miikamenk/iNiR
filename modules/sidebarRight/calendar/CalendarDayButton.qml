@@ -16,6 +16,9 @@ RippleButton {
     property int eventCount: 0
     // Source colors for multi-colored dots (from CalendarSync + local events)
     property var sourceColors: []
+    // The active day on the grid. Drawn as a ring rather than a fill so that
+    // "today" (a filled pill) and "selected" can be true at the same time.
+    property bool isSelected: false
 
     Layout.fillWidth: false
     Layout.fillHeight: false
@@ -33,6 +36,28 @@ RippleButton {
 
     contentItem: Item {
         anchors.fill: parent
+
+        // Selection ring
+        Rectangle {
+            anchors.fill: parent
+            visible: button.isSelected && !button.isHeader
+            color: "transparent"
+            radius: button.buttonRadius
+            border.width: 2
+            border.color: (button.isToday == 1)
+                ? (Appearance.angelEverywhere ? Appearance.angel.colOnPrimary
+                    : Appearance.liquidEverywhere ? Appearance.liquid.colOnPrimary
+                    : Appearance.inirEverywhere ? Appearance.inir.colOnPrimary : Appearance.colors.colOnPrimary)
+                : (Appearance.angelEverywhere ? Appearance.angel.colPrimary
+                    : Appearance.liquidEverywhere ? Appearance.liquid.colPrimary
+                    : Appearance.inirEverywhere ? Appearance.inir.colPrimary : Appearance.colors.colPrimary)
+            opacity: (button.isToday == 1) ? 0.65 : 1
+
+            Behavior on border.color {
+                enabled: Appearance.animationsEnabled
+                animation: ColorAnimation { duration: Appearance.animation.elementMoveFast.duration; easing.type: Appearance.animation.elementMoveFast.type; easing.bezierCurve: Appearance.animation.elementMoveFast.bezierCurve }
+            }
+        }
 
         StyledText {
             anchors.centerIn: parent

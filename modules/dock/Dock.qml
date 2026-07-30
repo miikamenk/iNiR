@@ -449,11 +449,15 @@ Scope {
                                         anchors.fill: source
                                         saturation: dockVisualBackground.angelEverywhere
                                             ? (Appearance.angel.blurSaturation * Appearance.angel.colorStrength)
-                                            : (Appearance.effectsEnabled ? 0.2 : 0)
+                                            : Appearance.liquidEverywhere
+                                                ? Appearance.liquid.blurSaturation
+                                                : (Appearance.effectsEnabled ? 0.2 : 0)
                                         blurEnabled: Appearance.effectsEnabled
                                         blurMax: 64
                                         blur: Appearance.effectsEnabled
-                                            ? (dockVisualBackground.angelEverywhere ? Appearance.angel.blurIntensity : 1)
+                                            ? (dockVisualBackground.angelEverywhere ? Appearance.angel.blurIntensity
+                                                : Appearance.liquidEverywhere ? Appearance.liquid.blurIntensity
+                                                : 1)
                                             : 0
                                     }
 
@@ -461,7 +465,9 @@ Scope {
                                         anchors.fill: parent
                                         color: dockVisualBackground.angelEverywhere
                                             ? ColorUtils.transparentize((dockVisualBackground.blendedColors?.colLayer0 ?? Appearance.colors.colLayer0Base), Appearance.angel.overlayOpacity * Appearance.angel.panelTransparentize)
-                                            : ColorUtils.transparentize((dockVisualBackground.blendedColors?.colLayer0 ?? Appearance.colors.colLayer0Base), Appearance.aurora.overlayTransparentize)
+                                            : Appearance.liquidEverywhere
+                                                ? ColorUtils.transparentize((dockVisualBackground.blendedColors?.colLayer0 ?? Appearance.colors.colLayer0Base), Appearance.liquid.panelTransparentize)
+                                                : ColorUtils.transparentize((dockVisualBackground.blendedColors?.colLayer0 ?? Appearance.colors.colLayer0Base), Appearance.aurora.overlayTransparentize)
                                     }
                                 }
 

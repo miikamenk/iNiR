@@ -197,6 +197,16 @@ Singleton {
     }
     property bool controlPanelOpen: false
     property bool dashboardOpen: false
+    // Dashboard panels (bar clock / resources indicators)
+    property bool clockDashboardOpen: false
+    property bool systemDashboardOpen: false
+    // The two centered dashboards are mutually exclusive
+    onClockDashboardOpenChanged: {
+        if (clockDashboardOpen) systemDashboardOpen = false
+    }
+    onSystemDashboardOpenChanged: {
+        if (systemDashboardOpen) clockDashboardOpen = false
+    }
     property bool workspaceShowNumbers: false
     property var activeBooruImageMenu: null  // Track which BooruImage has its menu open
     property var activeTaskViewMenu: null  // Track which WindowThumbnail has its menu open

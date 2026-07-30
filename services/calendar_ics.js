@@ -79,12 +79,24 @@ function _buildEvent(props, sourceId, sourceName, sourceColor) {
 
     const endResult = props.DTEND ? _parseICSDate(props.DTEND, props.DTEND_PARAMS) : null
 
+    // RFC 5545 §3.6.1: for all-day (VALUE=DATE) events, DTEND is EXCLUSIVE —
+    // a one-day event on Apr 15 is serialized as DTSTART=Apr 15, DTEND=Apr 16.
+    // Normalize to an inclusive end so day-range matching works correctly:
+    // subtract one day when a DTEND is present; absent DTEND means a 1-day event.
+    let endDate = endResult ? endResult.date : startResult.date
+    if (startResult.allDay && endResult) {
+        endDate = new Date(endDate.getTime())
+        endDate.setDate(endDate.getDate() - 1)
+        // Guard against pathological feeds where DTEND <= DTSTART
+        if (endDate < startResult.date) endDate = startResult.date
+    }
+
     return {
         title: props.SUMMARY || "(No title)",
         description: props.DESCRIPTION || "",
         location: props.LOCATION || "",
         startDate: startResult.date.toISOString(),
-        endDate: endResult ? endResult.date.toISOString() : startResult.date.toISOString(),
+        endDate: endDate.toISOString(),
         allDay: startResult.allDay,
         sourceId: sourceId,
         sourceName: sourceName,

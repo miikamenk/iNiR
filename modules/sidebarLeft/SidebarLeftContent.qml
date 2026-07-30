@@ -22,7 +22,7 @@ import Qt5Compat.GraphicalEffects as GE
 
 Item {
     id: root
-    property int sidebarWidth: Appearance.sizes.sidebarWidth
+    property int sidebarWidth: Appearance.sizes.sidebarWidthLeft
     property int sidebarPadding: 10
     property int screenWidth: 1920
     property int screenHeight: 1080
@@ -245,10 +245,12 @@ Item {
             const _dep3 = Wallpapers.effectiveWallpaperUrl
             return WallpaperListener.wallpaperUrlForScreen(root.panelScreen)
         }
+        readonly property bool realGlass: Appearance.liquidRealGlass
         readonly property bool useWallpaperBackdrop: root.panelVisible
             && auroraEverywhere
             && !gameModeMinimal
             && wallpaperUrl.length > 0
+            && !realGlass
 
         ColorQuantizer {
             id: sidebarLeftWallpaperQuantizer
@@ -265,7 +267,7 @@ Item {
         color: (gameModeMinimal || islandStyle) ? "transparent"
              : zzzEverywhere ? Appearance.zzz.chrome
              : inirEverywhere ? (cardStyle ? Appearance.inir.colLayer1 : Appearance.inir.colLayer0)
-             : auroraEverywhere ? ColorUtils.applyAlpha((blendedColors?.colLayer0 ?? Appearance.colors.colLayer0), 1)
+             : auroraEverywhere ? ColorUtils.applyAlpha((blendedColors?.colLayer0 ?? Appearance.colors.colLayer0), Appearance.panelSurfaceAlpha)
              : (cardStyle ? Appearance.colors.colLayer1 : Appearance.colors.colLayer0)
         border.width: (gameModeMinimal || islandStyle) ? 0 : zzzEverywhere ? 1 : (angelEverywhere ? Appearance.angel.panelBorderWidth : 1)
         border.color: zzzEverywhere ? Appearance.zzz.hairline
@@ -274,6 +276,7 @@ Item {
             : Appearance.colors.colLayer0Border
         radius: zzzEverywhere ? Appearance.zzz.panelRadius
             : angelEverywhere ? Appearance.angel.roundingNormal
+            : Appearance.liquidEverywhere ? Appearance.liquid.roundingNormal
             : inirEverywhere ? Appearance.inir.roundingNormal
             : cardStyle ? Appearance.rounding.normal : (Appearance.rounding.screenRounding - Appearance.sizes.hyprlandGapsOut + 1)
 
@@ -345,11 +348,15 @@ Item {
                 anchors.fill: source
                 saturation: sidebarLeftBackground.angelEverywhere
                     ? (Appearance.angel.blurSaturation * Appearance.angel.colorStrength)
-                    : (Appearance.effectsEnabled ? 0.2 : 0)
+                    : Appearance.liquidEverywhere
+                        ? Appearance.liquid.blurSaturation
+                        : (Appearance.effectsEnabled ? 0.2 : 0)
                 blurEnabled: Appearance.effectsEnabled
                 blurMax: 64
                 blur: Appearance.effectsEnabled
-                    ? (sidebarLeftBackground.angelEverywhere ? Appearance.angel.blurIntensity : 1)
+                    ? (sidebarLeftBackground.angelEverywhere ? Appearance.angel.blurIntensity
+                        : Appearance.liquidEverywhere ? Appearance.liquid.blurIntensity
+                        : 1)
                     : 0
             }
 
@@ -357,8 +364,15 @@ Item {
                 anchors.fill: parent
                 color: sidebarLeftBackground.angelEverywhere
                     ? ColorUtils.transparentize((sidebarLeftBackground.blendedColors?.colLayer0 ?? Appearance.colors.colLayer0Base), Appearance.angel.overlayOpacity * Appearance.angel.panelTransparentize)
-                    : ColorUtils.transparentize((sidebarLeftBackground.blendedColors?.colLayer0 ?? Appearance.colors.colLayer0Base), Appearance.aurora.overlayTransparentize)
+                    : Appearance.liquidEverywhere
+                        ? ColorUtils.transparentize((sidebarLeftBackground.blendedColors?.colLayer0 ?? Appearance.colors.colLayer0Base), Appearance.liquid.panelTransparentize)
+                        : ColorUtils.transparentize((sidebarLeftBackground.blendedColors?.colLayer0 ?? Appearance.colors.colLayer0Base), Appearance.aurora.overlayTransparentize)
             }
+        }
+
+        // Liquid glass decorations — sheen + edge highlight
+        LiquidGlassEdges {
+            visible: Appearance.liquidEverywhere && !sidebarLeftBackground.gameModeMinimal
         }
 
         // Angel inset glow — top edge
@@ -477,9 +491,11 @@ Item {
                 }
                 radius: Appearance.zzzEverywhere ? Appearance.zzz.cardRadius
                     : Appearance.angelEverywhere ? Appearance.angel.roundingNormal
+                    : Appearance.liquidEverywhere ? Appearance.liquid.roundingNormal
                     : Appearance.inirEverywhere ? Appearance.inir.roundingNormal : Appearance.rounding.normal
                 color: Appearance.zzzEverywhere ? "transparent"
                     : Appearance.angelEverywhere ? Appearance.angel.colGlassCard
+                    : Appearance.liquidEverywhere ? Appearance.liquid.colGlassCard
                     : Appearance.inirEverywhere ? Appearance.inir.colLayer1
                      : Appearance.auroraEverywhere ? "transparent"
                      : Appearance.colors.colLayer1

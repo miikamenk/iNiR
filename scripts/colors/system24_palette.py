@@ -295,9 +295,11 @@ def _build_palette(colors: Dict[str, str]) -> Dict[str, str]:
     palette["--message-hover"] = _rgba(primary, 0.08)
 
     # === ACCENT COLORS (based on primary) ===
-    palette["--accent-1"] = _adjust_lightness(primary, 0.10)
+    # Prefer the unified HCT-stepped accents from app-palette when available;
+    # fall back to local HLS lightening for older palette files
+    palette["--accent-1"] = colors.get("app_accent_hover") or _adjust_lightness(primary, 0.10)
     palette["--accent-2"] = primary
-    palette["--accent-3"] = _adjust_lightness(primary, -0.05)
+    palette["--accent-3"] = colors.get("app_accent_active") or _adjust_lightness(primary, -0.05)
     palette["--accent-4"] = _adjust_lightness(primary, -0.10)
     palette["--accent-5"] = _adjust_lightness(primary, -0.15)
     palette["--accent-new"] = primary  # Use accent color instead of error for NEW badge
@@ -321,9 +323,11 @@ def _build_palette(colors: Dict[str, str]) -> Dict[str, str]:
     )
 
     # === STATUS COLORS ===
-    palette["--online"] = tertiary
-    palette["--dnd"] = error
-    palette["--idle"] = secondary
+    # Prefer unified semantic families (harmonized to the palette) over
+    # borrowing primary/secondary/tertiary for unrelated statuses
+    palette["--online"] = colors.get("app_success") or tertiary
+    palette["--dnd"] = colors.get("app_error") or error
+    palette["--idle"] = colors.get("app_warning") or secondary
     palette["--streaming"] = _adjust_lightness(tertiary, 0.10)
     palette["--offline"] = on_surface_variant
 
@@ -350,17 +354,17 @@ def _build_palette(colors: Dict[str, str]) -> Dict[str, str]:
     for i, color in enumerate(make_ladder(error), 1):
         palette[f"--red-{i}"] = color
 
-    # Green ladder (from tertiary - usually green-ish)
-    for i, color in enumerate(make_ladder(tertiary), 1):
+    # Green ladder (unified success color when available)
+    green_base = colors.get("app_success") or tertiary
+    for i, color in enumerate(make_ladder(green_base), 1):
         palette[f"--green-{i}"] = color
 
     # Blue ladder (from secondary)
     for i, color in enumerate(make_ladder(secondary), 1):
         palette[f"--blue-{i}"] = color
 
-    # Yellow ladder (mix of primary and tertiary for warm tone)
-    yellow_base = _mix(primary, tertiary, 0.3)
-    yellow_base = _adjust_lightness(yellow_base, 0.05)
+    # Yellow ladder (unified warning color when available, else warm mix)
+    yellow_base = colors.get("app_warning") or _adjust_lightness(_mix(primary, tertiary, 0.3), 0.05)
     for i, color in enumerate(make_ladder(yellow_base), 1):
         palette[f"--yellow-{i}"] = color
 

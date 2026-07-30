@@ -375,6 +375,30 @@ Session-long mood state that flavors the mascot's idle lines (needs `mascot.pers
 
 ---
 
+### clockDashboard
+
+Large clock dashboard: animated clock, calendar, upcoming events, and weather forecast. Opened by left-clicking the bar clock.
+
+| Function | Description |
+|----------|-------------|
+| `toggle` | Open/close clock dashboard |
+| `open` | Open clock dashboard |
+| `close` | Close clock dashboard |
+
+---
+
+### systemDashboard
+
+System monitor dashboard: CPU (with per-core), RAM, swap, GPU, VRAM, network, disk, temperatures, and usage history. Opened by left-clicking the bar resources indicator.
+
+| Function | Description |
+|----------|-------------|
+| `toggle` | Open/close system dashboard |
+| `open` | Open system dashboard |
+| `close` | Close system dashboard |
+
+---
+
 ### sidebarLeft
 
 Left sidebar (AI chat, apps).

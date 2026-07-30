@@ -47,9 +47,12 @@ layout {
     // ── Focus ring ──────────────────────────────────────────────────────────
     // Drawn around the focused window on the active monitor.
     // With prefer-no-csd, it draws *around* the window geometry.
+    //
+    // iNiR enables a thin ring themed by the wallpaper palette: the generated
+    // colors file (config.d/99-generated-colors.kdl) overrides active/inactive
+    // colors with Material You values, including a primary→tertiary gradient.
     focus-ring {
-        off
-        width 1
+        width 2
         active-color   "#808080"
         inactive-color "#505050"
 
@@ -60,7 +63,7 @@ layout {
 
     // ── Border ──────────────────────────────────────────────────────────────
     // Always-visible border (unlike focus-ring which only shows on the active window).
-    // iNiR disables both ring and border by default; the shell draws its own highlights.
+    // iNiR keeps the border off by default — the focus ring is enough.
     border {
         off
         width 4
@@ -74,13 +77,14 @@ layout {
 
     // ── Shadow ──────────────────────────────────────────────────────────────
     // Drop shadow beneath windows. Values are in logical pixels.
+    // iNiR uses a softer, more diffuse shadow to match the shell's depth model.
     // If windows have CSD corners, you may need draw-behind-window or
     // geometry-corner-radius in a window-rule to avoid artifacts.
     shadow {
         // off
-        softness 30
-        spread 5
-        offset x=0 y=5
+        softness 45
+        spread 2
+        offset x=0 y=6
         color "#0007"
         // draw-behind-window true
     }

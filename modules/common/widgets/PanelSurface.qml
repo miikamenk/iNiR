@@ -73,7 +73,9 @@ Item {
     readonly property bool _zzz: root._resolvedDialect === "zzz"
     readonly property bool _angel: root._resolvedDialect === "angel"
     readonly property bool _inir: root._resolvedDialect === "inir"
-    readonly property bool _aurora: root._resolvedDialect === "aurora" || root._angel
+    readonly property bool _liquid: root._resolvedDialect === "liquid"
+    // Liquid is an aurora superset, like angel, so it inherits the glass backdrop.
+    readonly property bool _aurora: root._resolvedDialect === "aurora" || root._angel || root._liquid
     readonly property bool _cookie: root._resolvedDialect === "cookie"
     readonly property bool _island: root.surfaceDialect.length > 0
         ? root._resolvedDialect === "island"
@@ -87,6 +89,7 @@ Item {
     // ── Color de fondo (misma elección que hacían los paneles a mano) ──
     readonly property color _fill: root.borderless ? "transparent"
         : root._angel ? Appearance.angel.colGlassCard
+        : root._liquid ? Appearance.liquid.colGlassCard
         : root._inir ? (root.elevation <= 0 ? Appearance.inir.colLayer0 : Appearance.inir.colLayer1)
         : root._aurora ? Appearance.aurora.colSubSurface
         : (root.elevation <= 0 ? Appearance.colors.colLayer0
@@ -100,6 +103,7 @@ Item {
         : root._island ? (Config.options?.appearance?.island?.radius ?? 18)
         : root.island ? Math.min(width, height) / 2
         : root._angel ? Appearance.angel.roundingSmall
+        : root._liquid ? Appearance.liquid.roundingSmall
         : root._inir ? Appearance.inir.roundingNormal
         : (root.cardStyle ? Appearance.rounding.normal : Appearance.rounding.small)
 
@@ -107,9 +111,11 @@ Item {
     readonly property int _borderWidth: (root.borderless || !root.outlined) ? 0
         : root.island ? 1
         : root._angel ? Appearance.angel.cardBorderWidth
+        : root._liquid ? 1
         : root._inir ? 1
         : (root.cardStyle ? 1 : 0)
     readonly property color _borderColor: root._angel ? Appearance.angel.colCardBorder
+        : root._liquid ? Appearance.liquid.colEdgeHighlight
         : root._inir ? Appearance.inir.colBorder
         : Appearance.colors.colLayer0Border
 
@@ -183,6 +189,13 @@ Item {
         radius: root._zzz ? Appearance.zzz.cardRadius : root._radius
         border.width: root._zzz ? 0 : root._borderWidth
         border.color: root._borderColor
+        // Clipped so the sheen and edge lines follow the surface's rounded corners.
+        clip: root._liquid
+
+        LiquidGlassEdges {
+            visible: root._liquid && !root.borderless
+            sheenOverContent: true
+        }
         Behavior on color { enabled: Appearance.animationsEnabled; ColorAnimation { duration: Appearance.animation.elementMoveFast.duration; easing.type: Appearance.animation.elementMoveFast.type; easing.bezierCurve: Appearance.animation.elementMoveFast.bezierCurve } }
         Behavior on radius { enabled: Appearance.animationsEnabled; NumberAnimation { duration: Appearance.animation.elementMoveFast.duration; easing.type: Appearance.animation.elementMoveFast.type; easing.bezierCurve: Appearance.animation.elementMoveFast.bezierCurve } }
         Behavior on border.width { enabled: Appearance.animationsEnabled; NumberAnimation { duration: Appearance.animation.elementMoveFast.duration; easing.type: Appearance.animation.elementMoveFast.type; easing.bezierCurve: Appearance.animation.elementMoveFast.bezierCurve } }

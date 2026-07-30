@@ -13,28 +13,37 @@ GroupButton {
     // A standalone square control: cookie mode reads "on" as a six-lobed face
     // instead of a filled circle.
     cookieMorphing: true
+    // Liquid is checked before aurora everywhere below: liquid is an aurora
+    // superset, so the aurora branch would otherwise swallow it and leave these
+    // toggles as flat transparent circles instead of glass chips.
     buttonRadius: Appearance.zzzEverywhere ? Appearance.zzz.controlRadius
         : Appearance.angelEverywhere ? Appearance.angel.roundingSmall
+        : Appearance.liquidEverywhere ? Appearance.liquid.roundingNormal
         : Appearance.inirEverywhere ? Appearance.inir.roundingSmall
         : ((altAction && toggled) ? Appearance?.rounding.normal : Math.min(baseHeight, baseWidth) / 2)
     buttonRadiusPressed: Appearance.zzzEverywhere ? Appearance.zzz.cornerRadius
         : Appearance.angelEverywhere ? Appearance.angel.roundingSmall
+        : Appearance.liquidEverywhere ? Appearance.liquid.roundingSmall
         : Appearance.inirEverywhere ? Appearance.inir.roundingSmall : Appearance?.rounding?.small
     // ZZZ: the visible surface is the chamfered ZzzPlate below; hold the GroupButton
     // rounded rect transparent.
     colBackground: Appearance.zzzEverywhere ? "transparent"
         : Appearance.angelEverywhere ? Appearance.angel.colGlassCard
+        : Appearance.liquidEverywhere ? Appearance.liquid.colGlassCard
         : Appearance.inirEverywhere ? Appearance.inir.colLayer2
         : Appearance.auroraEverywhere ? "transparent" : Appearance.colors.colLayer2
     colBackgroundHover: Appearance.zzzEverywhere ? "transparent"
         : Appearance.angelEverywhere ? Appearance.angel.colGlassCardHover
+        : Appearance.liquidEverywhere ? Appearance.liquid.colGlassCardHover
         : Appearance.inirEverywhere ? Appearance.inir.colLayer2Hover
         : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurfaceHover : Appearance.colors.colLayer2Hover
     colBackgroundToggled: Appearance.zzzEverywhere ? "transparent"
         : Appearance.angelEverywhere ? ColorUtils.transparentize(Appearance.angel.colPrimary, 0.45)
+        : Appearance.liquidEverywhere ? ColorUtils.transparentize(Appearance.liquid.colPrimary, 0.4)
         : Appearance.inirEverywhere ? Appearance.inir.colPrimaryContainer : Appearance.colors.colPrimary
     colBackgroundToggledHover: Appearance.zzzEverywhere ? "transparent"
         : Appearance.angelEverywhere ? ColorUtils.transparentize(Appearance.angel.colPrimaryHover, 0.35)
+        : Appearance.liquidEverywhere ? ColorUtils.transparentize(Appearance.liquid.colPrimary, 0.28)
         : Appearance.inirEverywhere ? Appearance.inir.colPrimaryContainerHover : Appearance.colors.colPrimaryHover
 
     contentItem: Item {
@@ -60,6 +69,8 @@ GroupButton {
                 ? (button.toggled ? Appearance.zzz.accent : button.buttonHovered ? Appearance.zzz.ink : Appearance.zzz.inkMuted)
                 : Appearance.angelEverywhere
                 ? (button.toggled ? Appearance.angel.colOnPrimary : Appearance.angel.colText)
+                : Appearance.liquidEverywhere
+                ? (button.toggled ? Appearance.liquid.colOnPrimary : Appearance.liquid.colText)
                 : Appearance.inirEverywhere
                 ? (button.toggled ? Appearance.inir.colOnPrimaryContainer : Appearance.inir.colText)
                 : (button.toggled ? Appearance.colors.colOnPrimary : Appearance.colors.colOnLayer1)

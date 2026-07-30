@@ -33,12 +33,18 @@ Rectangle {
     // Blur radius as a fraction of blurMax. 1 is the house default every existing
     // caller inherits; lower values are for surfaces that expose it to the user.
     property real blurStrength: 1
-    readonly property bool useWallpaperBackdrop: root.forceBackdrop
-        ? Appearance.effectsEnabled
-        : (Appearance.blurBackendFor("panels", Appearance.blurTopology.unsupported) === "wallpaper"
-            && root.wallpaperBackdropEnabled)
-    
-    color: root.useWallpaperBackdrop ? "transparent"
+    readonly property bool liquidEverywhere: Appearance.liquidEverywhere
+    // Real glass paints genuine alpha and lets the compositor show what is
+    // actually behind the panel, so the blurred wallpaper copy is skipped.
+    readonly property bool realGlass: Appearance.liquidRealGlass
+    readonly property bool useWallpaperBackdrop: root.realGlass ? false
+        : root.forceBackdrop
+            ? Appearance.effectsEnabled
+            : (Appearance.blurBackendFor("panels", Appearance.blurTopology.unsupported) === "wallpaper"
+                && root.wallpaperBackdropEnabled)
+
+    color: root.realGlass ? Appearance.liquid.colGlassReal
+        : root.useWallpaperBackdrop ? "transparent"
         : root.inirEverywhere ? root.inirColor
         : root.fallbackColor
     
@@ -88,11 +94,15 @@ Rectangle {
             anchors.fill: source
             saturation: root.angelEverywhere
                 ? (Appearance.angel.blurSaturation * Appearance.angel.colorStrength)
-                : (Appearance.effectsEnabled ? 0.2 : 0)
+                : root.liquidEverywhere
+                    ? Appearance.liquid.blurSaturation
+                    : (Appearance.effectsEnabled ? 0.2 : 0)
             blurEnabled: Appearance.effectsEnabled
             blurMax: 64
             blur: Appearance.effectsEnabled
-                ? (root.angelEverywhere ? Appearance.angel.blurIntensity : root.blurStrength)
+                ? (root.angelEverywhere ? Appearance.angel.blurIntensity
+                    : root.liquidEverywhere ? Appearance.liquid.blurIntensity
+                    : root.blurStrength)
                 : 0
         }
     }
@@ -102,7 +112,15 @@ Rectangle {
         visible: root.useWallpaperBackdrop
         color: root.angelEverywhere
             ? ColorUtils.transparentize(Appearance.colors.colLayer0Base, Appearance.angel.overlayOpacity)
-            : ColorUtils.transparentize(Appearance.colors.colLayer0Base, root.auroraTransparency)
+            : root.liquidEverywhere
+                ? ColorUtils.transparentize(Appearance.colors.colLayer0Base, Appearance.liquid.popupTransparentize)
+                : ColorUtils.transparentize(Appearance.colors.colLayer0Base, root.auroraTransparency)
+    }
+
+    // ─── Liquid glass decorations (liquid only) ───
+    LiquidGlassEdges {
+        sheenOverContent: root.useWallpaperBackdrop || root.realGlass
+        surfaceRadius: root.radius
     }
 
     // Inset glow — light-from-above on top edge, angel only

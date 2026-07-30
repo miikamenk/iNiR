@@ -31,6 +31,15 @@ Item {
         && (Appearance.angelEverywhere || Appearance.effectsEnabled)
     anchors.fill: target
 
+    // ─── LIQUID MODE: soft, diffused shadow ───
+    // Liquid glass floats on subtle depth: a wider, fainter blur instead of
+    // a tight dark shadow. Scales whatever color the site passes in.
+    readonly property bool _liquid: Appearance.liquidEverywhere
+    readonly property real _effBlur: _liquid ? root.blur * Appearance.liquid.shadowBlurMultiplier : root.blur
+    readonly property color _effColor: _liquid
+        ? ColorUtils.transparentize(root.color, 1.0 - Appearance.liquid.shadowOpacityScale)
+        : root.color
+
     // ─── MATERIAL MODE: standard blur shadow ───
     // RectangularShadow shrinks its effective corner radius by ~blur*0.75 (see
     // Qt's clampedRadius()), so with a wide blur the shadow corners turn squarer
@@ -39,11 +48,11 @@ Item {
     RectangularShadow {
         visible: !Appearance.angelEverywhere && !Appearance.zzzEverywhere
         anchors.fill: parent
-        radius: root.radius + root.blur * 0.75
-        blur: root.blur
+        radius: root.radius + root._effBlur * 0.75
+        blur: root._effBlur
         offset: root.offset
         spread: root.spread
-        color: root.color
+        color: root._effColor
         cached: true
     }
 

@@ -48,7 +48,7 @@ Item {
     id: root
 
     // ── Public API (same as SidebarRightContent) ──────────────────
-    property int sidebarWidth: Appearance.sizes.sidebarWidth
+    property int sidebarWidth: Appearance.sizes.sidebarWidthRight
     property int sidebarPadding: 8
     property int screenWidth: 1920
     property int screenHeight: 1080
@@ -180,11 +180,13 @@ Item {
             const _d3 = Wallpapers.effectiveWallpaperUrl
             return WallpaperListener.wallpaperUrlForScreen(root.panelScreen)
         }
+        readonly property bool realGlass: Appearance.liquidRealGlass
         readonly property bool useWallpaperBackdrop: root.panelVisible
             && auroraEverywhere
             && !inirEverywhere
             && !gameModeMinimal
             && wallpaperUrl.length > 0
+            && !realGlass
 
         ColorQuantizer {
             id: bgQuant
@@ -208,7 +210,7 @@ Item {
 
         color: gameModeMinimal  ? "transparent"
              : inirEverywhere   ? (cardStyle ? Appearance.inir.colLayer1 : Appearance.inir.colLayer0)
-             : auroraEverywhere ? ColorUtils.applyAlpha((blendedColors?.colLayer0 ?? Appearance.colors.colLayer0), 1)
+             : auroraEverywhere ? ColorUtils.applyAlpha((blendedColors?.colLayer0 ?? Appearance.colors.colLayer0), Appearance.panelSurfaceAlpha)
              : (cardStyle ? Appearance.colors.colLayer1 : Appearance.colors.colLayer0)
 
         border.width: gameModeMinimal ? 0 : (angelEverywhere ? Appearance.angel.panelBorderWidth : 1)
@@ -217,6 +219,7 @@ Item {
                     : Appearance.colors.colLayer0Border
 
         radius: angelEverywhere  ? Appearance.angel.roundingNormal
+              : Appearance.liquidEverywhere ? Appearance.liquid.roundingNormal
               : inirEverywhere   ? (cardStyle ? Appearance.inir.roundingLarge : Appearance.inir.roundingNormal)
               : cardStyle        ? Appearance.rounding.normal
               : (Appearance.rounding.screenRounding - Appearance.sizes.hyprlandGapsOut + 1)
@@ -249,20 +252,32 @@ Item {
                 anchors.fill: source
                 saturation: bg.angelEverywhere
                     ? (Appearance.angel.blurSaturation * Appearance.angel.colorStrength)
-                    : (Appearance.effectsEnabled ? 0.2 : 0)
+                    : Appearance.liquidEverywhere
+                        ? Appearance.liquid.blurSaturation
+                        : (Appearance.effectsEnabled ? 0.2 : 0)
                 blurEnabled: Appearance.effectsEnabled
                 blurMax: 64
                 blur: Appearance.effectsEnabled
-                    ? (bg.angelEverywhere ? Appearance.angel.blurIntensity : 1) : 0
+                    ? (bg.angelEverywhere ? Appearance.angel.blurIntensity
+                        : Appearance.liquidEverywhere ? Appearance.liquid.blurIntensity
+                        : 1) : 0
             }
             Rectangle {
                 anchors.fill: parent
                 color: bg.angelEverywhere
                     ? ColorUtils.transparentize((bg.blendedColors?.colLayer0 ?? Appearance.colors.colLayer0Base),
                                                Appearance.angel.overlayOpacity * Appearance.angel.panelTransparentize)
-                    : ColorUtils.transparentize((bg.blendedColors?.colLayer0 ?? Appearance.colors.colLayer0Base),
+                    : Appearance.liquidEverywhere
+                        ? ColorUtils.transparentize((bg.blendedColors?.colLayer0 ?? Appearance.colors.colLayer0Base),
+                                               Appearance.liquid.panelTransparentize)
+                        : ColorUtils.transparentize((bg.blendedColors?.colLayer0 ?? Appearance.colors.colLayer0Base),
                                                Appearance.aurora.overlayTransparentize)
             }
+        }
+
+        // Liquid glass decorations — sheen + edge highlight
+        LiquidGlassEdges {
+            visible: Appearance.liquidEverywhere && !bg.gameModeMinimal
         }
 
         // Angel inset glow — top edge

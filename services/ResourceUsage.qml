@@ -46,19 +46,58 @@ Singleton {
     property real diskUsed: 0
     property real diskUsedPercentage: diskTotal > 0 ? diskUsed / diskTotal : 0
 
+    // VRAM usage (bytes). 0 when no GPU/VRAM source is available.
+    property real vramTotal: 0
+    property real vramUsed: 0
+    property real vramUsedPercentage: vramTotal > 0 ? (vramUsed / vramTotal) : 0
+
+    // Network throughput (bytes/s), summed over non-loopback interfaces
+    property real networkRxRate: 0
+    property real networkTxRate: 0
+
+    // Disk I/O throughput (bytes/s), summed over physical block devices
+    property real diskReadRate: 0
+    property real diskWriteRate: 0
+
+    // Per-core CPU usage (0-1 list, one entry per logical CPU)
+    property var perCoreCpuUsage: []
+    property var _prevCpuCoreStats: ({})
+    property var _prevNetStats: null
+    property var _prevDiskIoStats: null
+    property real _lastPollTimeMs: 0
+
     property string maxAvailableMemoryString: kbToGbString(ResourceUsage.memoryTotal)
     property string maxAvailableSwapString: kbToGbString(ResourceUsage.swapTotal)
     property string maxAvailableCpuString: "--"
     property string maxAvailableGpuString: "100%"
+    property string maxAvailableVramString: vramTotal > 0 ? bytesToGbString(vramTotal) : "--"
 
     readonly property int historyLength: Config.options?.resources?.historyLength ?? 60
     property list<real> cpuUsageHistory: []
     property list<real> gpuUsageHistory: []
     property list<real> memoryUsageHistory: []
     property list<real> swapUsageHistory: []
+    property list<real> vramUsageHistory: []
+    property list<real> networkRxHistory: []
+    property list<real> networkTxHistory: []
 
     function kbToGbString(kb) {
         return (kb / (1024 * 1024)).toFixed(1) + " GB";
+    }
+
+    function bytesToGbString(bytes) {
+        return (bytes / (1024 * 1024 * 1024)).toFixed(1) + " GB";
+    }
+
+    // Human-readable rate (bytes/s) for dashboards
+    function formatRate(bytesPerSec) {
+        if (bytesPerSec >= 1024 * 1024 * 1024)
+            return (bytesPerSec / (1024 * 1024 * 1024)).toFixed(1) + " GB/s";
+        if (bytesPerSec >= 1024 * 1024)
+            return (bytesPerSec / (1024 * 1024)).toFixed(1) + " MB/s";
+        if (bytesPerSec >= 1024)
+            return (bytesPerSec / 1024).toFixed(0) + " KB/s";
+        return Math.round(bytesPerSec) + " B/s";
     }
 
     function updateMemoryUsageHistory() {
@@ -91,13 +130,31 @@ Singleton {
                 exit 0
             fi
 
+            # Pick the card with the most VRAM rather than the first one. Systems
+            # with an AMD APU plus a discrete card expose both, and the APU's tiny
+            # aperture (often 512 MiB, permanently ~0% busy) sorts first — which
+            # made the GPU and VRAM readouts describe the idle device. boot_vga is
+            # no help: on desktops the discrete card is usually the boot VGA.
+            # Ties (or no VRAM counters at all, e.g. Intel) keep the first match.
+            best_path=""
+            best_vram=-1
             for card in /sys/class/drm/card*; do
                 path="$card/device/gpu_busy_percent"
-                if [ -f "$path" ]; then
-                    echo "sysfs:$path"
-                    exit 0
+                [ -f "$path" ] || continue
+                vram_file="$card/device/mem_info_vram_total"
+                vram=0
+                [ -f "$vram_file" ] && vram=$(cat "$vram_file" 2>/dev/null)
+                case "$vram" in ''|*[!0-9]*) vram=0 ;; esac
+                if [ "$vram" -gt "$best_vram" ]; then
+                    best_vram="$vram"
+                    best_path="$path"
                 fi
             done
+
+            if [ -n "$best_path" ]; then
+                echo "sysfs:$best_path"
+                exit 0
+            fi
 
             # Intel (i915/xe) has no global sysfs busy counter — utilization only via the
             # i915 PMU, which intel_gpu_top reads. Probe it once: it succeeds only when the
@@ -128,6 +185,9 @@ Singleton {
                 if (line.startsWith("sysfs:")) {
                     root._gpuUsageSource = "sysfs";
                     root._gpuUsagePath = line.slice(6);
+                    // AMD/Intel expose VRAM counters next to gpu_busy_percent
+                    root._gpuVramUsedPath = root._gpuUsagePath.replace(/gpu_busy_percent$/, "mem_info_vram_used");
+                    root._gpuVramTotalPath = root._gpuUsagePath.replace(/gpu_busy_percent$/, "mem_info_vram_total");
                 } else if (line.startsWith("nvidia-smi:")) {
                     root._gpuUsageSource = "nvidia-smi";
                     root._nvidiaSmiPath = line.slice(11);
@@ -143,9 +203,9 @@ Singleton {
 
     Process {
         id: nvidiaGpuProc
-        // Query utilization and temperature together for efficiency.
+        // Query utilization, temperature and VRAM together for efficiency.
         // temperature.gpu returns the hotspot/junction temp matching what btop shows.
-        command: ["/usr/bin/bash", "-c", root._nvidiaSmiPath + " --query-gpu=utilization.gpu,temperature.gpu --format=csv,noheader,nounits 2>/dev/null | head -n 1"]
+        command: ["/usr/bin/bash", "-c", root._nvidiaSmiPath + " --query-gpu=utilization.gpu,temperature.gpu,memory.used,memory.total --format=csv,noheader,nounits 2>/dev/null | head -n 1"]
         running: false
         stdout: StdioCollector {
             id: nvidiaGpuCollector
@@ -156,6 +216,13 @@ Singleton {
                 root.gpuUsage = !isNaN(rawUsage) ? root.clampPercentToUnit(rawUsage / 100) : 0;
                 if (!isNaN(rawTemp))
                     root.gpuTemp = rawTemp;
+                // VRAM (nvidia-smi reports MiB)
+                const rawVramUsed = parseInt(parts[2]);
+                const rawVramTotal = parseInt(parts[3]);
+                if (!isNaN(rawVramUsed) && !isNaN(rawVramTotal) && rawVramTotal > 0) {
+                    root.vramUsed = rawVramUsed * 1024 * 1024;
+                    root.vramTotal = rawVramTotal * 1024 * 1024;
+                }
             }
         }
     }
@@ -203,6 +270,16 @@ Singleton {
         updateSwapUsageHistory();
         updateCpuUsageHistory();
         updateGpuUsageHistory();
+        _pushHistory("vramUsageHistory", vramUsedPercentage);
+        _pushHistory("networkRxHistory", networkRxRate);
+        _pushHistory("networkTxHistory", networkTxRate);
+    }
+
+    function _pushHistory(prop, value) {
+        let arr = [...root[prop], value];
+        if (arr.length > historyLength)
+            arr.shift();
+        root[prop] = arr;
     }
 
     function clampPercentToUnit(value: real): real {
@@ -283,12 +360,23 @@ Singleton {
         fileMeminfo.reload();
         fileStat.reload();
         fileCpuTemp.reload();
+        fileNetDev.reload();
+        fileDiskstats.reload();
         if (!skipGpu) {
             if (root._gpuUsageSource !== "nvidia-smi")
                 fileGpuTemp.reload();
-            if (root._gpuUsageSource === "sysfs")
+            if (root._gpuUsageSource === "sysfs") {
                 fileGpuUsage.reload();
+                fileGpuVramUsed.reload();
+                fileGpuVramTotal.reload();
+            }
         }
+
+        // Elapsed time for rate computations (deltas are wall-clock based so
+        // priming/interval jitter doesn't distort the rates)
+        const nowMs = Date.now();
+        const elapsedSec = root._lastPollTimeMs > 0 ? (nowMs - root._lastPollTimeMs) / 1000 : 0;
+        root._lastPollTimeMs = nowMs;
 
         // Empty text() on first call collapses to 0% via the percentage guards.
         const textMeminfo = fileMeminfo.text();
@@ -299,7 +387,7 @@ Singleton {
 
         // Parse CPU usage
         const textStat = fileStat.text();
-        const cpuLine = textStat.match(/^cpu\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)/);
+        const cpuLine = textStat.match(/^cpu\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)/m);
         if (cpuLine) {
             const stats = cpuLine.slice(1).map(Number);
             const total = stats.reduce((a, b) => a + b, 0);
@@ -317,6 +405,72 @@ Singleton {
                 idle
             };
         }
+
+        // Per-core CPU usage (cpu0..cpuN lines, same file — no extra I/O)
+        const coreUsages = [];
+        const newCoreStats = {};
+        const coreLines = textStat.match(/^cpu\d+\s+\d+.*$/gm) || [];
+        for (const line of coreLines) {
+            const parts = line.trim().split(/\s+/);
+            const coreId = parts[0].slice(3); // "cpu12" -> "12"
+            const stats = parts.slice(1).map(Number);
+            const total = stats.reduce((a, b) => a + b, 0);
+            const idle = stats[3] + stats[4];
+            const prev = root._prevCpuCoreStats[coreId];
+            let usage = 0;
+            if (prev) {
+                const totalDiff = total - prev.total;
+                const idleDiff = idle - prev.idle;
+                usage = totalDiff > 0 ? root.clampPercentToUnit(1 - idleDiff / totalDiff) : 0;
+            }
+            coreUsages.push(usage);
+            newCoreStats[coreId] = { total, idle };
+        }
+        if (coreUsages.length > 0) {
+            root.perCoreCpuUsage = coreUsages;
+            root._prevCpuCoreStats = newCoreStats;
+        }
+
+        // Network throughput — sum non-loopback interface counters
+        const textNetDev = fileNetDev.text();
+        let rxBytes = 0, txBytes = 0;
+        const netLines = textNetDev.split("\n");
+        for (const line of netLines) {
+            const colonIdx = line.indexOf(":");
+            if (colonIdx < 0) continue;
+            const iface = line.slice(0, colonIdx).trim();
+            if (iface === "lo") continue;
+            const fields = line.slice(colonIdx + 1).trim().split(/\s+/);
+            if (fields.length < 9) continue;
+            rxBytes += Number(fields[0]) || 0;
+            txBytes += Number(fields[8]) || 0;
+        }
+        if (root._prevNetStats && elapsedSec > 0) {
+            root.networkRxRate = Math.max(0, (rxBytes - root._prevNetStats.rx) / elapsedSec);
+            root.networkTxRate = Math.max(0, (txBytes - root._prevNetStats.tx) / elapsedSec);
+        }
+        root._prevNetStats = { rx: rxBytes, tx: txBytes };
+
+        // Disk I/O throughput — physical devices only (skip loop/ram/dm partitions)
+        const textDiskstats = fileDiskstats.text();
+        let sectorsRead = 0, sectorsWritten = 0;
+        const diskLines = textDiskstats.split("\n");
+        for (const line of diskLines) {
+            const fields = line.trim().split(/\s+/);
+            if (fields.length < 10) continue;
+            const devName = fields[2];
+            if (/^(loop|ram|zram|dm-|md)/.test(devName)) continue;
+            // Partition lines end in a digit after a 'p' or the base dev — include
+            // only whole disks: nvme0n1, sda, mmcblk0, vd[a-z] (no trailing part num)
+            if (!/^(nvme\d+n\d+|mmcblk\d+|sd[a-z]+|vd[a-z]+|hd[a-z]+|xvd[a-z]+)$/.test(devName)) continue;
+            sectorsRead += Number(fields[5]) || 0;   // sectors read
+            sectorsWritten += Number(fields[9]) || 0; // sectors written
+        }
+        if (root._prevDiskIoStats && elapsedSec > 0) {
+            root.diskReadRate = Math.max(0, (sectorsRead - root._prevDiskIoStats.read) * 512 / elapsedSec);
+            root.diskWriteRate = Math.max(0, (sectorsWritten - root._prevDiskIoStats.write) * 512 / elapsedSec);
+        }
+        root._prevDiskIoStats = { read: sectorsRead, write: sectorsWritten };
 
         // Parse temperatures (millidegrees to degrees)
         const cpuTempRaw = parseInt(fileCpuTemp.text()) || 0;
@@ -336,6 +490,13 @@ Singleton {
                 gpuUsage = 0;
             } else {
                 gpuUsage = root.clampPercentToUnit(gpuBusyPercent / 100);
+            }
+            // VRAM via sysfs (bytes) — stays 0 when the files don't exist
+            const vramUsedRaw = Number(fileGpuVramUsed.text().trim());
+            const vramTotalRaw = Number(fileGpuVramTotal.text().trim());
+            if (vramTotalRaw > 0 && !isNaN(vramUsedRaw)) {
+                root.vramUsed = vramUsedRaw;
+                root.vramTotal = vramTotalRaw;
             }
         } else if (root._gpuUsageSource === "nvidia-smi" && !nvidiaGpuProc.running) {
             nvidiaGpuProc.running = true;
@@ -392,6 +553,27 @@ Singleton {
         id: fileGpuUsage
         path: root._gpuUsagePath
     }
+    // VRAM via sysfs (AMD/Intel); empty paths when nvidia-smi is the source
+    FileView {
+        id: fileGpuVramUsed
+        path: root._gpuVramUsedPath
+        printErrors: false
+    }
+    FileView {
+        id: fileGpuVramTotal
+        path: root._gpuVramTotalPath
+        printErrors: false
+    }
+    // Network interface counters
+    FileView {
+        id: fileNetDev
+        path: "/proc/net/dev"
+    }
+    // Block device I/O counters
+    FileView {
+        id: fileDiskstats
+        path: "/proc/diskstats"
+    }
     // Hybrid GPU: runtime PM status of the discrete GPU (kernel-only read, never wakes hardware)
     FileView {
         id: fileDGpuRuntimeStatus
@@ -402,6 +584,8 @@ Singleton {
     property string _cpuTempPath: ""
     property string _gpuTempPath: ""
     property string _gpuUsagePath: ""
+    property string _gpuVramUsedPath: ""
+    property string _gpuVramTotalPath: ""
     property string _gpuUsageSource: "none"
     property string _nvidiaSmiPath: ""
     property string _intelGpuTopPath: ""

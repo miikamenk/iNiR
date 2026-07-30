@@ -42,6 +42,7 @@ ContentPage {
     readonly property bool isCards: currentGlobalStyle === "cards"
     readonly property bool isMaterial: currentGlobalStyle === "material"
     readonly property bool isAngel: currentGlobalStyle === "angel"
+    readonly property bool isLiquid: currentGlobalStyle === "liquid"
 
     // Corner style only shapes the classic bar surface; the other appearances draw
     // their own (islands capsules, scenic scrim, frame outline, pill).
@@ -192,7 +193,7 @@ ContentPage {
 
     // Corner style compatibility per global style
     readonly property bool hugNeedsBackground: isHugStyle && !showBackground
-    readonly property bool hugOnAurora: isHugStyle && isAurora
+    readonly property bool hugOnAurora: isHugStyle && (isAurora || isLiquid)
     readonly property bool cardOnNonCards: isCardStyle && !isCards
 
     SettingsCardSection {

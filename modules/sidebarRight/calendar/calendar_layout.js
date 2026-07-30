@@ -22,22 +22,17 @@ function getMonthDays(month, year) {
     return 30;
 }
 
+// Neighbouring month lengths delegate to getMonthDays with proper year
+// wrapping. They used to re-derive lengths with an inverted parity test on the
+// *viewed* month, which got August wrong (prev of Aug read as 30, so the August
+// grid dropped Jul 31) and July's next month too (Aug read as 30 — latent, as
+// trailing cells never reach day 30).
 function getNextMonthDays(month, year) {
-    const leapYear = checkLeapYear(year);
-    if (month == 1 && leapYear) return 29;
-    if (month == 1 && !leapYear) return 28;
-    if (month == 12) return 31;
-    if ((month <= 7 && month % 2 == 1) || (month >= 8 && month % 2 == 0)) return 30;
-    return 31;
+    return month == 12 ? getMonthDays(1, year + 1) : getMonthDays(month + 1, year);
 }
 
 function getPrevMonthDays(month, year) {
-    const leapYear = checkLeapYear(year);
-    if (month == 3 && leapYear) return 29;
-    if (month == 3 && !leapYear) return 28;
-    if (month == 1) return 31;
-    if ((month <= 7 && month % 2 == 1) || (month >= 8 && month % 2 == 0)) return 30;
-    return 31;
+    return month == 1 ? getMonthDays(12, year - 1) : getMonthDays(month - 1, year);
 }
 
 function getDateInXMonthsTime(x) {
@@ -88,6 +83,11 @@ function getCalendarLayout(dateObject, highlight, firstDayOfWeek = 1) {
     while (i < 6 && j < 7) {
         calendar[i][j] = {
             "day": toFill,
+            // Month offset of this cell relative to the viewed month:
+            // -1 = previous month, 0 = current month, 1 = next month.
+            // Needed to resolve cells to real dates — `today` alone cannot
+            // distinguish trailing (next-month) cells from leading ones.
+            "monthDiff": monthDiff,
             "today": ((toFill == day && monthDiff == 0 && highlight) ? 1 : (
                 monthDiff == 0 ? 0 :
                     -1
@@ -112,5 +112,52 @@ function getCalendarLayout(dateObject, highlight, firstDayOfWeek = 1) {
 
     }
     return calendar;
+}
+
+// ── Shared merged-event helpers ────────────────────────────────────────────
+// Both the sidebar calendar and the bar clock tooltip merge local events
+// (Events service) with external calendars (CalendarSync service) in the
+// same way. Centralized here so the merge logic lives in exactly one place.
+// The service singletons are passed in as arguments — this JS library must
+// stay import-free (it is shared by multiple QML modules).
+
+// Resolve a layout cell to a real Date. `viewingDate` is any date inside the
+// viewed month; the cell carries `monthDiff` (-1/0/1) from getCalendarLayout.
+// Falls back to the day-number heuristic for legacy cells without monthDiff.
+function dateForCell(cellData, viewingDate) {
+    if (!cellData || !viewingDate) return null;
+    const year = viewingDate.getFullYear();
+    const month = viewingDate.getMonth();
+    if (cellData.monthDiff !== undefined)
+        return new Date(year, month + cellData.monthDiff, cellData.day);
+    if (cellData.today === -1) {
+        return cellData.day > 15
+            ? new Date(year, month - 1, cellData.day)
+            : new Date(year, month + 1, cellData.day);
+    }
+    return new Date(year, month, cellData.day);
+}
+
+// Local events normalized to the external-event shape ({source, startDate}).
+function normalizedLocalEventsForDate(Events, date) {
+    return Events.getAllEventsForDate(date).map(function (e) {
+        return Object.assign({}, e, {
+            source: "local",
+            startDate: e.dateTime
+        });
+    });
+}
+
+// Merged local + external events for a date, external first-in for stable order.
+function mergedEventsForDate(Events, CalendarSync, date) {
+    const localEvents = normalizedLocalEventsForDate(Events, date);
+    const externalEvents = CalendarSync.getEventsForDate(date) || [];
+    return localEvents.concat(externalEvents);
+}
+
+// Total event count for a date (local + external), for grid dot indicators.
+function eventCountForDate(Events, CalendarSync, date) {
+    return Events.getEventsForDate(date).length
+        + (CalendarSync.getEventsForDate(date) || []).length;
 }
 

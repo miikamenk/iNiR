@@ -201,7 +201,7 @@ read_colors() {
   COLORS[surface_container_highest]=$(jq -r '.app_surface_popup // .app_thumbnail_bg // .surface_container_highest // "#494d64"' "$color_source")
   COLORS[primary_container]=$(jq -r '.app_selection // .primary_container // "#313244"' "$color_source")
   COLORS[secondary]=$(jq -r '.secondary // "#89b4fa"' "$color_source")
-  COLORS[secondary_container]=$(jq -r '.app_selection_hover // .secondary_container // "#3d4c6b"' "$color_source")
+  COLORS[secondary_container]=$(jq -r '.app_accent_active // .app_selection_hover // .secondary_container // "#3d4c6b"' "$color_source")
   COLORS[tertiary]=$(jq -r '.tertiary // "#94e2d5"' "$color_source")
   COLORS[outline]=$(jq -r '.app_border // .outline // "#585b70"' "$color_source")
   COLORS[outline_variant]=$(jq -r '.app_border_subtle // .outline_variant // "#45475a"' "$color_source")

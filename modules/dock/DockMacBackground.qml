@@ -24,13 +24,15 @@ Rectangle {
 
     readonly property bool zzzEverywhere: surfaceDialect === "zzz"
     readonly property bool angelEverywhere: surfaceDialect === "angel"
-    readonly property bool auroraEverywhere: surfaceDialect === "aurora" || angelEverywhere
+    readonly property bool liquidEverywhere: surfaceDialect === "liquid"
+    readonly property bool auroraEverywhere: surfaceDialect === "aurora" || angelEverywhere || liquidEverywhere
     readonly property bool inirEverywhere: surfaceDialect === "inir"
     readonly property bool gameModeMinimal:  Appearance.gameModeMinimal
 
     // ─── Shape ───────────────────────────────────────────────────────
     radius: zzzEverywhere   ? Appearance.zzz.panelRadius
           : angelEverywhere ? Appearance.angel.roundingNormal
+          : liquidEverywhere ? Appearance.liquid.roundingNormal
           : inirEverywhere  ? Appearance.inir.roundingNormal
           :                   Appearance.rounding.large
     Behavior on radius { enabled: Appearance.animationsEnabled; NumberAnimation { duration: Appearance.animation.elementResize.duration; easing.type: Appearance.animation.elementResize.type; easing.bezierCurve: Appearance.animation.elementResize.bezierCurve } }
@@ -114,11 +116,15 @@ Rectangle {
             anchors.fill: source
             saturation: root.angelEverywhere
                 ? (Appearance.angel.blurSaturation * Appearance.angel.colorStrength)
-                : (Appearance.effectsEnabled ? 0.35 : 0)
+                : root.liquidEverywhere
+                    ? Appearance.liquid.blurSaturation
+                    : (Appearance.effectsEnabled ? 0.35 : 0)
             blurEnabled: Appearance.effectsEnabled
             blurMax: 64
             blur: Appearance.effectsEnabled
-                ? (root.angelEverywhere ? Appearance.angel.blurIntensity : 0.9)
+                ? (root.angelEverywhere ? Appearance.angel.blurIntensity
+                    : root.liquidEverywhere ? Appearance.liquid.blurIntensity
+                    : 0.9)
                 : 0
         }
 
@@ -129,9 +135,13 @@ Rectangle {
                 ? ColorUtils.transparentize(
                       root.blendedLayer0,
                       Appearance.angel.overlayOpacity * Appearance.angel.panelTransparentize * 0.7)
-                : ColorUtils.transparentize(
-                      root.blendedLayer0,
-                      (Appearance.aurora.overlayTransparentize ?? 0.5) * 0.65)
+                : root.liquidEverywhere
+                    ? ColorUtils.transparentize(
+                          root.blendedLayer0,
+                          Appearance.liquid.panelTransparentize * 0.7)
+                    : ColorUtils.transparentize(
+                          root.blendedLayer0,
+                          (Appearance.aurora.overlayTransparentize ?? 0.5) * 0.65)
         }
     }
 

@@ -1263,6 +1263,7 @@ Scope {
                                  : style === "cards" ? Translation.tr("Rounded Cards")
                                  : style === "aurora" ? Translation.tr("Glass & Blur")
                                  : style === "angel" ? Translation.tr("Neo-Brutalism Glass")
+                                 : style === "liquid" ? Translation.tr("Liquid Glass")
                                  : Translation.tr("Terminal Style")
                         }
                         color: Appearance.colors.colSubtext
@@ -1280,6 +1281,8 @@ Scope {
                         { displayName: "Material", icon: "dashboard", value: "material" },
                         { displayName: "Cards", icon: "crop_square", value: "cards" },
                         { displayName: "Aurora", icon: "blur_on", value: "aurora" },
+                        { displayName: "Angel", icon: "auto_awesome", value: "angel" },
+                        { displayName: "Liquid", icon: "water_drop", value: "liquid" },
                         { displayName: "Inir", icon: "terminal", value: "inir" }
                     ]
                 }

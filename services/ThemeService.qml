@@ -112,6 +112,7 @@ Singleton {
         case "angel": return styles?.angel ?? 1
         case "zzz": return styles?.zzz ?? 0
         case "cookie": return styles?.cookie ?? 1
+        case "liquid": return styles?.liquid ?? 1
         default: return styles?.material ?? 1
         }
     }

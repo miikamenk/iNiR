@@ -199,11 +199,22 @@ Singleton {
     // Query: get all events in a date range (for upcoming view)
     function getUpcomingEvents(days: int): var {
         const now = new Date()
+        const todayStart = new Date(now)
+        todayStart.setHours(0, 0, 0, 0)
         const future = new Date()
         future.setDate(future.getDate() + (days || 7))
 
         return root.events.filter(event => {
             const evtDate = new Date(event.startDate)
+            if (event.allDay) {
+                // All-day events span whole days — an event today started at
+                // local midnight (< now) but is still upcoming/current.
+                const start = new Date(event.startDate)
+                start.setHours(0, 0, 0, 0)
+                const end = event.endDate ? new Date(event.endDate) : new Date(start)
+                end.setHours(23, 59, 59, 999)
+                return end.getTime() >= todayStart.getTime() && start.getTime() <= future.getTime()
+            }
             return evtDate >= now && evtDate <= future
         }).sort((a, b) => new Date(a.startDate) - new Date(b.startDate))
     }

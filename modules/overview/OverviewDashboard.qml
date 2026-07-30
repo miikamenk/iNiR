@@ -23,7 +23,8 @@ Item {
     readonly property bool auroraStyle: Appearance.auroraEverywhere
     readonly property bool zzzStyle: Appearance.zzzEverywhere
     property bool panelVisible: true
-    readonly property bool useWallpaperBackdrop: root.panelVisible && (root.angelStyle || root.auroraStyle) && !root.inirStyle && root.wallpaperUrl.length > 0
+    readonly property bool realGlass: Appearance.liquidRealGlass
+    readonly property bool useWallpaperBackdrop: root.panelVisible && (root.angelStyle || root.auroraStyle) && !root.inirStyle && root.wallpaperUrl.length > 0 && !root.realGlass
 
     // ── Screen & wallpaper for blur (angel/aurora) ──
     property int screenWidth: root.QsWindow?.window?.screen?.width ?? 1920

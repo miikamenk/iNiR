@@ -590,7 +590,7 @@ Singleton {
             id: configOptionsJsonAdapter
 
             // Panel system
-            property list<string> enabledPanels: ["iiBar", "iiBackground", "iiBackdrop", "iiCheatsheet", "iiControlPanel", "iiDock", "iiLock", "iiMediaControls", "iiNotificationPopup", "iiOnScreenDisplay", "iiOnScreenKeyboard", "iiOverlay", "iiOverview", "iiPolkit", "iiRegionSelector", "iiScreenCorners", "iiSessionScreen", "iiSidebarLeft", "iiSidebarRight", "iiTilingOverlay", "iiVerticalBar", "iiWallpaperSelector", "iiWallpaperLauncher", "iiCoverflowSelector", "iiClipboard", "iiShellUpdate", "iiDashboard", "iiMascotCompanion"]
+            property list<string> enabledPanels: ["iiBar", "iiBackground", "iiBackdrop", "iiCheatsheet", "iiClockDashboard", "iiSystemDashboard", "iiControlPanel", "iiDock", "iiLock", "iiMediaControls", "iiNotificationPopup", "iiOnScreenDisplay", "iiOnScreenKeyboard", "iiOverlay", "iiOverview", "iiPolkit", "iiRegionSelector", "iiScreenCorners", "iiSessionScreen", "iiSidebarLeft", "iiSidebarRight", "iiTilingOverlay", "iiVerticalBar", "iiWallpaperSelector", "iiWallpaperLauncher", "iiCoverflowSelector", "iiClipboard", "iiShellUpdate", "iiDashboard", "iiMascotCompanion"]
             property list<string> knownPanels: [] // Tracks panels the user has seen; used to distinguish "user disabled" from "new in update"
             property string panelFamily: "ii" // "ii" or "waffle"
             property bool familyTransitionAnimation: true // Show animated overlay when switching families
@@ -721,7 +721,7 @@ Singleton {
 
             property JsonObject appearance: JsonObject {
                 property string theme: "auto" // Theme preset ID: "auto" for wallpaper-based, or preset name like "gruvbox-dark", "catppuccin-mocha", "custom", etc.
-                property string globalStyle: "material" // "material" | "cards" | "aurora" | "inir" | "angel" | "zzz" | "cookie"
+                property string globalStyle: "material" // "material" | "cards" | "aurora" | "inir" | "angel" | "zzz" | "cookie" | "liquid"
                 // Shared skin for every island surface (islands bar, island dock,
                 // island sidebars, island search). Consumed by IslandPanel.
                 property JsonObject island: JsonObject {
@@ -758,6 +758,44 @@ Singleton {
                         property bool grid: true       // faint technical engineering grid
                         property bool ticks: true      // scan ticks (used on the session screen)
                         property real burstSize: 1.0   // size multiplier for the diagonal burst
+                    }
+                }
+                property JsonObject liquid: JsonObject {
+                    // Liquid glass — subtle, refined glass aesthetic
+                    property JsonObject transparency: JsonObject {
+                        property real panel: 0.22       // Main panels (lower = more subtle than aurora)
+                        property real card: 0.30        // Cards/groups
+                        property real popup: 0.25       // Popups/menus
+                        property real tooltip: 0.22     // Tooltips
+                        property real layer: 0.28       // General layer glass
+                    }
+                    property JsonObject blur: JsonObject {
+                        property real intensity: 0.5    // MultiEffect blur amount (0-1)
+                        property real saturation: 0.1   // Blur saturation shift
+                    }
+                    property JsonObject edgeHighlight: JsonObject {
+                        property bool enable: true      // 1px light-from-above inner edge
+                        property real opacity: 0.5      // Master opacity of the highlight
+                    }
+                    property JsonObject sheen: JsonObject {
+                        property bool enable: true      // Subtle diagonal sheen gradient
+                        property real opacity: 0.06
+                    }
+                    // Genuine surface alpha instead of a blurred wallpaper copy.
+                    // niri cannot blur behind layer surfaces, so this is what makes
+                    // panels actually see-through to the windows underneath.
+                    property JsonObject realGlass: JsonObject {
+                        property bool enable: true
+                        property real opacity: 0.62     // 0 = invisible, 1 = opaque
+                    }
+                    property JsonObject specular: JsonObject {
+                        property bool enable: true      // Diagonal gleam across the glass
+                        property real opacity: 0.07
+                    }
+                    property JsonObject rounding: JsonObject {
+                        property int small: 12
+                        property int normal: 17
+                        property int large: 23
                     }
                 }
                 property JsonObject angel: JsonObject {
@@ -842,6 +880,7 @@ Singleton {
                     property int angel: 1
                     property int zzz: 0
                     property int cookie: 1
+                    property int liquid: 1
                 }
                 property bool extraBackgroundTint: true
                 property bool softenColors: true

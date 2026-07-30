@@ -1,9 +1,12 @@
+import qs
 import qs.modules.common
 import qs.modules.common.widgets
+import qs.modules.clockDashboard
 import qs.services
 import Quickshell
 import QtQuick
 import QtQuick.Layouts
+import Quickshell
 
 Item {
     id: root
@@ -55,10 +58,28 @@ Item {
         id: mouseArea
         anchors.fill: parent
         hoverEnabled: true
-        acceptedButtons: Qt.NoButton
-
-        ClockWidgetTooltip {
-            hoverTarget: mouseArea
+        cursorShape: Qt.PointingHandCursor
+        // Hovering reveals the clock dashboard; left-click pins it open.
+        // Right-click still opens the control panel.
+        acceptedButtons: Qt.LeftButton | Qt.RightButton
+        onClicked: event => {
+            if (event.button === Qt.LeftButton) {
+                GlobalStates.clockDashboardOpen = !GlobalStates.clockDashboardOpen
+            } else if (event.button === Qt.RightButton) {
+                GlobalStates.controlPanelOpen = !GlobalStates.controlPanelOpen
+            }
         }
+    }
+
+    // Slides out of this widget and stays next to it. The dashboard supersedes
+    // the old hover tooltip, which showed a subset of the same information.
+    BarAnchoredPanel {
+        anchorItem: root
+        anchorWindow: root.QsWindow.window
+        pinned: GlobalStates.clockDashboardOpen
+        anchorHovered: mouseArea.containsMouse
+        popupNamespace: "quickshell:clockDashboard"
+        onCloseRequested: GlobalStates.clockDashboardOpen = false
+        contentComponent: ClockDashboardContent {}
     }
 }

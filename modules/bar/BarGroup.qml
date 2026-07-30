@@ -14,7 +14,7 @@ Item {
     // Islands: the capsule needs real breathing room around content (matches
     // the edge islands' inner padding); classic groups keep the tight fit and
     // bare chips (no surface of their own) don't pad like a capsule.
-    property real padding: islandStyle && !bare ? 12 : 8
+    property real padding: islandStyle && !bare ? 12 : Appearance.sizes.barPillPadding
     readonly property bool cardStyleEverywhere: (Config.options?.dock?.cardStyle ?? false) && (Config.options?.sidebar?.cardStyle ?? false) && (Config.options?.bar?.cornerStyle === 3)
     // Islands bar appearance: each group is its own floating surface
     readonly property bool islandStyle: !vertical && (Config.options?.bar?.appearanceStyle ?? "classic") === "islands"
@@ -93,7 +93,7 @@ Item {
             bottom: root.vertical ? parent.bottom : undefined
             margins: root.padding
         }
-        columnSpacing: 4
+        columnSpacing: Appearance.sizes.barModuleSpacing
         rowSpacing: 12
     }
 }

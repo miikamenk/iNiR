@@ -1,7 +1,11 @@
+import qs
 import qs.modules.common
+import qs.modules.common.widgets
+import qs.modules.systemDashboard
 import qs.services
 import QtQuick
 import QtQuick.Layouts
+import Quickshell
 
 MouseArea {
     id: root
@@ -10,6 +14,13 @@ MouseArea {
     implicitWidth: rowLayout.implicitWidth + rowLayout.anchors.leftMargin + rowLayout.anchors.rightMargin
     implicitHeight: Appearance.sizes.barHeight
     hoverEnabled: true
+    cursorShape: Qt.PointingHandCursor
+    // Left-click opens the system dashboard
+    acceptedButtons: Qt.LeftButton
+    onClicked: event => {
+        if (event.button === Qt.LeftButton)
+            GlobalStates.systemDashboardOpen = !GlobalStates.systemDashboardOpen
+    }
 
     Component.onCompleted: ResourceUsage.keepAlive()
     Component.onDestruction: ResourceUsage.releaseKeepAlive()
@@ -65,7 +76,15 @@ MouseArea {
 
     }
 
-    ResourcesPopup {
-        hoverTarget: root
+    // Slides out of this widget and stays next to it. The dashboard supersedes
+    // the old hover ResourcesPopup, which showed a subset of the same readouts.
+    BarAnchoredPanel {
+        anchorItem: root
+        anchorWindow: root.QsWindow.window
+        pinned: GlobalStates.systemDashboardOpen
+        anchorHovered: root.containsMouse
+        popupNamespace: "quickshell:systemDashboard"
+        onCloseRequested: GlobalStates.systemDashboardOpen = false
+        contentComponent: SystemDashboardContent {}
     }
 }

@@ -2,8 +2,8 @@
 # Auto-generated from QML IpcHandler declarations + docs/IPC.md metadata.
 # Do not edit manually.
 # Regenerate: python3 scripts/lib/generate-ipc-registry.py
-# IPC.md hash: b70e7e2b8f195a2b
-# Targets: 60
+# IPC.md hash: f513430f861c6d87
+# Targets: 62
 
 declare -gA IPC_TARGET_DESC=(
   [ai]="Shared multi-provider AI service. It supports Gemini, OpenAI-compatible chat and Responses APIs, Mistral and Anthropic; live provider catalogs are normalized into capability-aware model records. Catalog visibility is separate from execution readiness, so public model lists remain browseable without pretending an API key exists. OpenCode Zen and Go resolve their current model lists and per-model API routes dynamically. Normal shell tools use typed actions and approval cards, while arbitrary commands are isolated in Advanced mode."
@@ -17,6 +17,7 @@ declare -gA IPC_TARGET_DESC=(
   [cheatsheet]="Keyboard shortcuts reference. For when you forget what you just configured five minutes ago."
   [clipboard]="Clipboard history panel. Because Ctrl+V only remembers one thing, and that's not enough for power users."
   [cliphistService]="Clipboard history service. The backend that makes clipboard panel work. You probably don't need to call this directly."
+  [clockDashboard]="Large clock dashboard: animated clock, calendar, upcoming events, and weather forecast. Opened by left-clicking the bar clock."
   [closeConfirm]="Close window confirmation dialog. Shows a prompt before closing the focused window. Useful if you're the type who accidentally closes things and then regrets it."
   [controlPanel]="Quick settings panel. Toggles, sliders, and system controls without opening full settings."
   [coverflowSelector]="Wallpaper coverflow (3D card) picker."
@@ -52,6 +53,7 @@ declare -gA IPC_TARGET_DESC=(
   [shellUpdate]="Shell update checker. Monitors the git repo for new commits and shows an update overlay."
   [sidebarLeft]="Left sidebar (AI chat, apps)."
   [sidebarRight]="Right sidebar (quick toggles, notepad, settings)."
+  [systemDashboard]="System monitor dashboard: CPU (with per-core), RAM, swap, GPU, VRAM, network, disk, temperatures, and usage history. Opened by left-clicking the bar resources indicator."
   [taskview]="Waffle task view (Win+Tab style)."
   [tiling]="Tiling layout overlay. Pick or cycle through tiling presets for the current workspace."
   [voiceSearch]="Provider-neutral voice input for web search and AI dictation. Auto prefers local whisper.cpp, then connected Groq, Gemini and OpenAI speech backends. Keys stay in the system keyring and are passed to adapters through the process environment."
@@ -80,6 +82,7 @@ declare -gA IPC_TARGET_FAMILY=(
   [cheatsheet]="shared"
   [clipboard]="shared"
   [cliphistService]="shared"
+  [clockDashboard]="shared"
   [closeConfirm]="shared"
   [controlPanel]="shared"
   [coverflowSelector]="shared"
@@ -115,6 +118,7 @@ declare -gA IPC_TARGET_FAMILY=(
   [shellUpdate]="shared"
   [sidebarLeft]="shared"
   [sidebarRight]="shared"
+  [systemDashboard]="shared"
   [taskview]="waffle"
   [tiling]="shared"
   [voiceSearch]="shared"
@@ -143,6 +147,7 @@ declare -gA IPC_TARGET_FUNCTIONS=(
   [cheatsheet]="toggle close open"
   [clipboard]="open close toggle"
   [cliphistService]="update"
+  [clockDashboard]="toggle close open"
   [closeConfirm]="trigger triggerWindow close"
   [controlPanel]="toggle close open"
   [coverflowSelector]="toggle open close"
@@ -178,6 +183,7 @@ declare -gA IPC_TARGET_FUNCTIONS=(
   [shellUpdate]="toggle open close check performUpdate dismiss undismiss diagnose"
   [sidebarLeft]="toggle close open expand compact status detach attach"
   [sidebarRight]="toggle close open"
+  [systemDashboard]="toggle close open"
   [taskview]="toggle close open"
   [tiling]="toggle open hide cycle showOsd promote"
   [voiceSearch]="start stop toggle refresh status"
@@ -245,6 +251,9 @@ declare -gA IPC_FUNCTION_DESC=(
   ["clipboard:close"]="Close panel"
   ["clipboard:toggle"]="Open/close panel"
   ["cliphistService:update"]="Refresh clipboard history"
+  ["clockDashboard:toggle"]="Open/close clock dashboard"
+  ["clockDashboard:close"]="Close clock dashboard"
+  ["clockDashboard:open"]="Open clock dashboard"
   ["closeConfirm:trigger"]="Show close confirmation for focused window"
   ["closeConfirm:triggerWindow"]="Close or confirm the exact window captured by \`inir close-window\`"
   ["closeConfirm:close"]="Dismiss the dialog without closing"
@@ -393,6 +402,9 @@ declare -gA IPC_FUNCTION_DESC=(
   ["sidebarRight:toggle"]="Open/close right sidebar"
   ["sidebarRight:close"]="Hide right sidebar"
   ["sidebarRight:open"]="Show right sidebar"
+  ["systemDashboard:toggle"]="Open/close system dashboard"
+  ["systemDashboard:close"]="Close system dashboard"
+  ["systemDashboard:open"]="Open system dashboard"
   ["taskview:toggle"]="Open/close task view"
   ["taskview:close"]="Hide task view"
   ["taskview:open"]="Show task view"
@@ -529,8 +541,8 @@ bind "Ctrl+Alt+A" { spawn "inir" "wallpaperSelector" "openLauncher" "animated"; 
   [ytmusic]='bind "Mod+M+Space" { spawn "inir" "ytmusic" "playPause"; }'
 )
 
-IPC_ALL_TARGETS=(ai altSwitcher appCatalog audio autostart background bar brightness cheatsheet clipboard cliphistService closeConfirm controlPanel coverflowSelector customWidgets dashboard dev gamemode globalActions keyboard lock mascot mascotMood mediaControls memory minimize mpris notifications osd osdVolume osk overlay overview packageSearch panelFamily pill recordingOsd region search session settings settingsNav shellLayout shellUpdate sidebarLeft sidebarRight taskview tiling voiceSearch wactionCenter waffleAltSwitcher wallpaperLauncher wallpaperSelector wbar widgetpower wnotificationCenter workspaceStrip wwidgets ytmusic zoom)
-IPC_SHARED_TARGETS=(ai altSwitcher appCatalog audio background bar brightness cheatsheet clipboard cliphistService closeConfirm controlPanel coverflowSelector dashboard dev gamemode globalActions keyboard lock mascot mascotMood mediaControls memory minimize mpris notifications osdVolume osk overlay overview packageSearch panelFamily pill region session settings settingsNav shellLayout shellUpdate sidebarLeft sidebarRight tiling voiceSearch wallpaperLauncher wallpaperSelector workspaceStrip ytmusic zoom)
+IPC_ALL_TARGETS=(ai altSwitcher appCatalog audio autostart background bar brightness cheatsheet clipboard cliphistService clockDashboard closeConfirm controlPanel coverflowSelector customWidgets dashboard dev gamemode globalActions keyboard lock mascot mascotMood mediaControls memory minimize mpris notifications osd osdVolume osk overlay overview packageSearch panelFamily pill recordingOsd region search session settings settingsNav shellLayout shellUpdate sidebarLeft sidebarRight systemDashboard taskview tiling voiceSearch wactionCenter waffleAltSwitcher wallpaperLauncher wallpaperSelector wbar widgetpower wnotificationCenter workspaceStrip wwidgets ytmusic zoom)
+IPC_SHARED_TARGETS=(ai altSwitcher appCatalog audio background bar brightness cheatsheet clipboard cliphistService clockDashboard closeConfirm controlPanel coverflowSelector dashboard dev gamemode globalActions keyboard lock mascot mascotMood mediaControls memory minimize mpris notifications osdVolume osk overlay overview packageSearch panelFamily pill region session settings settingsNav shellLayout shellUpdate sidebarLeft sidebarRight systemDashboard tiling voiceSearch wallpaperLauncher wallpaperSelector workspaceStrip ytmusic zoom)
 IPC_II_TARGETS=()
 IPC_WAFFLE_TARGETS=(autostart customWidgets osd recordingOsd search taskview wactionCenter waffleAltSwitcher wbar widgetpower wnotificationCenter wwidgets)
 
@@ -538,6 +550,7 @@ declare -gA IPC_KEBAB_ALIASES=(
   [alt-switcher]=altSwitcher
   [app-catalog]=appCatalog
   [cliphist-service]=cliphistService
+  [clock-dashboard]=clockDashboard
   [close-confirm]=closeConfirm
   [control-panel]=controlPanel
   [coverflow-selector]=coverflowSelector
@@ -554,6 +567,7 @@ declare -gA IPC_KEBAB_ALIASES=(
   [shell-update]=shellUpdate
   [sidebar-left]=sidebarLeft
   [sidebar-right]=sidebarRight
+  [system-dashboard]=systemDashboard
   [voice-search]=voiceSearch
   [waction-center]=wactionCenter
   [waffle-alt-switcher]=waffleAltSwitcher

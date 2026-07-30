@@ -79,6 +79,7 @@ Item { // Bar content region
     readonly property bool inirEverywhere: Appearance.inirEverywhere
     readonly property bool auroraEverywhere: Appearance.auroraEverywhere
     readonly property bool zzzEverywhere: Appearance.zzzEverywhere
+    readonly property bool liquidEverywhere: Appearance.liquidEverywhere
     readonly property bool gameModeMinimal: Appearance.gameModeMinimal
 
     readonly property string wallpaperUrl: Wallpapers.effectiveWallpaperUrl
@@ -146,6 +147,7 @@ Item { // Bar content region
         }
         radius: root.zzzEverywhere ? 0
             : Appearance.angelEverywhere ? Appearance.angel.roundingNormal
+            : root.liquidEverywhere ? Appearance.liquid.roundingNormal
             : root.inirEverywhere ? Appearance.inir.roundingNormal
             : floatingStyle ? ((Config.options?.bar?.cornerStyle ?? 0) === 3 ? Appearance.rounding.normal : Appearance.rounding.windowRounding) : 0
         // No Behavior on the base radius — the per-corner radii below own the
@@ -246,18 +248,29 @@ Item { // Bar content region
                 anchors.fill: source
                 saturation: Appearance.angelEverywhere
                     ? Appearance.angel.blurSaturation
-                    : (Appearance.effectsEnabled ? 0.2 : 0)
+                    : root.liquidEverywhere
+                        ? Appearance.liquid.blurSaturation
+                        : (Appearance.effectsEnabled ? 0.2 : 0)
                 blurEnabled: Appearance.effectsEnabled
                 blurMax: 64
-                blur: Appearance.effectsEnabled ? 1 : 0
+                blur: Appearance.effectsEnabled
+                    ? (root.liquidEverywhere ? Appearance.liquid.blurIntensity : 1)
+                    : 0
             }
 
             Rectangle {
                 anchors.fill: parent
                 color: Appearance.angelEverywhere
                     ? ColorUtils.transparentize((root.blendedColors?.colLayer0 ?? Appearance.colors.colLayer0Base), Appearance.angel.overlayOpacity)
-                    : ColorUtils.transparentize((root.blendedColors?.colLayer0 ?? Appearance.colors.colLayer0Base), Appearance.aurora.overlayTransparentize)
+                    : root.liquidEverywhere
+                        ? ColorUtils.transparentize((root.blendedColors?.colLayer0 ?? Appearance.colors.colLayer0Base), Appearance.liquid.panelTransparentize)
+                        : ColorUtils.transparentize((root.blendedColors?.colLayer0 ?? Appearance.colors.colLayer0Base), Appearance.aurora.overlayTransparentize)
             }
+        }
+
+        // Liquid glass decorations — sheen + edge highlight
+        LiquidGlassEdges {
+            visible: root.liquidEverywhere && !root.gameModeMinimal
         }
     }
 

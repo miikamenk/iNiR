@@ -1567,7 +1567,8 @@ ContentPage {
                         { displayName: Translation.tr("Inir"), icon: "terminal", value: "inir" },
                         { displayName: Translation.tr("Angel"), icon: "raven", value: "angel" },
                         { displayName: Translation.tr("ZZZ"), icon: "bolt", value: "zzz" },
-                        { displayName: Translation.tr("Cookie Shapes"), icon: "cookie", value: "cookie" }
+                        { displayName: Translation.tr("Cookie Shapes"), icon: "cookie", value: "cookie" },
+                        { displayName: Translation.tr("Liquid"), icon: "water_drop", value: "liquid" }
                     ]
                 }
             }
@@ -1582,7 +1583,7 @@ ContentPage {
 
     SettingsCardSection {
         id: auroraStyleEditorSection
-        visible: Appearance.auroraEverywhere && !Appearance.angelEverywhere
+        visible: Appearance.auroraEverywhere && !Appearance.angelEverywhere && !Appearance.liquidEverywhere
         expanded: false
         icon: "blur_on"
         title: Translation.tr("Aurora Style Editor")
@@ -1590,8 +1591,24 @@ ContentPage {
         SettingsGroup {
             Loader {
                 Layout.fillWidth: true
-                active: auroraStyleEditorSection.expanded && Appearance.auroraEverywhere && !Appearance.angelEverywhere
+                active: auroraStyleEditorSection.expanded && Appearance.auroraEverywhere && !Appearance.angelEverywhere && !Appearance.liquidEverywhere
                 source: "AuroraStyleEditor.qml"
+            }
+        }
+    }
+
+    SettingsCardSection {
+        id: liquidStyleEditorSection
+        visible: Appearance.liquidEverywhere
+        expanded: false
+        icon: "water_drop"
+        title: Translation.tr("Liquid Style Editor")
+
+        SettingsGroup {
+            Loader {
+                Layout.fillWidth: true
+                active: liquidStyleEditorSection.expanded && Appearance.liquidEverywhere
+                source: "LiquidStyleEditor.qml"
             }
         }
     }

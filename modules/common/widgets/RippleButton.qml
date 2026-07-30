@@ -20,6 +20,7 @@ Button {
     property bool pointingHandCursor: true
     property real buttonRadius: Appearance.zzzEverywhere ? Appearance.zzz.controlRadius
         : Appearance.angelEverywhere ? Appearance.angel.roundingSmall
+        : Appearance.liquidEverywhere ? Appearance.liquid.roundingSmall
         : (Appearance?.rounding?.small ?? 4)
     property real buttonRadiusPressed: buttonRadius
     property real buttonEffectiveRadius: root.down ? root.buttonRadiusPressed : root.buttonRadius
@@ -47,6 +48,7 @@ Button {
 
     property color colBackground: Appearance.zzzEverywhere ? "transparent"
         : Appearance.angelEverywhere ? Appearance.angel.colGlassCard
+        : Appearance.liquidEverywhere ? Appearance.liquid.colGlassCard
         : "transparent"
     property color colBackgroundHover: Appearance.colLayer1Hover
     property color colBackgroundToggled: Appearance.zzzEverywhere ? Appearance.zzz.sticker : Appearance.colors.colPrimary
@@ -194,11 +196,14 @@ Button {
         // Cookie has no rectangular chrome: a pill focus ring fights the organic
         // silhouette. cookieMorphing surfaces still show focus through CookieFace.
         border.width: Appearance.cookieEverywhere ? 0
-            : (Appearance.angelEverywhere ? 1 : 0)
+            : (Appearance.angelEverywhere || Appearance.liquidEverywhere) ? 1 : 0
+        // Liquid buttons carry a faint glass rim that brightens on hover.
         border.color: Appearance.cookieEverywhere ? "transparent"
             : Appearance.angelEverywhere
             ? (root.buttonHovered ? Appearance.angel.colBorderHover : "transparent")
-            : "transparent"
+            : Appearance.liquidEverywhere
+                ? (root.buttonHovered ? Appearance.liquid.colEdgeHighlightStrong : Appearance.liquid.colEdgeHighlight)
+                : "transparent"
         Behavior on border.color {
             enabled: Appearance.animationsEnabled
             animation: ColorAnimation { duration: Appearance.animation.stateChange.duration; easing.type: Appearance.animation.stateChange.type; easing.bezierCurve: Appearance.animation.stateChange.bezierCurve }

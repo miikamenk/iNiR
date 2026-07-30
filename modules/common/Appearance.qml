@@ -19,6 +19,7 @@ Singleton {
     property QtObject angel
     property QtObject zzz
     property QtObject cookie
+    property QtObject liquid
     property QtObject colors
     property QtObject rounding
     property QtObject font
@@ -77,12 +78,23 @@ Singleton {
     readonly property bool inirEverywhere: globalStyle === "inir"
     // angelEverywhere - flagship neo-brutalism glass style (superset of aurora)
     readonly property bool angelEverywhere: globalStyle === "angel"
-    // auroraEverywhere controls blur/glass backgrounds — angel inherits aurora blur
-    readonly property bool auroraEverywhere: globalStyle === "aurora" || globalStyle === "angel"
+    // liquidEverywhere - subtle liquid glass style (superset of aurora, like angel)
+    readonly property bool liquidEverywhere: globalStyle === "liquid"
+    // auroraEverywhere controls blur/glass backgrounds — angel and liquid inherit aurora blur
+    readonly property bool auroraEverywhere: globalStyle === "aurora" || globalStyle === "angel" || globalStyle === "liquid"
     // zzzEverywhere - Zenless Zone Zero urban graphic identity (poster palette + sharp + bold)
     readonly property bool zzzEverywhere: globalStyle === "zzz"
     // cookieEverywhere - Material Expressive organic silhouettes and state morphing
     readonly property bool cookieEverywhere: globalStyle === "cookie"
+    // liquidRealGlass — liquid style with genuine surface alpha instead of the
+    // blurred-wallpaper copy. Every glass surface checks this single flag to
+    // decide whether to paint a fake backdrop or let the compositor show through.
+    readonly property bool liquidRealGlass: liquidEverywhere && (root.liquid?.realGlass ?? false)
+    // Alpha for panel base surfaces. Panels historically hardcoded
+    // applyAlpha(colLayer0, 1) — fully opaque, which is why nothing could ever
+    // show through them. Routing that constant through here lets real-glass mode
+    // drop it below 1 while each panel keeps its own wallpaper-blended tint.
+    readonly property real panelSurfaceAlpha: liquidRealGlass ? (root.liquid?.surfaceOpacity ?? 0.62) : 1
     
     // Explicit surface dialects such as islands/Ricelin own their complete
     // surface. Otherwise the selected global worldview owns it. Consumers use
@@ -215,7 +227,7 @@ Singleton {
     }
 
     // Style-aware hover/active fills. One source of truth so every component's hover matches the
-    // active global style instead of re-implementing the zzz/angel/inir/aurora/material ternary.
+    // active global style instead of re-implementing the zzz/angel/liquid/inir/aurora/material ternary.
     // zzz promotes one fill step (paper -> paperAlt) instead of a translucent mix, per its
     // separate-by-fill doctrine (was missing here; components used to hardcode zzz.paperAlt).
     // Cookie promotes one tonal step, like zzz: Expressive stacks plates, so a
@@ -224,12 +236,14 @@ Singleton {
     readonly property color colLayer1Hover: cookieEverywhere ? cookie.bg2
         : zzzEverywhere ? zzz.paperAlt
         : angelEverywhere ? angel.colGlassCardHover
+        : liquidEverywhere ? liquid.colGlassCardHover
         : inirEverywhere ? inir.colLayer1Hover
         : auroraEverywhere ? aurora.colSubSurfaceHover
         : colors.colLayer1Hover
     readonly property color colLayer2Hover: cookieEverywhere ? cookie.bg3
         : zzzEverywhere ? zzz.bg3
         : angelEverywhere ? angel.colGlassElevatedHover
+        : liquidEverywhere ? liquid.colGlassElevatedHover
         : inirEverywhere ? inir.colLayer2Hover
         : auroraEverywhere ? aurora.colElevatedSurfaceHover
         : colors.colLayer2Hover
@@ -1560,6 +1574,135 @@ Singleton {
         readonly property int springDuration: 420
     }
 
+    liquid: QtObject {
+        // ─────────────────────────────────────────────────────────────
+        // Liquid glass — subtle, refined glass aesthetic.
+        // A superset of aurora (auroraEverywhere is true when liquid is
+        // active) with gentler transparency, a 1px light-from-above edge
+        // highlight, and an optional sheen. All params read from Config
+        // for live reactivity (same pattern as angel).
+        // ─────────────────────────────────────────────────────────────
+
+        // ─── BLUR ───
+        readonly property real blurIntensity: Config.options?.appearance?.liquid?.blur?.intensity ?? 0.5
+        readonly property real blurSaturation: Config.options?.appearance?.liquid?.blur?.saturation ?? 0.1
+
+        // ─── GLASS TRANSPARENCY (higher = more see-through) ───
+        readonly property real _lightFactor: root._auroraLightMode ? 0.75 : 1.0
+        readonly property real panelTransparentize: (Config.options?.appearance?.liquid?.transparency?.panel ?? 0.22) * _lightFactor
+        readonly property real cardTransparentize: (Config.options?.appearance?.liquid?.transparency?.card ?? 0.30) * _lightFactor
+        readonly property real popupTransparentize: (Config.options?.appearance?.liquid?.transparency?.popup ?? 0.25) * _lightFactor
+        readonly property real tooltipTransparentize: (Config.options?.appearance?.liquid?.transparency?.tooltip ?? 0.22) * _lightFactor
+        readonly property real layerTransparentize: (Config.options?.appearance?.liquid?.transparency?.layer ?? 0.28) * _lightFactor
+
+        // ─── GLASS SURFACES ───
+        readonly property color colGlassPanel: ColorUtils.transparentize(
+            root.colors.colLayer0Base, panelTransparentize)
+        readonly property color colGlassCard: ColorUtils.transparentize(
+            root.colors.colLayer1Base, cardTransparentize)
+        readonly property color colGlassCardHover: ColorUtils.transparentize(
+            ColorUtils.mix(root.colors.colLayer1Base, root.colors.colOnLayer1, 0.92), cardTransparentize)
+        readonly property color colGlassCardActive: ColorUtils.transparentize(
+            ColorUtils.mix(root.colors.colLayer1Base, root.colors.colOnLayer1, 0.86), cardTransparentize)
+        readonly property color colGlassPopup: ColorUtils.transparentize(
+            root.colors.colLayer2Base, popupTransparentize)
+        readonly property color colGlassPopupHover: ColorUtils.transparentize(
+            ColorUtils.mix(root.colors.colLayer2Base, root.colors.colOnLayer2, 0.92), popupTransparentize)
+        readonly property color colGlassPopupActive: ColorUtils.transparentize(
+            ColorUtils.mix(root.colors.colLayer2Base, root.colors.colOnLayer2, 0.86), popupTransparentize)
+        readonly property color colGlassTooltip: ColorUtils.transparentize(
+            root.colors.colLayer3Base, tooltipTransparentize)
+        readonly property color colGlassDialog: ColorUtils.transparentize(
+            root.colors.colLayer3Base, popupTransparentize * 0.85)
+        readonly property color colGlassElevated: ColorUtils.transparentize(
+            root.colors.colLayer2Base, cardTransparentize * 0.9)
+        readonly property color colGlassElevatedHover: ColorUtils.transparentize(
+            ColorUtils.mix(root.colors.colLayer2Base, root.colors.colOnLayer2, 0.94), cardTransparentize * 0.9)
+
+        // ─── REAL TRANSPARENCY ───
+        // niri cannot blur behind a layer surface (no `blur` in layer-rule), so
+        // the aurora-style "glass" is really a blurred *copy of the wallpaper*
+        // drawn inside the panel — convincing over the desktop, but it can never
+        // show a window behind it.
+        //
+        // With realGlass on we drop that copy and give the surface genuine alpha
+        // instead. The compositor then shows whatever is actually behind the
+        // panel, windows included. The trade-off is no frosting: a busy window
+        // shows through sharply. Content drawn on top keeps full opacity, so
+        // text stays crisp regardless.
+        readonly property bool realGlass: Config.options?.appearance?.liquid?.realGlass?.enable ?? true
+        // How solid the glass reads. 0 = invisible, 1 = opaque.
+        readonly property real surfaceOpacity: Math.max(0.15, Math.min(1.0, Config.options?.appearance?.liquid?.realGlass?.opacity ?? 0.62))
+        // Panels/popups sit slightly more solid than base surfaces so text on
+        // them stays legible over arbitrary window content.
+        readonly property color colGlassReal: ColorUtils.transparentize(root.colors.colLayer0Base, 1.0 - surfaceOpacity)
+        readonly property color colGlassRealElevated: ColorUtils.transparentize(root.colors.colLayer1Base, 1.0 - Math.min(1.0, surfaceOpacity * 1.12))
+        readonly property color colGlassRealPopup: ColorUtils.transparentize(root.colors.colLayer2Base, 1.0 - Math.min(1.0, surfaceOpacity * 1.22))
+        // A translucent panel needs its own rim to read as an edge instead of a
+        // fade, and a firmer shadow to lift it off whatever shows through.
+        readonly property color colGlassRealBorder: root._auroraLightMode
+            ? ColorUtils.transparentize(root.colors._inkPrimary, 1.0 - (0.22 * edgeHighlightOpacity))
+            : ColorUtils.transparentize("#FFFFFF", 1.0 - (0.24 * edgeHighlightOpacity))
+
+        // ─── EDGE HIGHLIGHT (light-from-above inner border) ───
+        // Simulates refraction at the glass edge: a hairline of light along
+        // the top inner edge. White at low alpha in dark mode; ink-tinted in
+        // light mode so it reads as a surface edge rather than a glow.
+        readonly property bool edgeHighlightEnabled: Config.options?.appearance?.liquid?.edgeHighlight?.enable ?? true
+        readonly property real edgeHighlightOpacity: (Config.options?.appearance?.liquid?.edgeHighlight?.opacity ?? 0.5)
+        readonly property color colEdgeHighlight: root._auroraLightMode
+            ? ColorUtils.transparentize(root.colors._inkPrimary, 1.0 - (0.14 * edgeHighlightOpacity))
+            : ColorUtils.transparentize("#FFFFFF", 1.0 - (0.16 * edgeHighlightOpacity))
+        // Brighter rim for hovered/active interactive glass (buttons, pills)
+        readonly property color colEdgeHighlightStrong: root._auroraLightMode
+            ? ColorUtils.transparentize(root.colors._inkPrimary, 1.0 - (0.26 * edgeHighlightOpacity))
+            : ColorUtils.transparentize("#FFFFFF", 1.0 - (0.32 * edgeHighlightOpacity))
+        // Bottom edge counterpart — darker, grounds the panel
+        readonly property color colEdgeShade: ColorUtils.transparentize("#000000", 1.0 - (0.18 * edgeHighlightOpacity))
+
+        // ─── SPECULAR (diagonal gleam, the "wet" part of liquid glass) ───
+        // A soft band of light raked across the surface. Read together with the
+        // edge rim it is what makes a translucent panel look like a solid pane of
+        // glass rather than a tinted hole.
+        readonly property bool specularEnabled: Config.options?.appearance?.liquid?.specular?.enable ?? true
+        readonly property real specularOpacity: (Config.options?.appearance?.liquid?.specular?.opacity ?? 0.07)
+        readonly property color colSpecular: ColorUtils.transparentize("#FFFFFF", 1.0 - specularOpacity)
+        readonly property color colSpecularSoft: ColorUtils.transparentize("#FFFFFF", 1.0 - (specularOpacity * 0.45))
+
+        // ─── SHEEN (subtle diagonal light gradient over panels) ───
+        readonly property bool sheenEnabled: Config.options?.appearance?.liquid?.sheen?.enable ?? true
+        readonly property real sheenOpacity: Config.options?.appearance?.liquid?.sheen?.opacity ?? 0.06
+        readonly property color colSheen: ColorUtils.transparentize("#FFFFFF", 1.0 - sheenOpacity)
+
+        // ─── TEXT (ink colors in light mode, like angel) ───
+        readonly property color colText: root._auroraLightMode ? root.colors._inkPrimary : root.m3colors.m3onSurface
+        readonly property color colTextSecondary: root._auroraLightMode ? root.colors._inkSecondary : root.m3colors.m3onSurfaceVariant
+        readonly property color colTextMuted: ColorUtils.transparentize(
+            root._auroraLightMode ? root.colors._inkMuted : root.m3colors.m3onSurfaceVariant, 0.3)
+
+        // ─── PRIMARY/ACCENT ───
+        readonly property color colPrimary: root.m3colors.m3primary
+        readonly property color colPrimaryHover: ColorUtils.mix(
+            root.m3colors.m3primary, root.m3colors.m3onPrimary, 0.85)
+        readonly property color colOnPrimary: root.m3colors.m3onPrimary
+        readonly property color colSecondary: root.m3colors.m3secondary
+        readonly property color colTertiary: root.m3colors.m3tertiary
+
+        // ─── SHADOW (soft, diffused — consumed by StyledRectangularShadow) ───
+        readonly property real shadowBlurMultiplier: 1.6   // softer spread than material
+        // A see-through panel has no opaque body to separate it from what shows
+        // through, so real glass needs a firmer shadow — the opposite of the
+        // gentler-than-material value that suits an opaque liquid surface.
+        readonly property real shadowOpacityScale: realGlass ? 0.85 : 0.55
+        readonly property color colShadow: ColorUtils.transparentize(
+            root.colors.colShadow, 1.0 - shadowOpacityScale)
+
+        // ─── ROUNDING ───
+        readonly property int roundingSmall: Config.options?.appearance?.liquid?.rounding?.small ?? 12
+        readonly property int roundingNormal: Config.options?.appearance?.liquid?.rounding?.normal ?? 17
+        readonly property int roundingLarge: Config.options?.appearance?.liquid?.rounding?.large ?? 23
+    }
+
      sizes: QtObject {
          property real spacingSmall: Math.round(8 * root.fontSizeScale)
          property real spacingMedium: Math.round(12 * root.fontSizeScale)
@@ -1582,8 +1725,17 @@ Singleton {
         property real osdWidth: Math.round(180 * root.fontSizeScale)
         property real searchWidthCollapsed: Math.round(210 * root.fontSizeScale)
         property real searchWidth: Math.round(360 * root.fontSizeScale)
-        property real sidebarWidth: Math.round(460 * root.fontSizeScale)
+        // Sidebar widths — resizable through the Shell Layout editor, which owns
+        // the per-role widths (feature = left content, system = right content).
+        // Clamped here to keep panels usable and on-screen.
+        property real sidebarWidthLeft: Math.round(Math.max(320, Math.min(860, Config.options?.sidebar?.shellLayout?.feature?.width ?? 460)) * root.fontSizeScale)
+        property real sidebarWidthRight: Math.round(Math.max(320, Math.min(860, Config.options?.sidebar?.shellLayout?.system?.width ?? 460)) * root.fontSizeScale)
+        // Legacy alias (right sidebar width)
+        property real sidebarWidth: sidebarWidthRight
         property real sidebarWidthExtended: Math.round(750 * root.fontSizeScale)
+        // Bar density tokens — one source for module gaps and pill padding
+        property real barModuleSpacing: Math.round(6 * root.fontSizeScale)
+        property real barPillPadding: Math.round(8 * root.fontSizeScale)
         property real baseVerticalBarWidth: Math.round(46 * root.fontSizeScale)
         property real verticalBarWidth: (((Config.options?.bar?.cornerStyle ?? 0) === 1) || ((Config.options?.bar?.cornerStyle ?? 0) === 3)) ? 
             (baseVerticalBarWidth + root.sizes.hyprlandGapsOut * 2) : baseVerticalBarWidth

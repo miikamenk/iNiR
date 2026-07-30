@@ -367,7 +367,7 @@ Scope {
                                         // Solid background matching BarContent
                                         Rectangle {
                                             anchors.fill: parent
-                                            color: ColorUtils.applyAlpha((barContent.blendedColors?.colLayer0 ?? Appearance.colors.colLayer0), 1)
+                                            color: ColorUtils.applyAlpha((barContent.blendedColors?.colLayer0 ?? Appearance.colors.colLayer0), Appearance.panelSurfaceAlpha)
                                         }
 
                                         // Blur background

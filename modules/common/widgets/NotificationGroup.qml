@@ -240,11 +240,15 @@ MouseArea { // Notification group area
                 anchors.fill: source
                 saturation: Appearance.angelEverywhere
                     ? (Appearance.angel.blurSaturation * Appearance.angel.colorStrength)
-                    : (Appearance.effectsEnabled ? 0.2 : 0)
+                    : Appearance.liquidEverywhere
+                        ? Appearance.liquid.blurSaturation
+                        : (Appearance.effectsEnabled ? 0.2 : 0)
                 blurEnabled: Appearance.effectsEnabled
                 blurMax: 64
                 blur: Appearance.effectsEnabled
-                    ? (Appearance.angelEverywhere ? Appearance.angel.blurIntensity : 1)
+                    ? (Appearance.angelEverywhere ? Appearance.angel.blurIntensity
+                        : Appearance.liquidEverywhere ? Appearance.liquid.blurIntensity
+                        : 1)
                     : 0
             }
         }
@@ -255,7 +259,14 @@ MouseArea { // Notification group area
             visible: root.popup && Appearance.auroraEverywhere && !Appearance.inirEverywhere
             color: Appearance.angelEverywhere
                 ? ColorUtils.transparentize(Appearance.colors.colLayer0Base, Appearance.angel.overlayOpacity)
-                : ColorUtils.transparentize(Appearance.colors.colLayer0Base, Appearance.aurora.popupTransparentize)
+                : Appearance.liquidEverywhere
+                    ? ColorUtils.transparentize(Appearance.colors.colLayer0Base, Appearance.liquid.popupTransparentize)
+                    : ColorUtils.transparentize(Appearance.colors.colLayer0Base, Appearance.aurora.popupTransparentize)
+        }
+
+        // Liquid glass decorations — edge highlight
+        LiquidGlassEdges {
+            visible: Appearance.liquidEverywhere && root.popup
         }
 
         // Angel partial border for popup

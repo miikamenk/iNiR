@@ -10,16 +10,18 @@
 
 // ── Global defaults ─────────────────────────────────────────────────────────
 // Round every window's corners and clip content to match.
+// Radius matches the shell's own window rounding token (18px) so compositor
+// chrome and shell panels share the same geometry.
 // Works best with prefer-no-csd (set in config.kdl).
 window-rule {
-    geometry-corner-radius 16
+    geometry-corner-radius 18
     clip-to-geometry true
 }
 
 // Dim unfocused windows slightly for visual hierarchy.
 window-rule {
     match is-active=false
-    opacity 0.9
+    opacity 0.95
 }
 
 // ── Per-app fixes ───────────────────────────────────────────────────────────

@@ -30,19 +30,10 @@ StyledPopup {
         return labels
     }
 
-    // Resolve a calendar cell (day + in-month flag) to a Date
+    // Resolve a calendar cell (day + in-month flag) to a Date.
+    // Uses the cell's monthDiff via the shared helper (heuristic fallback).
     function dateForCell(cellData) {
-        if (!cellData) return null
-        const base = DateTime.clock.date
-        const year = base.getFullYear()
-        const month = base.getMonth()
-        if (cellData.today === -1) {
-            // Out-of-month cell: high day numbers are the previous month, low ones the next
-            return cellData.day > 15
-                ? new Date(year, month - 1, cellData.day)
-                : new Date(year, month + 1, cellData.day)
-        }
-        return new Date(year, month, cellData.day)
+        return CalendarLayout.dateForCell(cellData, DateTime.clock.date)
     }
 
     function hasEventsOnDate(date) {

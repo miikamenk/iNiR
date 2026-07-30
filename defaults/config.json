@@ -95,6 +95,40 @@
                 "burstSize": 1.0
             }
         },
+        "liquid": {
+            "transparency": {
+                "panel": 0.22,
+                "card": 0.3,
+                "popup": 0.25,
+                "tooltip": 0.22,
+                "layer": 0.28
+            },
+            "blur": {
+                "intensity": 0.5,
+                "saturation": 0.1
+            },
+            "edgeHighlight": {
+                "enable": true,
+                "opacity": 0.5
+            },
+            "sheen": {
+                "enable": true,
+                "opacity": 0.06
+            },
+            "realGlass": {
+                "enable": true,
+                "opacity": 0.62
+            },
+            "specular": {
+                "enable": true,
+                "opacity": 0.07
+            },
+            "rounding": {
+                "small": 12,
+                "normal": 17,
+                "large": 23
+            }
+        },
         "extraBackgroundTint": true,
         "softenColors": true,
         "fakeScreenRounding": 0,
@@ -107,7 +141,8 @@
             "inir": 1,
             "angel": 1,
             "zzz": 0,
-            "cookie": 1
+            "cookie": 1,
+            "liquid": 1
         },
         "themeSchedule": {
             "enabled": false,
@@ -1512,6 +1547,9 @@
             }
         },
         "layout": "default",
+        "widthLeft": 460,
+        "widthRight": 460,
+        "widthExtended": 750,
         "quickSliders": {
             "enable": true,
             "showBrightness": true,
@@ -2153,6 +2191,8 @@
         "iiBackground",
         "iiBackdrop",
         "iiCheatsheet",
+        "iiClockDashboard",
+        "iiSystemDashboard",
         "iiControlPanel",
         "iiDock",
         "iiLock",

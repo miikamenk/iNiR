@@ -106,15 +106,16 @@ return {
     priority = 1000,
     opts = {
       on_colors = function(colors)
-        -- Pump up saturation across the whole palette. Background-ish swatches
-        -- get a gentle nudge; foreground/accent swatches get a strong boost so
-        -- syntax highlighting reads clearly.
+        -- Gently lift saturation for code readability. The palette is already
+        -- balanced upstream (accent chroma floor, harmonized tertiary), so
+        -- this is a light touch: backgrounds barely move, syntax swatches get
+        -- a moderate boost to read clearly against dark surfaces.
         for key, value in pairs(colors) do
           if is_hex(value) then
             local lower = tostring(key):lower()
             local is_bg = lower:find("bg") or lower:find("background")
                        or lower:find("base") or lower:find("dark")
-            colors[key] = vivify(value, is_bg and 1.15 or 1.6, is_bg and 0 or 0.06)
+            colors[key] = vivify(value, is_bg and 1.08 or 1.3, is_bg and 0 or 0.06)
           end
         end
       end,

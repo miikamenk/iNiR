@@ -31,7 +31,7 @@ Item {
         if (Quickshell.env("QS_DEBUG") === "1") console.log(...args);
     }
 
-    property int sidebarWidth: Appearance.sizes.sidebarWidth
+    property int sidebarWidth: Appearance.sizes.sidebarWidthRight
     property int sidebarPadding: 10
     property string settingsQmlPath: Quickshell.shellPath("settings.qml")
     property int screenWidth: 1920
@@ -423,7 +423,8 @@ Item {
         readonly property bool islandStyle: surfaceDialect === "island"
         readonly property bool zzzEverywhere: surfaceDialect === "zzz"
         readonly property bool angelEverywhere: surfaceDialect === "angel"
-        readonly property bool auroraEverywhere: surfaceDialect === "aurora" || angelEverywhere
+        readonly property bool liquidEverywhere: surfaceDialect === "liquid"
+        readonly property bool auroraEverywhere: surfaceDialect === "aurora" || angelEverywhere || liquidEverywhere
         readonly property bool inirEverywhere: surfaceDialect === "inir"
         readonly property bool gameModeMinimal: Appearance.gameModeMinimal
         readonly property string wallpaperUrl: {
@@ -432,11 +433,13 @@ Item {
             const _dep3 = Wallpapers.effectiveWallpaperUrl
             return WallpaperListener.wallpaperUrlForScreen(root.panelScreen)
         }
+        readonly property bool realGlass: Appearance.liquidRealGlass
         readonly property bool useWallpaperBackdrop: root.panelVisible
             && auroraEverywhere
             && !inirEverywhere
             && !gameModeMinimal
             && wallpaperUrl.length > 0
+            && !realGlass
 
         ColorQuantizer {
             id: sidebarRightWallpaperQuantizer
@@ -453,7 +456,7 @@ Item {
         color: (gameModeMinimal || islandStyle) ? "transparent"
             : zzzEverywhere ? Appearance.zzz.chrome
             : inirEverywhere ? (cardStyle ? Appearance.inir.colLayer1 : Appearance.inir.colLayer0)
-            : auroraEverywhere ? ColorUtils.applyAlpha((blendedColors?.colLayer0 ?? Appearance.colors.colLayer0), 1)
+            : auroraEverywhere ? ColorUtils.applyAlpha((blendedColors?.colLayer0 ?? Appearance.colors.colLayer0), Appearance.panelSurfaceAlpha)
             : (cardStyle ? Appearance.colors.colLayer1 : Appearance.colors.colLayer0)
         border.width: (gameModeMinimal || islandStyle) ? 0 : (zzzEverywhere ? 1 : (angelEverywhere ? Appearance.angel.panelBorderWidth : 1))
         border.color: zzzEverywhere ? Appearance.zzz.hairline
@@ -462,6 +465,7 @@ Item {
             : Appearance.colors.colLayer0Border
         radius: zzzEverywhere ? Appearance.zzz.panelRadius
             : angelEverywhere ? Appearance.angel.roundingNormal
+            : liquidEverywhere ? Appearance.liquid.roundingNormal
             : inirEverywhere ? (cardStyle ? Appearance.inir.roundingLarge : Appearance.inir.roundingNormal)
             : cardStyle ? Appearance.rounding.normal : (Appearance.rounding.screenRounding - Appearance.sizes.hyprlandGapsOut + 1)
 
@@ -531,11 +535,15 @@ Item {
                 anchors.fill: source
                 saturation: sidebarRightBackground.angelEverywhere
                     ? (Appearance.angel.blurSaturation * Appearance.angel.colorStrength)
-                    : (Appearance.effectsEnabled ? 0.2 : 0)
+                    : sidebarRightBackground.liquidEverywhere
+                        ? Appearance.liquid.blurSaturation
+                        : (Appearance.effectsEnabled ? 0.2 : 0)
                 blurEnabled: Appearance.effectsEnabled
                 blurMax: 64
                 blur: Appearance.effectsEnabled
-                    ? (sidebarRightBackground.angelEverywhere ? Appearance.angel.blurIntensity : 1)
+                    ? (sidebarRightBackground.angelEverywhere ? Appearance.angel.blurIntensity
+                        : sidebarRightBackground.liquidEverywhere ? Appearance.liquid.blurIntensity
+                        : 1)
                     : 0
             }
 
@@ -543,8 +551,15 @@ Item {
                 anchors.fill: parent
                 color: sidebarRightBackground.angelEverywhere
                     ? ColorUtils.transparentize((sidebarRightBackground.blendedColors?.colLayer0 ?? Appearance.colors.colLayer0Base), Appearance.angel.overlayOpacity * Appearance.angel.panelTransparentize)
-                    : ColorUtils.transparentize((sidebarRightBackground.blendedColors?.colLayer0 ?? Appearance.colors.colLayer0Base), Appearance.aurora.overlayTransparentize)
+                    : sidebarRightBackground.liquidEverywhere
+                        ? ColorUtils.transparentize((sidebarRightBackground.blendedColors?.colLayer0 ?? Appearance.colors.colLayer0Base), Appearance.liquid.panelTransparentize)
+                        : ColorUtils.transparentize((sidebarRightBackground.blendedColors?.colLayer0 ?? Appearance.colors.colLayer0Base), Appearance.aurora.overlayTransparentize)
             }
+        }
+
+        // Liquid glass decorations — sheen + edge highlight
+        LiquidGlassEdges {
+            visible: sidebarRightBackground.liquidEverywhere && !sidebarRightBackground.gameModeMinimal
         }
 
         // Angel inset glow — top edge

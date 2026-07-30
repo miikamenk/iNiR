@@ -7,6 +7,7 @@ import qs.services
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
+import "calendar_layout.js" as CalendarLayout
 
 // Day detail view — shown when a day is clicked in the calendar grid.
 // Groups events by time-of-day, merges local and external events.
@@ -72,13 +73,8 @@ Item {
     function _buildTimeGroups(): var {
         if (!root.selectedDate) return []
 
-        // Merge local + external
-        const localEvents = Events.getAllEventsForDate(root.selectedDate).map(e => Object.assign({}, e, {
-            source: "local",
-            startDate: e.dateTime
-        }))
-        const externalEvents = CalendarSync.getEventsForDate(root.selectedDate) || []
-        const allEvents = localEvents.concat(externalEvents)
+        // Merge local + external (shared helper — one merge logic for all calendar views)
+        const allEvents = CalendarLayout.mergedEventsForDate(Events, CalendarSync, root.selectedDate)
 
         // Categorize by time of day
         const allDay = []

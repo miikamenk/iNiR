@@ -3,7 +3,15 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // Docs: https://niri-wm.github.io/niri/Configuration:-Animations
 //
-// Movement animations use spring physics with three parameters:
+// iNiR uses crafted per-interaction motion instead of one-size-fits-all:
+//
+//   - Windows OPEN with a hint of overshoot (welcoming, physical).
+//   - Windows CLOSE with a quick, clean fade (no chaotic poof).
+//   - Direct-manipulation motion (drag, resize, view scroll) is critically
+//     damped — it tracks your input precisely with zero wobble.
+//   - Workspace switches glide with a touch of fluidity.
+//
+// Spring parameters:
 //
 //   damping-ratio  How quickly the spring settles.
 //                  < 1.0 = bouncy / oscillates
@@ -19,55 +27,55 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 animations {
-    // Uncomment to disable all animations globally.
-    // off
-
-    // Slow down every animation by this factor (useful for debugging).
+    // Uncomment to disable all animations globally (GameMode toggles this line).
     // Values below 1.0 speed them up. Default: 1.0
     // slowdown 3.0
+    //off
 
     // ── Workspace transitions ───────────────────────────────────────────────
+    // Fluid glide with a barely-there settle.
     workspace-switch {
-        spring damping-ratio=0.98 stiffness=700 epsilon=0.0001
+        spring damping-ratio=0.95 stiffness=280 epsilon=0.0001
     }
 
     // ── Window lifecycle ────────────────────────────────────────────────────
+    // Opens with a hint of overshoot — welcoming, physical.
     window-open {
-        duration-ms 200
-        curve "ease-out-quad"
+        spring damping-ratio=0.90 stiffness=350 epsilon=0.0001
     }
 
+    // Quick, clean exit — no chaotic poof.
     window-close {
-        duration-ms 175
-        curve "ease-out-quad"
+        duration-ms 150
+        curve "ease-out-expo"
     }
 
-    // ── Layout movement ─────────────────────────────────────────────────────
+    // ── Layout movement (direct manipulation: critically damped) ────────────
     // Scrolling the horizontal strip when you focus a different column.
     horizontal-view-movement {
-        spring damping-ratio=1.0 stiffness=700 epsilon=0.0001
+        spring damping-ratio=1.0 stiffness=400 epsilon=0.0001
     }
 
     // Dragging or moving a window between columns/workspaces.
+    // Tracks the pointer tightly — any bounce here feels broken.
     window-movement {
-        spring damping-ratio=1.0 stiffness=700 epsilon=0.0001
+        spring damping-ratio=1.0 stiffness=900 epsilon=0.0001
     }
 
     // Interactive column/window resize.
     window-resize {
-        spring damping-ratio=1.0 stiffness=700 epsilon=0.0001
+        spring damping-ratio=1.0 stiffness=400 epsilon=0.0001
     }
 
     // ── UI chrome ───────────────────────────────────────────────────────────
     // The "config saved" toast that appears after editing this file.
     config-notification-open-close {
-        spring damping-ratio=0.8 stiffness=750 epsilon=0.001
+        spring damping-ratio=0.90 stiffness=500 epsilon=0.0001
     }
 
     // Niri's built-in screenshot UI opening.
     screenshot-ui-open {
-        duration-ms 210
-        curve "ease-out-quad"
+        spring damping-ratio=0.90 stiffness=500 epsilon=0.0001
     }
 
     overview-open-close {

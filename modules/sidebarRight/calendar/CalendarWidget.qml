@@ -16,10 +16,14 @@ Item {
     // Emitted to open the events dialog. An event object means edit it, a Date
     // means a new event prefilled to that day.
     signal openEventsDialog(var editEvent)
+    // Emitted when a day becomes the active selection (first press on it)
+    signal daySelected(var date)
 
     // Two states: "month" (grid + upcoming) and "day" (day detail)
     property string viewState: "month"
     property var selectedDate: null
+    // The highlighted day on the month grid. Pressing it again opens its detail.
+    property var activeDate: null
 
     // Trigger to force recomputation when events change
     property int _eventsTrigger: 0
@@ -88,9 +92,7 @@ Item {
         const _t2 = root._externalTrigger
         const targetDate = _getDateForCell(day, weekRow, dayIndex)
         if (!targetDate) return 0
-        const localCount = Events.getEventsForDate(targetDate).length
-        const externalCount = (CalendarSync.getEventsForDate(targetDate) || []).length
-        return localCount + externalCount
+        return CalendarLayout.eventCountForDate(Events, CalendarSync, targetDate)
     }
 
     // Get source colors for multi-colored dots on a day cell
@@ -114,19 +116,12 @@ Item {
         return colors
     }
 
-    // Resolve a calendar cell to a real Date object
+    // Resolve a calendar cell to a real Date object.
+    // Uses the cell's monthDiff (prev/current/next) so trailing next-month
+    // cells resolve to the next month — not incorrectly to the previous one.
     function _getDateForCell(day: int, weekRow: int, dayIndex: int): var {
         const cellData = root.calendarLayout[weekRow]?.[dayIndex]
-        if (!cellData) return null
-        const year = root.viewingDate.getFullYear()
-        const month = root.viewingDate.getMonth()
-        let targetMonth = month
-        let targetYear = year
-        if (cellData.today === -1) {
-            if (month === 0) { targetMonth = 11; targetYear = year - 1 }
-            else targetMonth = month - 1
-        }
-        return new Date(targetYear, targetMonth, day)
+        return CalendarLayout.dateForCell(cellData, root.viewingDate)
     }
 
     function openDayDetail(date: var): void {
@@ -134,8 +129,61 @@ Item {
         root.viewState = "day"
     }
 
+    // True when both dates fall on the same calendar day (local time).
+    function isSameDay(a: var, b: var): bool {
+        if (!a || !b)
+            return false;
+        return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+    }
+
+    // Pressing a day selects it — highlighting it and letting consumers (the
+    // clock dashboard's weather panel) follow along. Pressing the day that is
+    // already active is what opens its detail page, so a single stray press
+    // never yanks you off the month grid.
+    function pressDay(date: var): void {
+        if (!date)
+            return;
+        if (root.isSameDay(date, root.activeDate)) {
+            root.openDayDetail(date);
+            return;
+        }
+        root.activeDate = date;
+        root.daySelected(date);
+    }
+
     function closeDayDetail(): void {
         root.viewState = "month"
+    }
+
+    // Month navigation with a directional slide+fade on the day grid.
+    // delta > 0 = forward (content enters from the right), < 0 = backward.
+    function shiftMonth(delta: int): void {
+        if (delta === 0) return
+        root.monthShift += delta
+        if (!Appearance.animationsEnabled) return
+        gridShiftAnim.stop()
+        gridBody.slideOffset = delta > 0 ? 26 : -26
+        gridBody.opacity = 0
+        gridShiftAnim.start()
+    }
+
+    ParallelAnimation {
+        id: gridShiftAnim
+        NumberAnimation {
+            target: gridBody
+            property: "slideOffset"
+            to: 0
+            duration: Appearance.animation.elementMoveEnter.duration
+            easing.type: Appearance.animation.elementMoveEnter.type
+            easing.bezierCurve: Appearance.animation.elementMoveEnter.bezierCurve
+        }
+        NumberAnimation {
+            target: gridBody
+            property: "opacity"
+            to: 1
+            duration: Appearance.animation.elementMoveFast.duration
+            easing.type: Easing.OutCubic
+        }
     }
 
     Keys.onPressed: (event) => {
@@ -146,8 +194,8 @@ Item {
         }
         if ((event.key === Qt.Key_PageDown || event.key === Qt.Key_PageUp)
             && event.modifiers === Qt.NoModifier) {
-            if (event.key === Qt.Key_PageDown) monthShift++
-            else if (event.key === Qt.Key_PageUp) monthShift--
+            if (event.key === Qt.Key_PageDown) root.shiftMonth(1)
+            else if (event.key === Qt.Key_PageUp) root.shiftMonth(-1)
             event.accepted = true
         }
     }
@@ -189,8 +237,8 @@ Item {
             MouseArea {
                 anchors.fill: parent
                 onWheel: (event) => {
-                    if (event.angleDelta.y > 0) monthShift--
-                    else if (event.angleDelta.y < 0) monthShift++
+                    if (event.angleDelta.y > 0) root.shiftMonth(-1)
+                    else if (event.angleDelta.y < 0) root.shiftMonth(1)
                 }
             }
 
@@ -265,69 +313,80 @@ Item {
                             visible: monthShift !== 0
                             icon: "today"
                             tooltipText: Translation.tr("Jump to today")
-                            onClicked: monthShift = 0
+                            onClicked: root.shiftMonth(-root.monthShift)
                         }
 
                         CalNavButton {
                             icon: "chevron_left"
                             tooltipText: Translation.tr("Previous month")
-                            onClicked: monthShift--
+                            onClicked: root.shiftMonth(-1)
                         }
 
                         CalNavButton {
                             icon: "chevron_right"
                             tooltipText: Translation.tr("Next month")
-                            onClicked: monthShift++
+                            onClicked: root.shiftMonth(1)
                         }
                     }
                 }
 
-                // Week days row
-                RowLayout {
-                    Layout.alignment: Qt.AlignHCenter
-                    Layout.fillHeight: false
-                    Layout.topMargin: 4
-                    spacing: 5
-                    Repeater {
-                        model: weekDaysModel
-                        delegate: CalendarDayButton {
-                            required property var modelData
-                            day: modelData.label
-                            isToday: modelData.today ? 1 : 0
-                            isHeader: true
-                            bold: true
-                            enabled: false
-                        }
-                    }
-                }
+                // Week day header + day grid — animated as one body on month shifts
+                Item {
+                    id: gridBody
+                    Layout.fillWidth: true
+                    implicitHeight: gridBodyColumn.implicitHeight
 
-                // Calendar grid rows
-                Repeater {
-                    id: calendarRows
-                    model: 6
-                    delegate: RowLayout {
-                        required property int index
-                        property int weekRow: index
-                        Layout.alignment: Qt.AlignHCenter
-                        Layout.fillHeight: false
-                        spacing: 5
+                    // Slide offset applied via transform so it doesn't fight the layout
+                    property real slideOffset: 0
+                    transform: Translate { x: gridBody.slideOffset }
+
+                    ColumnLayout {
+                        id: gridBodyColumn
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        spacing: 8
+
+                        // Week days row
+                        RowLayout {
+                            Layout.alignment: Qt.AlignHCenter
+                            Layout.fillHeight: false
+                            Layout.topMargin: 4
+                            spacing: 5
+                            Repeater {
+                                model: weekDaysModel
+                                delegate: CalendarDayButton {
+                                    required property var modelData
+                                    day: modelData.label
+                                    isToday: modelData.today ? 1 : 0
+                                    isHeader: true
+                                    bold: true
+                                    enabled: false
+                                }
+                            }
+                        }
+
+                        // Calendar grid rows
                         Repeater {
-                            model: Array(7).fill(parent.weekRow)
-                            delegate: CalendarDayButton {
+                            id: calendarRows
+                            model: 6
+                            delegate: RowLayout {
                                 required property int index
-                                required property int modelData
-                                day: root.calendarLayout[modelData][index].day
-                                isToday: root.calendarLayout[modelData][index].today
-                                eventCount: root.getEventCountForDay(root.calendarLayout[modelData][index].day, modelData, index)
-                                sourceColors: root.getSourceColorsForDay(root.calendarLayout[modelData][index].day, modelData, index)
-                                onClicked: {
-                                    const targetDate = root._getDateForCell(root.calendarLayout[modelData][index].day, modelData, index)
-                                    if (targetDate) {
-                                        if (eventCount > 0) {
-                                            root.openDayDetail(targetDate)
-                                        } else {
-                                            // Still allow clicking empty days to add events
-                                            root.openDayDetail(targetDate)
+                                property int weekRow: index
+                                Layout.alignment: Qt.AlignHCenter
+                                Layout.fillHeight: false
+                                spacing: 5
+                                Repeater {
+                                    model: Array(7).fill(parent.weekRow)
+                                    delegate: CalendarDayButton {
+                                        required property int index
+                                        required property int modelData
+                                        day: root.calendarLayout[modelData][index].day
+                                        isToday: root.calendarLayout[modelData][index].today
+                                        eventCount: root.getEventCountForDay(root.calendarLayout[modelData][index].day, modelData, index)
+                                        sourceColors: root.getSourceColorsForDay(root.calendarLayout[modelData][index].day, modelData, index)
+                                        isSelected: root.isSameDay(root._getDateForCell(root.calendarLayout[modelData][index].day, modelData, index), root.activeDate)
+                                        onClicked: {
+                                            root.pressDay(root._getDateForCell(root.calendarLayout[modelData][index].day, modelData, index))
                                         }
                                     }
                                 }

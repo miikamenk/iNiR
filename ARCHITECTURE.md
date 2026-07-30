@@ -27,11 +27,11 @@ Two mutually exclusive UI families, switchable at runtime (`Super+Shift+W`):
 |---|---|---|
 | Active when | `panelFamily !== "waffle"` | `panelFamily === "waffle"` |
 | Visual tokens | `Appearance.*` | `Looks.*` |
-| Styles | material, cards, aurora, inir, angel, zzz | Single fluent style |
+| Styles | material, cards, aurora, inir, angel, zzz, cookie, liquid | Single fluent style |
 | Bar | Top (or vertical) | Bottom (Win11 taskbar) |
 | App launcher | Overview | StartMenu with search |
 | Right panel | SidebarRight | ActionCenter + NotificationCenter |
-| Panels | ii (iiBar, iiDock, iiSidebarLeft, ...) | w (wBar, wStartMenu, wActionCenter, ... + shared ii panels) |
+| Panels | ii (iiBar, iiDock, iiSidebarLeft, iiClockDashboard, ...) | w (wBar, wStartMenu, wActionCenter, ... + shared ii panels) |
 
 Each panel uses `PanelLoader` (LazyLoader wrapper):
 ```qml
@@ -43,7 +43,7 @@ PanelLoader {
 ```
 Loads when ALL conditions are true: `Config.ready` + identifier in `enabledPanels` array + `extraCondition`.
 
-Style dispatch priority: **zzz > angel > inir > aurora > material** (`Appearance.qml`: `zzzEverywhere`/`angelEverywhere`/`inirEverywhere`/`auroraEverywhere` are `globalStyle` checks; `auroraEverywhere` is also true when `globalStyle === "angel"`, so angel must be checked before aurora wherever both matter). Cards is a material variant (no separate dispatch).
+Style dispatch priority: **cookie > zzz > angel > liquid > inir > aurora > material** (`Appearance.qml`: `zzzEverywhere`/`angelEverywhere`/`liquidEverywhere`/`inirEverywhere`/`auroraEverywhere` are `globalStyle` checks). Cards is a material variant (no separate dispatch). `angel` and `liquid` are supersets of aurora (`auroraEverywhere` is true when either is active), so glass code paths apply to all three and both must be checked before aurora wherever they matter; liquid-specific tokens live in `Appearance.liquid.*` and override at the unified dispatch points (hover fills, `PanelSurface`, `StyledRectangularShadow`, `GlassBackground`, `LiquidGlassEdges`).
 
 ## Directory Structure
 
@@ -64,6 +64,8 @@ modules/                      # UI module directories
 │   ├── Config.qml            # Central config (JsonAdapter)
 │   └── widgets/              # Reusable widgets + qmldir
 ├── bar/                      # Top bar (ii family)
+├── clockDashboard/           # Clock dashboard panel (clock, calendar, events, weather)
+├── systemDashboard/          # System monitor dashboard (CPU/RAM/GPU/VRAM/net/disk/temp)
 ├── sidebarLeft/              # AI chat, YT Music, widgets
 ├── sidebarRight/             # Toggles, calendar, tools
 ├── settings/                 # All config UI pages
@@ -85,7 +87,8 @@ services/                     # Runtime singletons (+ services/deferred/)
 ├── NiriService.qml           # Niri compositor IPC
 ├── CompositorService.qml     # Compositor detection (Niri vs Hyprland)
 ├── Network.qml               # NetworkManager integration
-├── Weather.qml               # Weather polling + privacy-aware location
+├── Weather.qml               # Weather polling (current + 7-day forecast + 24h hourly)
+├── ResourceUsage.qml         # CPU (per-core), RAM, swap, GPU, VRAM, network, disk I/O, temps + history
 ├── Bluetooth.qml             # BlueZ device management
 ├── Translation.qml           # i18n string lookup
 ├── DevNavigation.qml         # Session-only semantic UI navigation + dev IPC
@@ -183,7 +186,9 @@ Full reference: [docs/IPC.md](docs/IPC.md).
 
 ## Theming Pipeline
 
-Colors flow: wallpaper image → `generate_colors_material.py` (materialyoucolor) → `colors.json` → `MaterialThemeLoader` → `Appearance` tokens → UI.
+Colors flow: wallpaper image → `generate_colors_material.py` (materialyoucolor) → **balance pass** (surface chroma caps, accent chroma floor, tertiary harmonization, palette-derived success family) → `colors.json` → `MaterialThemeLoader` → `Appearance` tokens → UI.
+
+`build_app_palette()` in the generator derives the unified `app_*` contract (accent hover/active steps, selection, semantic error/success/warning/info families) consumed by Spicetify, Vesktop (system24), Steam, Chrome, GTK, and the Neovim plugin spec — one derivation point, all apps in sync.
 
 Theme generation orchestrated by `scripts/colors/applycolor.sh`, which runs per-app modules in parallel:
 - Terminals (foot, kitty, alacritty)

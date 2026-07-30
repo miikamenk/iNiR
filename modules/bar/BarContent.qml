@@ -155,7 +155,8 @@ Item { // Bar content region
 
     readonly property bool inirEverywhere: root.surfaceDialect === "inir"
     readonly property bool angelEverywhere: root.surfaceDialect === "angel"
-    readonly property bool auroraEverywhere: root.surfaceDialect === "aurora" || root.angelEverywhere
+    readonly property bool liquidEverywhere: root.surfaceDialect === "liquid"
+    readonly property bool auroraEverywhere: root.surfaceDialect === "aurora" || root.angelEverywhere || root.liquidEverywhere
     // Bar appearance style: how the bar surface itself is drawn.
     //   classic — single full-width background (per cornerStyle, current default)
     //   islands — no bar surface; every section floats as its own island
@@ -662,6 +663,10 @@ Item { // Bar content region
             if (root.angelEverywhere) {
                 return (cornerStyle === 1 || cornerStyle === 3) ? Appearance.angel.roundingNormal : 0
             }
+            if (root.liquidEverywhere) {
+                // Liquid: rounded glass for Float/Card, square for Hug/Rect
+                return (cornerStyle === 1 || cornerStyle === 3) ? Appearance.liquid.roundingNormal : 0
+            }
             if (root.inirEverywhere) {
                 // Inir: use inir rounding for Float/Card, 0 for Hug/Rect
                 if (cornerStyle === 1 || cornerStyle === 3) {
@@ -808,11 +813,15 @@ Item { // Bar content region
                 anchors.fill: source
                 saturation: root.angelEverywhere
                     ? (Appearance.angel.blurSaturation * Appearance.angel.colorStrength)
-                    : (Appearance.effectsEnabled ? 0.2 : 0)
+                    : root.liquidEverywhere
+                        ? Appearance.liquid.blurSaturation
+                        : (Appearance.effectsEnabled ? 0.2 : 0)
                 blurEnabled: Appearance.effectsEnabled
                 blurMax: 64
                 blur: Appearance.effectsEnabled
-                    ? (root.angelEverywhere ? Appearance.angel.blurIntensity : 1)
+                    ? (root.angelEverywhere ? Appearance.angel.blurIntensity
+                        : root.liquidEverywhere ? Appearance.liquid.blurIntensity
+                        : 1)
                     : 0
             }
 
@@ -820,8 +829,15 @@ Item { // Bar content region
                 anchors.fill: parent
                 color: root.angelEverywhere
                     ? ColorUtils.transparentize((barBackground.blendedColors?.colLayer0 ?? Appearance.colors.colLayer0Base), Appearance.angel.overlayOpacity * Appearance.angel.panelTransparentize)
-                    : ColorUtils.transparentize((barBackground.blendedColors?.colLayer0 ?? Appearance.colors.colLayer0Base), Appearance.aurora.overlayTransparentize)
+                    : root.liquidEverywhere
+                        ? ColorUtils.transparentize((barBackground.blendedColors?.colLayer0 ?? Appearance.colors.colLayer0Base), Appearance.liquid.panelTransparentize)
+                        : ColorUtils.transparentize((barBackground.blendedColors?.colLayer0 ?? Appearance.colors.colLayer0Base), Appearance.aurora.overlayTransparentize)
             }
+        }
+
+        // Liquid glass decorations — sheen + edge highlight
+        LiquidGlassEdges {
+            visible: root.liquidEverywhere && !barBackground.gameModeMinimal
         }
 
         // Angel inset glow — top edge
@@ -970,7 +986,7 @@ Item { // Bar content region
                 ? Appearance.sizes.hyprlandGapsOut + root.islandPad
                 : Appearance.rounding.screenRounding
             anchors.rightMargin: Appearance.rounding.screenRounding
-            spacing: 10
+            spacing: Appearance.sizes.barModuleSpacing
 
             Repeater {
                 model: root._leftIds
@@ -1228,7 +1244,7 @@ Item { // Bar content region
             anchors.rightMargin: root.isIslands
                 ? Appearance.sizes.hyprlandGapsOut + root.islandPad
                 : Appearance.rounding.screenRounding
-            spacing: 5
+            spacing: Appearance.sizes.barModuleSpacing
             layoutDirection: Qt.RightToLeft
 
             Repeater {

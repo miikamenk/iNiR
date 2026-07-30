@@ -50,7 +50,7 @@ Item {
     id: root
 
     // ── Public API (same as SidebarRightContent) ──────────────────
-    property int sidebarWidth: Appearance.sizes.sidebarWidth
+    property int sidebarWidth: Appearance.sizes.sidebarWidthRight
     property int sidebarPadding: 10
     property int screenWidth: 1920
     property int screenHeight: 1080
@@ -78,17 +78,20 @@ Item {
     readonly property real maximumUsefulWidth: 900
     readonly property bool compactTightHeight: height > 0 && height < 760
     readonly property bool compactNarrowWidth: width > 0 && width < 420
-    readonly property int compactPanelPadding: Math.max(6, Math.min(sidebarPadding, Math.round(Math.min(width || sidebarWidth, height || screenHeight) * 0.018)))
-    readonly property int compactContentPadding: Math.max(6, Math.min(10, compactPanelPadding))
-    readonly property int compactRailWidth: Math.max(50, Math.min(58, Math.round((width || sidebarWidth) * 0.13)))
-    readonly property int compactRailMargin: Math.max(6, Math.min(9, Math.round(compactRailWidth * 0.15)))
-    readonly property int compactNavItemHeight: compactTightHeight ? 40 : 46
-    readonly property int compactNavBgHeight: compactTightHeight ? 34 : 38
-    readonly property int compactNavSpacing: compactTightHeight ? 2 : 4
-    readonly property int compactActionItemHeight: compactTightHeight ? 36 : 40
-    readonly property int compactActionBgHeight: compactTightHeight ? 30 : 34
-    readonly property int compactSectionSpacing: compactTightHeight ? Appearance.sizes.spacingSmall : Appearance.sizes.spacingMedium
-    readonly property int compactGridSpacing: compactNarrowWidth ? 4 : 5
+    // Density tokens for the compact layout. Deliberately tighter than the
+    // default sidebar, and trimmed again so "compact" actually reads as compact.
+    // Nav/action rows keep >= 32px of hit area so they stay clickable.
+    readonly property int compactPanelPadding: Math.max(4, Math.min(sidebarPadding, Math.round(Math.min(width || sidebarWidth, height || screenHeight) * 0.014)))
+    readonly property int compactContentPadding: Math.max(4, Math.min(8, compactPanelPadding))
+    readonly property int compactRailWidth: Math.max(46, Math.min(54, Math.round((width || sidebarWidth) * 0.12)))
+    readonly property int compactRailMargin: Math.max(4, Math.min(7, Math.round(compactRailWidth * 0.13)))
+    readonly property int compactNavItemHeight: compactTightHeight ? 36 : 41
+    readonly property int compactNavBgHeight: compactTightHeight ? 30 : 34
+    readonly property int compactNavSpacing: compactTightHeight ? 1 : 3
+    readonly property int compactActionItemHeight: compactTightHeight ? 32 : 36
+    readonly property int compactActionBgHeight: compactTightHeight ? 27 : 30
+    readonly property int compactSectionSpacing: compactTightHeight ? Math.round(Appearance.sizes.spacingSmall * 0.75) : Appearance.sizes.spacingSmall
+    readonly property int compactGridSpacing: compactNarrowWidth ? 3 : 4
     
     // Controls section order from config
     readonly property var defaultSectionOrder: ["sliders", "toggles", "devices", "media", "quickActions"]
@@ -776,11 +779,13 @@ Item {
             const _d3 = Wallpapers.effectiveWallpaperUrl
             return WallpaperListener.wallpaperUrlForScreen(root.panelScreen)
         }
+        readonly property bool realGlass: Appearance.liquidRealGlass
         readonly property bool useWallpaperBackdrop: root.panelVisible
             && auroraEverywhere
             && !inirEverywhere
             && !gameModeMinimal
             && wallpaperUrl.length > 0
+            && !realGlass
 
         ColorQuantizer {
             id: bgQuant
@@ -824,7 +829,7 @@ Item {
         color: (gameModeMinimal || islandStyle) ? "transparent"
              : zzzEverywhere ? "transparent"
              : inirEverywhere   ? (cardStyle ? Appearance.inir.colLayer1 : Appearance.inir.colLayer0)
-             : auroraEverywhere ? ColorUtils.applyAlpha((blendedColors?.colLayer0 ?? Appearance.colors.colLayer0), 1)
+             : auroraEverywhere ? ColorUtils.applyAlpha((blendedColors?.colLayer0 ?? Appearance.colors.colLayer0), Appearance.panelSurfaceAlpha)
              : (cardStyle ? Appearance.colors.colLayer1 : Appearance.colors.colLayer0)
 
         border.width: (gameModeMinimal || islandStyle) ? 0 : (zzzEverywhere ? 0 : (angelEverywhere ? Appearance.angel.panelBorderWidth : 1))
@@ -843,6 +848,7 @@ Item {
 
         radius: zzzEverywhere ? Appearance.zzz.panelRadius
               : angelEverywhere  ? Appearance.angel.roundingNormal
+              : Appearance.liquidEverywhere ? Appearance.liquid.roundingNormal
               : inirEverywhere   ? (cardStyle ? Appearance.inir.roundingLarge : Appearance.inir.roundingNormal)
               : cardStyle        ? Appearance.rounding.normal
               : (Appearance.rounding.screenRounding - Appearance.sizes.hyprlandGapsOut + 1)
@@ -892,20 +898,32 @@ Item {
                 anchors.fill: source
                 saturation: bg.angelEverywhere
                     ? (Appearance.angel.blurSaturation * Appearance.angel.colorStrength)
-                    : (Appearance.effectsEnabled ? 0.2 : 0)
+                    : Appearance.liquidEverywhere
+                        ? Appearance.liquid.blurSaturation
+                        : (Appearance.effectsEnabled ? 0.2 : 0)
                 blurEnabled: Appearance.effectsEnabled
                 blurMax: 64
                 blur: Appearance.effectsEnabled
-                    ? (bg.angelEverywhere ? Appearance.angel.blurIntensity : 1) : 0
+                    ? (bg.angelEverywhere ? Appearance.angel.blurIntensity
+                        : Appearance.liquidEverywhere ? Appearance.liquid.blurIntensity
+                        : 1) : 0
             }
             Rectangle {
                 anchors.fill: parent
                 color: bg.angelEverywhere
                     ? ColorUtils.transparentize((bg.blendedColors?.colLayer0 ?? Appearance.colors.colLayer0Base),
                                                Appearance.angel.overlayOpacity * Appearance.angel.panelTransparentize)
-                    : ColorUtils.transparentize((bg.blendedColors?.colLayer0 ?? Appearance.colors.colLayer0Base),
+                    : Appearance.liquidEverywhere
+                        ? ColorUtils.transparentize((bg.blendedColors?.colLayer0 ?? Appearance.colors.colLayer0Base),
+                                               Appearance.liquid.panelTransparentize)
+                        : ColorUtils.transparentize((bg.blendedColors?.colLayer0 ?? Appearance.colors.colLayer0Base),
                                                Appearance.aurora.overlayTransparentize)
             }
+        }
+
+        // Liquid glass decorations — sheen + edge highlight
+        LiquidGlassEdges {
+            visible: Appearance.liquidEverywhere && !bg.gameModeMinimal
         }
 
         // Angel inset glow — top edge

@@ -3,8 +3,15 @@
 
 layout {
     focus-ring {
-        active-color   "{{colors.primary.default.hex}}"
+        // Liquid signature: a gradient from primary to tertiary across the
+        // focused window, hue-interpolated in oklch for smooth transitions.
+        active-gradient from="{{colors.primary.default.hex}}" to="{{colors.tertiary.default.hex}}" angle=45 in="oklch longer hue"
         inactive-color "{{colors.outline.default.hex}}"
+        urgent-color "{{colors.error.default.hex}}"
+
+        // Prefer a flat themed ring instead? Comment the gradient above and
+        // uncomment this:
+        // active-color "{{colors.primary.default.hex}}"
     }
 
     border {

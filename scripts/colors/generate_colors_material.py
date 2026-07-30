@@ -455,6 +455,128 @@ def readable_hex(fg_hex: str, bg_hex: str, min_ratio: float = 4.5) -> str:
     return argb_to_hex(ensure_contrast(hex_to_argb(fg_hex), bg_argb, min_ratio, is_bg_dark))
 
 
+# ---------------------------------------------------------------------------
+# Palette balance pass
+# ---------------------------------------------------------------------------
+# Applied to every generated palette (main output + template rendering) so all
+# downstream consumers (shell, GTK, terminals, Spicetify, Vesktop, Neovim...)
+# share the same balanced, attractive colors:
+#
+#   1. Surface chroma cap — vibrant seeds otherwise push muddy tints into
+#      what should read as near-neutral surfaces.
+#   2. Accent chroma floor — muted seeds otherwise produce washed-out accents.
+#      Skipped for intentionally calm schemes (monochrome/neutral).
+#   3. Tertiary harmonization — M3 offsets the tertiary family ~60° from the
+#      primary; rotate it partway back so the accent families feel designed
+#      together instead of clashing.
+#   4. Palette-derived success family — semantic colors that match the
+#      palette's mood instead of hardcoded greens.
+
+_CALM_SCHEME_FAMILIES = {"monochrome", "neutral"}
+
+_SURFACE_TONE_TOKENS = (
+    "background",
+    "surface",
+    "surfaceDim",
+    "surfaceBright",
+    "surfaceContainerLowest",
+    "surfaceContainerLow",
+    "surfaceContainer",
+    "surfaceContainerHigh",
+    "surfaceContainerHighest",
+)
+
+
+def _scheme_family() -> str:
+    return (args.scheme or "").replace("scheme-", "")
+
+
+def _hct_set(colors: dict, name: str, hct_value: Hct) -> None:
+    colors[name] = argb_to_hex(hct_value.to_int())
+
+
+def semantic_family(
+    hue: float, primary_hex: str | None, is_dark: bool, chroma: float
+) -> dict[str, str]:
+    """Build a success/warning-style semantic family, gently harmonized toward
+    the accent so semantic colors feel like part of the palette."""
+    if primary_hex:
+        hue = Hct.from_int(
+            harmonize(
+                Hct.from_hct(hue, chroma, 50).to_int(),
+                hex_to_argb(primary_hex),
+                threshold=14,
+                harmony=0.3,
+            )
+        ).hue
+    if is_dark:
+        main = Hct.from_hct(hue, chroma, 72).to_int()
+        container = Hct.from_hct(hue, chroma * 0.65, 28).to_int()
+        on_main = ensure_contrast(Hct.from_hct(hue, 18, 16).to_int(), main, 4.5, False)
+        on_container = ensure_contrast(
+            Hct.from_hct(hue, 16, 86).to_int(), container, 4.5, True
+        )
+    else:
+        main = Hct.from_hct(hue, chroma * 1.15, 40).to_int()
+        container = Hct.from_hct(hue, chroma * 0.75, 88).to_int()
+        on_main = 0xFFFFFFFF  # M3 convention: white on saturated fills
+        on_container = ensure_contrast(
+            Hct.from_hct(hue, 20, 18).to_int(), container, 4.5, False
+        )
+    return {
+        "main": argb_to_hex(main),
+        "on": argb_to_hex(on_main),
+        "container": argb_to_hex(container),
+        "on_container": argb_to_hex(on_container),
+    }
+
+
+def balance_palette(colors: dict, is_dark: bool) -> None:
+    """Balance a generated Material palette in place (camelCase keys)."""
+    # 1. Cap surface tint chroma
+    surface_cap = 10.0 if is_dark else 12.0
+    for tok in _SURFACE_TONE_TOKENS:
+        hex_str = colors.get(tok)
+        if not hex_str:
+            continue
+        h = Hct.from_int(hex_to_argb(hex_str))
+        if h.chroma > surface_cap:
+            _hct_set(colors, tok, Hct.from_hct(h.hue, surface_cap, h.tone))
+
+    # 2. Accent chroma floor (respect calm schemes and achromatic seeds)
+    if _scheme_family() not in _CALM_SCHEME_FAMILIES:
+        for tok in ("primary", "secondary", "tertiary"):
+            hex_str = colors.get(tok)
+            if not hex_str:
+                continue
+            h = Hct.from_int(hex_to_argb(hex_str))
+            if 2.0 < h.chroma < 24.0:
+                _hct_set(colors, tok, Hct.from_hct(h.hue, 24.0, h.tone))
+
+    # 3. Harmonize the tertiary family toward the primary
+    primary_hex = colors.get("primary")
+    if primary_hex:
+        for tok in ("tertiary", "tertiaryContainer"):
+            hex_str = colors.get(tok)
+            if not hex_str:
+                continue
+            colors[tok] = argb_to_hex(
+                harmonize(
+                    hex_to_argb(hex_str),
+                    hex_to_argb(primary_hex),
+                    threshold=28,
+                    harmony=0.35,
+                )
+            )
+
+    # 4. Palette-derived success family (replaces hardcoded greens)
+    success = semantic_family(152.0, primary_hex, is_dark, chroma=32.0)
+    colors["success"] = success["main"]
+    colors["onSuccess"] = success["on"]
+    colors["successContainer"] = success["container"]
+    colors["onSuccessContainer"] = success["on_container"]
+
+
 def build_app_palette(base_palette: dict[str, str]) -> dict[str, str]:
     layer0 = base_palette.get("background") or base_palette.get("surface") or "#000000"
     layer1 = base_palette.get("surface_container_low") or base_palette.get("surface") or layer0
@@ -474,7 +596,10 @@ def build_app_palette(base_palette: dict[str, str]) -> dict[str, str]:
     on_layer2 = readable_hex(on_surface, layer2, 4.5)
     on_layer3 = readable_hex(on_surface, layer3, 4.5)
     on_layer4 = readable_hex(on_surface, layer4, 4.5)
-    subtext = readable_hex(mix_hex(on_layer1, layer1, 0.75), layer1, 3.0)
+    subtext = readable_hex(mix_hex(on_layer1, layer1, 0.75), layer1, 3.5)
+
+    # Dark palettes sit on low-tone surfaces
+    is_dark_app = Hct.from_int(hex_to_argb(layer0)).tone < 50
 
     layer1_hover = mix_hex(layer1, on_layer1, 0.92)
     layer1_active = mix_hex(layer1, on_layer1, 0.85)
@@ -482,9 +607,29 @@ def build_app_palette(base_palette: dict[str, str]) -> dict[str, str]:
     layer2_active = mix_hex(layer2, on_layer2, 0.80)
     layer3_hover = mix_hex(layer3, on_layer3, 0.90)
     layer3_active = mix_hex(layer3, on_layer3, 0.80)
-    selection = mix_hex(layer3, primary, 0.82)
-    selection_hover = mix_hex(layer3, primary, 0.74)
+
+    # Selection: enough accent presence to read as a selected block even with
+    # calm primaries (was: 18% accent which nearly vanished on neutral seeds)
+    selection = mix_hex(layer3, primary, 0.70)
+    selection_hover = mix_hex(layer3, primary, 0.62)
+    selection_border = mix_hex(selection, primary, 0.5)
     on_selection = readable_hex(on_layer3, selection, 4.5)
+
+    # Accent interaction steps via HCT tone steps — perceptually uniform,
+    # unlike per-app ad-hoc RGB/HLS lightening
+    _acc = Hct.from_int(hex_to_argb(primary))
+    _step = 8.0 if is_dark_app else -8.0
+    accent_hover = argb_to_hex(
+        Hct.from_hct(_acc.hue, _acc.chroma, max(0.0, min(100.0, _acc.tone + _step))).to_int()
+    )
+    accent_active = argb_to_hex(
+        Hct.from_hct(_acc.hue, _acc.chroma, max(0.0, min(100.0, _acc.tone - _step * 0.75))).to_int()
+    )
+    accent_subtle = mix_hex(layer1, primary, 0.82)
+
+    # Unified semantic families — consumers should use these instead of
+    # inventing their own status colors from primary/tertiary mixes
+    warning = semantic_family(75.0, primary, is_dark_app, chroma=34.0)
 
     app = dict(base_palette)
     app.update(
@@ -523,9 +668,27 @@ def build_app_palette(base_palette: dict[str, str]) -> dict[str, str]:
             "app_accent": primary,
             "app_on_accent": on_primary,
             "app_accent_container": primary_container,
+            "app_accent_hover": accent_hover,
+            "app_accent_active": accent_active,
+            "app_accent_subtle": accent_subtle,
             "app_selection": selection,
             "app_selection_hover": selection_hover,
+            "app_selection_border": selection_border,
             "app_on_selection": on_selection,
+            # Semantic aliases (unified status colors for all apps)
+            "app_error": base_palette.get("error") or "#F2B8B5",
+            "app_on_error": base_palette.get("on_error") or "#601410",
+            "app_error_container": base_palette.get("error_container") or "#8C1D18",
+            "app_on_error_container": base_palette.get("on_error_container") or "#F9DEDC",
+            "app_success": base_palette.get("success") or "#B5CCBA",
+            "app_on_success": base_palette.get("on_success") or "#213528",
+            "app_success_container": base_palette.get("success_container") or "#374B3E",
+            "app_on_success_container": base_palette.get("on_success_container") or "#D1E9D6",
+            "app_warning": warning["main"],
+            "app_on_warning": warning["on"],
+            "app_warning_container": warning["container"],
+            "app_on_warning_container": warning["on_container"],
+            "app_info": base_palette.get("tertiary") or primary,
             "app_window_bg": layer0,
             "app_view_bg": layer0,
             "app_headerbar_bg": layer0,
@@ -630,17 +793,9 @@ for color in vars(MaterialDynamicColors).keys():
         rgba = generated_hct.to_rgba()
         material_colors[color] = rgba_to_hex(rgba)
 
-# Extended material
-if darkmode == True:
-    material_colors["success"] = "#B5CCBA"
-    material_colors["onSuccess"] = "#213528"
-    material_colors["successContainer"] = "#374B3E"
-    material_colors["onSuccessContainer"] = "#D1E9D6"
-else:
-    material_colors["success"] = "#4F6354"
-    material_colors["onSuccess"] = "#FFFFFF"
-    material_colors["successContainer"] = "#D1E8D5"
-    material_colors["onSuccessContainer"] = "#0C1F13"
+# Extended material + balance pass: cap surfaces, floor accents, harmonize
+# tertiary, derive the success family from the palette (was: hardcoded greens)
+balance_palette(material_colors, darkmode)
 
 # Terminal Colors
 if args.termscheme is not None:
@@ -1076,17 +1231,8 @@ if args.render_templates:
                 palette[c] = rgba_to_hex(g.to_rgba())
         # source_color is the seed itself
         palette["source_color"] = argb_to_hex(argb)
-        # Extended Material tokens (not in MaterialDynamicColors)
-        if is_dark:
-            palette["success"] = "#B5CCBA"
-            palette["onSuccess"] = "#213528"
-            palette["successContainer"] = "#374B3E"
-            palette["onSuccessContainer"] = "#D1E9D6"
-        else:
-            palette["success"] = "#4F6354"
-            palette["onSuccess"] = "#FFFFFF"
-            palette["successContainer"] = "#D1E8D5"
-            palette["onSuccessContainer"] = "#0C1F13"
+        # Extended Material tokens + balance pass (same as the main output)
+        balance_palette(palette, is_dark)
         raw_contract = {
             "primary": palette.get("primary", ""),
             "on_primary": palette.get("onPrimary", ""),

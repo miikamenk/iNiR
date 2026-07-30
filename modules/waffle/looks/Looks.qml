@@ -19,7 +19,7 @@ Singleton {
     property bool dark: Appearance.m3colors.darkmode
     property bool auroraEverywhere: {
         const style = Config.options?.appearance?.globalStyle ?? "material"
-        return style === "aurora" || style === "angel"
+        return style === "aurora" || style === "angel" || style === "liquid"
     }
     readonly property bool cookieEverywhere: Appearance.cookieEverywhere
     property bool useMaterial: Config.options?.waffles?.theming?.useMaterialColors ?? false
@@ -50,7 +50,9 @@ Singleton {
     property real panelBackgroundTransparency: root.auroraEverywhere
         ? Math.max(Appearance.backgroundTransparency ?? 0, root.glassActive ? 0.10 : 0)
         : (transparencyEnabled ? 0.12 : 0)
-    property real panelLayerTransparency: root.auroraEverywhere ? (Appearance.aurora.popupSurfaceTransparentize ?? 0.5) : (root.dark ? 0.6 : 0.5)
+    property real panelLayerTransparency: root.auroraEverywhere
+        ? (Appearance.liquidEverywhere ? Appearance.liquid.popupTransparentize : (Appearance.aurora.popupSurfaceTransparentize ?? 0.5))
+        : (root.dark ? 0.6 : 0.5)
     property real contentTransparency: root.auroraEverywhere
         ? Math.max(Appearance.contentTransparency ?? 0, root.glassActive ? 0.15 : 0)
         : (root.dark ? 0.87 : 0.5)
@@ -254,28 +256,28 @@ Singleton {
                     root.glassActive && root.dark ? root.darkColors.bg0Border : (root.dark ? root.darkColors.bg2Border : root.lightColors.bg2Border),
                     root.glassActive ? root.backgroundTransparency : root.contentTransparency)
         property color interactiveSurface: root.glassActive && root.useMaterial
-            ? root.ensureMinOpacity(Appearance.angelEverywhere ? Appearance.angel.colGlassCard : Appearance.aurora.colSubSurface, 0.72)
+            ? root.ensureMinOpacity(Appearance.angelEverywhere ? Appearance.angel.colGlassCard : Appearance.liquidEverywhere ? Appearance.liquid.colGlassCard : Appearance.aurora.colSubSurface, 0.72)
             : bg1
         property color interactiveSurfaceHover: root.glassActive && root.useMaterial
-            ? root.ensureMinOpacity(Appearance.angelEverywhere ? Appearance.angel.colGlassCardHover : Appearance.aurora.colSubSurfaceHover, 0.78)
+            ? root.ensureMinOpacity(Appearance.angelEverywhere ? Appearance.angel.colGlassCardHover : Appearance.liquidEverywhere ? Appearance.liquid.colGlassCardHover : Appearance.aurora.colSubSurfaceHover, 0.78)
             : bg2Hover
         property color interactiveSurfaceActive: root.glassActive && root.useMaterial
-            ? root.ensureMinOpacity(Appearance.angelEverywhere ? Appearance.angel.colGlassCardActive : Appearance.aurora.colSubSurfaceActive, 0.84)
+            ? root.ensureMinOpacity(Appearance.angelEverywhere ? Appearance.angel.colGlassCardActive : Appearance.liquidEverywhere ? Appearance.liquid.colGlassCardActive : Appearance.aurora.colSubSurfaceActive, 0.84)
             : bg2Active
         property color popupSurface: root.glassActive && root.useMaterial
-            ? root.ensureMinOpacity(Appearance.angelEverywhere ? Appearance.angel.colGlassPopup : Appearance.aurora.colPopupSurface, 0.85)
+            ? root.ensureMinOpacity(Appearance.angelEverywhere ? Appearance.angel.colGlassPopup : Appearance.liquidEverywhere ? Appearance.liquid.colGlassPopup : Appearance.aurora.colPopupSurface, 0.85)
             : bg2
         property color popupSurfaceHover: root.glassActive && root.useMaterial
-            ? root.ensureMinOpacity(Appearance.angelEverywhere ? Appearance.angel.colGlassPopupHover : Appearance.aurora.colPopupSurfaceHover, 0.88)
+            ? root.ensureMinOpacity(Appearance.angelEverywhere ? Appearance.angel.colGlassPopupHover : Appearance.liquidEverywhere ? Appearance.liquid.colGlassPopupHover : Appearance.aurora.colPopupSurfaceHover, 0.88)
             : bg2Hover
         property color popupSurfaceActive: root.glassActive && root.useMaterial
-            ? root.ensureMinOpacity(Appearance.angelEverywhere ? Appearance.angel.colGlassPopupActive : Appearance.aurora.colPopupSurfaceActive, 0.92)
+            ? root.ensureMinOpacity(Appearance.angelEverywhere ? Appearance.angel.colGlassPopupActive : Appearance.liquidEverywhere ? Appearance.liquid.colGlassPopupActive : Appearance.aurora.colPopupSurfaceActive, 0.92)
             : bg2Active
         property color tooltipSurface: root.glassActive && root.useMaterial
-            ? root.ensureMinOpacity(Appearance.angelEverywhere ? Appearance.angel.colGlassTooltip : Appearance.aurora.colTooltipSurface, 0.90)
+            ? root.ensureMinOpacity(Appearance.angelEverywhere ? Appearance.angel.colGlassTooltip : Appearance.liquidEverywhere ? Appearance.liquid.colGlassTooltip : Appearance.aurora.colTooltipSurface, 0.90)
             : bg2
         property color tooltipBorder: root.glassActive && root.useMaterial
-            ? (Appearance.angelEverywhere ? Appearance.angel.colBorderSubtle : Appearance.aurora.colTooltipBorder)
+            ? (Appearance.angelEverywhere ? Appearance.angel.colBorderSubtle : Appearance.liquidEverywhere ? Appearance.liquid.colEdgeHighlight : Appearance.aurora.colTooltipBorder)
             : bg2Border
         property color subfg: root.useMaterial 
             ? Appearance.colors.colSubtext 

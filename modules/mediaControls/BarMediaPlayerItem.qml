@@ -106,7 +106,7 @@ Item { // Player instance - Old style design
         color: Appearance.angelEverywhere ? "transparent"
              : Appearance.inirEverywhere ? Appearance.inir.colLayer1
              : Appearance.auroraEverywhere ? "transparent"
-             : ColorUtils.applyAlpha(blendedColors.colLayer0, 1)
+             : ColorUtils.applyAlpha(blendedColors.colLayer0, Appearance.panelSurfaceAlpha)
         radius: Appearance.angelEverywhere ? Appearance.angel.roundingNormal
              : Appearance.inirEverywhere ? Appearance.inir.roundingNormal : root.radius
         border.width: Appearance.angelEverywhere ? 0 : ((Appearance.inirEverywhere || Appearance.auroraEverywhere) ? 1 : 0)

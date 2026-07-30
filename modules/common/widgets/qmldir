@@ -3,6 +3,7 @@ AddressBreadcrumb 1.0 AddressBreadcrumb.qml
 AngelAccentBar 1.0 AngelAccentBar.qml
 AngelBackground 1.0 AngelBackground.qml
 AngelPartialBorder 1.0 AngelPartialBorder.qml
+BarAnchoredPanel 1.0 BarAnchoredPanel.qml
 BarModuleOrderEditor 1.0 BarModuleOrderEditor.qml
 BarWidgetSwitcher 1.0 BarWidgetSwitcher.qml
 BarWidgetSwitcherArea 1.0 BarWidgetSwitcherArea.qml
@@ -30,6 +31,7 @@ ContentSubsectionLabel 1.0 ContentSubsectionLabel.qml
 ContentSubsection 1.0 ContentSubsection.qml
 ContextMenu 1.0 ContextMenu.qml
 CustomIcon 1.0 CustomIcon.qml
+DashboardWindow 1.0 DashboardWindow.qml
 DatePicker 1.0 DatePicker.qml
 DialogButton 1.0 DialogButton.qml
 DialogListItem 1.0 DialogListItem.qml
@@ -59,6 +61,7 @@ ArrangeDropSlot 1.0 ArrangeDropSlot.qml
 MascotImage 1.0 MascotImage.qml
 MascotCollection 1.0 MascotCollection.qml
 MascotPoseGallery 1.0 MascotPoseGallery.qml
+LiquidGlassEdges 1.0 LiquidGlassEdges.qml
 MaterialCookie 1.0 MaterialCookie.qml
 CookieFace 1.0 CookieFace.qml
 CookiePlate 1.0 CookiePlate.qml

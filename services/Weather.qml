@@ -63,6 +63,55 @@ Singleton {
         pm10: "",
         ozone: ""
     })
+
+    // ── Forecast data (both providers normalized to the same shape) ──
+    // Daily: [{ date: "2026-07-30", dayLabel: "Today"|"Tomorrow"|"Thu",
+    //           wCode, tempMax, tempMin, precipChance }]
+    property var forecast: []
+    // Hourly (next ~24h): [{ time: "15:00", hour: 15, wCode, temp, precipChance }]
+    property var hourly: []
+    // Temperature unit matching forecast/hourly numeric values
+    readonly property string tempUnit: root.useUSCS ? "°F" : "°C"
+
+    // Map WMO weather codes (Open-Meteo) to the wttr.in codes used by
+    // Icons.getWeatherIcon + describeWeather, so both providers speak the
+    // same language everywhere in the shell.
+    function wmoToWttrCode(wmo: int): string {
+        switch (wmo) {
+            case 0: case 1: return "113"          // clear
+            case 2: return "116"                  // partly cloudy
+            case 3: return "122"                  // overcast
+            case 45: case 48: return "143"        // fog
+            case 51: case 53: case 55: return "266"  // drizzle
+            case 56: case 57: return "281"        // freezing drizzle
+            case 61: return "263"                 // light rain
+            case 63: return "299"                 // moderate rain
+            case 65: return "308"                 // heavy rain
+            case 66: return "311"                 // freezing rain
+            case 67: return "314"
+            case 71: return "323"                 // light snow
+            case 73: return "326"                 // snow
+            case 75: return "338"                 // heavy snow
+            case 77: return "320"                 // snow grains
+            case 80: return "353"                 // light showers
+            case 81: return "356"                 // showers
+            case 82: return "359"                 // violent showers
+            case 85: return "368"                 // snow showers
+            case 86: return "371"
+            case 95: return "386"                 // thunderstorm
+            case 96: case 99: return "392"        // thunderstorm + hail
+            default: return "113"
+        }
+    }
+
+    // Short day label for forecast entries ("2026-07-30", index 0..n)
+    function _dayLabel(dateStr: string, index: int): string {
+        if (index === 0) return Translation.tr("Today")
+        if (index === 1) return Translation.tr("Tomorrow")
+        const d = new Date(dateStr + "T00:00:00")
+        if (isNaN(d.getTime())) return ""
+        return Qt.locale().dayName(d.getDay(), Locale.ShortFormat)
+    }
     readonly property string visibleCity: {
         if (root.hideLocation)
             return ""
@@ -306,6 +355,43 @@ Singleton {
         root.data = result;
         console.info("[Weather] Updated:", result.temp, root.redactedLogCity(result.city));
         root.fetchAirQuality();
+
+        // ── Forecast parsing (wttr.in j1 `weather` array) ──
+        // Reuses the `days` array declared above for upstream's data.forecast —
+        // both read the same payload, just into different shapes.
+        const forecastResult = [];
+        const hourlyResult = [];
+        const currentHour = new Date().getHours();
+        for (let i = 0; i < days.length && forecastResult.length < 7; i++) {
+            const day = days[i];
+            if (!day?.date) continue;
+            forecastResult.push({
+                date: day.date,
+                dayLabel: root._dayLabel(day.date, forecastResult.length),
+                wCode: String(day.hourly?.[4]?.weatherCode ?? day.hourly?.[0]?.weatherCode ?? "113"),
+                tempMax: Number(root.useUSCS ? day.maxtempF : day.maxtempC) || 0,
+                tempMin: Number(root.useUSCS ? day.mintempF : day.mintempC) || 0,
+                precipChance: Math.max(
+                    Number(day.hourly?.[4]?.chanceofrain ?? 0) || 0,
+                    Number(day.hourly?.[4]?.chanceofsnow ?? 0) || 0)
+            });
+            // Hourly strip: today's remaining hours + tomorrow, 3h steps
+            const hours = day.hourly ?? [];
+            for (const h of hours) {
+                if (hourlyResult.length >= 8) break;
+                const hourNum = Math.floor((Number(h.time) || 0) / 100);
+                if (i === 0 && hourNum < currentHour) continue;
+                hourlyResult.push({
+                    time: String(hourNum).padStart(2, "0") + ":00",
+                    hour: hourNum,
+                    wCode: String(h.weatherCode ?? "113"),
+                    temp: Number(root.useUSCS ? h.tempF : h.tempC) || 0,
+                    precipChance: Math.max(Number(h.chanceofrain ?? 0) || 0, Number(h.chanceofsnow ?? 0) || 0)
+                });
+            }
+        }
+        root.forecast = forecastResult;
+        root.hourly = hourlyResult;
     }
 
     function _degToCompass(deg): string {
@@ -353,8 +439,6 @@ Singleton {
         result.sunrise = sunrise ? sunrise.split("T")[1] ?? sunrise : "--:--"
         result.sunset = sunset ? sunset.split("T")[1] ?? sunset : "--:--"
         result.windDir = root._degToCompass(current.wind_direction_10m)
-        result.wCode = String(current.weather_code ?? 113)
-        result.description = root.describeWeather(result.wCode)
         result.city = root.location.name || "Unknown"
 
         result.temp = (current.temperature_2m ?? 0) + (units.temperature_2m ?? (root.useUSCS ? "°F" : "°C"))
@@ -401,9 +485,52 @@ Singleton {
         }
         result.hourly = hourly
 
-        result.lastRefresh = Qt.formatTime(new Date(), "hh:mm")
+        root.fetchAirQuality()
+        // Normalize the WMO code to the wttr code space used by icons/descriptions
+        result.wCode = root.wmoToWttrCode(Number(current.weather_code ?? 113))
+        result.description = root.describeWeather(result.wCode)
+
         root.data = result
         console.info("[Weather] Updated via Open-Meteo:", result.temp, root.redactedLogCity(result.city))
+
+        // ── Forecast parsing (Open-Meteo daily/hourly arrays) ──
+        const dailyTime = daily?.time ?? []
+        const dailyCode = daily?.weather_code ?? []
+        const dailyMax = daily?.temperature_2m_max ?? []
+        const dailyMin = daily?.temperature_2m_min ?? []
+        const dailyPrecip = daily?.precipitation_probability_max ?? []
+        const forecastResult = []
+        for (let i = 0; i < dailyTime.length && i < 7; i++) {
+            forecastResult.push({
+                date: String(dailyTime[i] ?? ""),
+                dayLabel: root._dayLabel(String(dailyTime[i] ?? ""), i),
+                wCode: root.wmoToWttrCode(Number(dailyCode[i] ?? 113)),
+                tempMax: Number(dailyMax[i]) || 0,
+                tempMin: Number(dailyMin[i]) || 0,
+                precipChance: Number(dailyPrecip[i]) || 0
+            })
+        }
+        root.forecast = forecastResult
+
+        const hourlyTime = apiData?.hourly?.time ?? []
+        const hourlyTemp = apiData?.hourly?.temperature_2m ?? []
+        const hourlyCode = apiData?.hourly?.weather_code ?? []
+        const hourlyPrecip = apiData?.hourly?.precipitation_probability ?? []
+        const hourlyResult = []
+        const now = new Date()
+        for (let i = 0; i < hourlyTime.length && hourlyResult.length < 8; i++) {
+            const t = new Date(String(hourlyTime[i] ?? ""))
+            if (isNaN(t.getTime()) || t < now) continue
+            const hourNum = t.getHours()
+            hourlyResult.push({
+                time: String(hourNum).padStart(2, "0") + ":00",
+                hour: hourNum,
+                wCode: root.wmoToWttrCode(Number(hourlyCode[i] ?? 113)),
+                temp: Number(hourlyTemp[i]) || 0,
+                precipChance: Number(hourlyPrecip[i]) || 0
+            })
+        }
+        root.hourly = hourlyResult
         root.fetchAirQuality()
     }
 
@@ -422,8 +549,8 @@ Singleton {
         const url = "https://api.open-meteo.com/v1/forecast?latitude=" + lat
             + "&longitude=" + lon
             + "&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,pressure_msl,wind_speed_10m,wind_direction_10m,weather_code,visibility"
-            + "&hourly=temperature_2m,weather_code"
-            + "&daily=sunrise,sunset,weather_code,temperature_2m_max,temperature_2m_min"
+            + "&daily=sunrise,sunset,weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max"
+            + "&hourly=temperature_2m,weather_code,precipitation_probability"
             + "&forecast_days=7"
             + "&timezone=auto"
             + "&temperature_unit=" + tempUnit
@@ -982,7 +1109,8 @@ Singleton {
                     const normalized = {
                         current: weatherPayload?.current ?? weatherPayload?.current_condition?.[0],
                         astronomy: weatherPayload?.astronomy ?? weatherPayload?.weather?.[0]?.astronomy?.[0],
-                        weather: weatherPayload?.weather
+                        weather: weatherPayload?.weather,
+                        forecastDays: weatherPayload?.weather ?? []
                     }
                     root.refineData(normalized);
                     root._emptyResponseCount = 0;

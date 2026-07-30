@@ -2,6 +2,7 @@ import qs.modules.background
 import qs.modules.bar
 import qs.modules.bootGreeting
 import qs.modules.cheatsheet
+import qs.modules.clockDashboard
 import qs.modules.controlPanel
 import qs.modules.dashboard
 import qs.modules.dock
@@ -20,6 +21,7 @@ import qs.modules.screenCorners
 import qs.modules.sessionScreen
 import qs.modules.sidebarLeft
 import qs.modules.sidebarRight
+import qs.modules.systemDashboard
 import qs.modules.tilingOverlay
 import qs.modules.verticalBar
 import qs.modules.wallpaperSelector
@@ -162,6 +164,8 @@ Item {
         keepLoaded: Config.options?.dashboard?.keepLoaded ?? false
         component: Dashboard {}
     }
+    OnDemandPanelLoader { identifier: "iiClockDashboard"; open: GlobalStates.clockDashboardOpen; component: ClockDashboard {} }
+    OnDemandPanelLoader { identifier: "iiSystemDashboard"; open: GlobalStates.systemDashboardOpen; component: SystemDashboard {} }
     DeferredPanelLoader { identifier: "iiLock"; component: Lock {} }
     // MediaControls already gates its heavy tree; a second on-demand loader
     // races the same open state and can skip the entrance transition.
