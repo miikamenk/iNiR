@@ -49,6 +49,11 @@
       "name": "homeassistant",
       "input": "homeassistant/homeassistant.sh",
       "output": "~/.cache/inir/homeassistant.sh"
+    },
+    {
+      "name": "fish",
+      "input": "fish/inir-colors.fish",
+      "output": "~/.config/fish/conf.d/inir-colors.fish"
     }
   ]
 }

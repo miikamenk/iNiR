@@ -397,7 +397,10 @@ Singleton {
             "-c",
             "if [ -f \"" + targetFile + "\" ]; then " + sedExpr + " \"" + targetFile + "\"; " +
             "else " + sedExpr + " \"" + fallbackFile + "\"; fi\n" +
-            "/usr/bin/niri msg action reload-config"
+            // niri 26.04 renamed this to load-config-file; keep the old name as a
+            // fallback for older builds. niri also watches the file itself.
+            "/usr/bin/niri msg action load-config-file 2>/dev/null " +
+            "|| /usr/bin/niri msg action reload-config 2>/dev/null || true"
         ]
         niriAnimProcess.running = true
     }

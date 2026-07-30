@@ -2392,6 +2392,21 @@ run_update() {
             done < "$runtime_dirs_manifest"
         fi
 
+        # Theming templates live outside the shell payload, in ~/.config/matugen,
+        # and used to be installed only by `./setup install`. Without this an
+        # updated checkout kept rendering from whatever templates were present at
+        # first install: the templates.json manifest never appeared (so the
+        # renderer fell back to the legacy config.toml) and templates added since
+        # — niri focus ring, nvim, firefox, steam — never rendered at all, leaving
+        # those consumers frozen on an old wallpaper's colours.
+        # No --delete here: unlike install, an update must not remove templates
+        # the user added themselves.
+        if [[ -d "${II_SOURCE}/defaults/matugen" ]]; then
+            mkdir -p "${XDG_CONFIG_HOME}/matugen"
+            rsync -a --exclude='AGENTS.md' "${II_SOURCE}/defaults/matugen/" "${XDG_CONFIG_HOME}/matugen/"
+            tui_check_ok "Theming templates refreshed"
+        fi
+
         # Cleanup deprecated files
         [[ -f "${II_TARGET}/requirements.txt" ]] && rm -f "${II_TARGET}/requirements.txt"
 

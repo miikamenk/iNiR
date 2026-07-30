@@ -87,7 +87,10 @@ migration_apply() {
 
   # Reload the compositor if it's running (harmless otherwise)
   if [[ "$changed" -eq 1 ]] && command -v niri >/dev/null 2>&1 && [[ -n "${NIRI_SOCKET:-}" ]]; then
-    niri msg action reload-config >/dev/null 2>&1 || true
+    # niri 26.04 names this `load-config-file`; older builds used `reload-config`.
+    # niri also watches the config file itself, so this is only belt-and-braces.
+    niri msg action load-config-file >/dev/null 2>&1 \
+      || niri msg action reload-config >/dev/null 2>&1 || true
   fi
 }
 
