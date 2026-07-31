@@ -703,6 +703,8 @@ Item {
         return all.filter(w => {
             if (w.id === "screentime" && !(Config.options?.sidebar?.screenTime?.enable ?? false))
                 return false
+            if (PrivacyMode.active && (w.id === "weather" || w.id === "todo" || w.id === "events"))
+                return false
             return enabled.includes(w.id)
         })
     }

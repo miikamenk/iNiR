@@ -173,6 +173,15 @@ Singleton {
             execute: () => { Notifications.toggleSilent() }
         },
         {
+            id: "toggle-privacy-mode",
+            name: Translation.tr("Toggle Privacy Mode"),
+            description: Translation.tr("Hide personal info and enable Do Not Disturb"),
+            icon: "privacy_tip",
+            category: "system",
+            keywords: ["privacy", "screen share", "streaming", "dnd", "hide", "location", "weather"],
+            execute: () => { PrivacyMode.toggle() }
+        },
+        {
             id: "lock-screen",
             name: Translation.tr("Lock Screen"),
             description: Translation.tr("Lock the screen"),

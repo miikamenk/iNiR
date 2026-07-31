@@ -141,6 +141,10 @@ Singleton {
                 property bool manualActive: false
             }
 
+            property JsonObject privacyMode: JsonObject {
+                property bool active: false
+            }
+
             property JsonObject overlay: JsonObject {
                 property list<string> open: ["crosshair", "recorder", "volumeMixer", "resources"]
                 property JsonObject crosshair: JsonObject {

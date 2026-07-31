@@ -10,7 +10,7 @@ PanelSurface {
     id: root
     islandSkin: (Config.options?.controlPanel?.style ?? "panel") === "island"
     Layout.fillWidth: true
-    implicitHeight: (Weather.enabled && Weather.data.temp && !Weather.data.temp.startsWith("--")) ? contentLayout.implicitHeight + 16 : 0
+    implicitHeight: (Weather.enabled && Weather.data.temp && !Weather.data.temp.startsWith("--") && !PrivacyMode.active) ? contentLayout.implicitHeight + 16 : 0
     visible: implicitHeight > 0
 
     Behavior on implicitHeight {

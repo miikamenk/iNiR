@@ -2071,6 +2071,7 @@ Singleton {
                     property bool showScreenRecord: true
                     property bool showColorPicker: false
                     property bool showMicToggle: false
+                    property bool showPrivacyModeToggle: false
                     property bool showKeyboardToggle: true
                     property bool showKeyboardLayoutSwitch: false
                     property bool showDarkModeToggle: true
@@ -2837,6 +2838,10 @@ Singleton {
                             {
                                 "size": 1,
                                 "type": "mic"
+                            },
+                            {
+                                "size": 1,
+                                "type": "privacyMode"
                             }
                         ]
                     }

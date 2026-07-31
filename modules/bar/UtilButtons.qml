@@ -329,6 +329,57 @@ Item {
             }
         }
 
+        // Privacy Mode toggle — hides personal info (weather location, network
+        // name, lock screen identity, notification content) and enables DND
+        Loader {
+            readonly property bool privacyActive: PrivacyMode.active
+            active: (Config.options?.bar?.utilButtons?.showPrivacyModeToggle ?? false) || privacyActive
+            visible: active
+            sourceComponent: CircleUtilButton {
+                id: privacyModeButton
+                Layout.alignment: Qt.AlignVCenter
+
+                readonly property bool isActive: PrivacyMode.active
+
+                onClicked: PrivacyMode.toggle()
+
+                Item {
+                    anchors.fill: parent
+
+                    MaterialSymbol {
+                        anchors.centerIn: parent
+                        horizontalAlignment: Qt.AlignHCenter
+                        fill: privacyModeButton.isActive ? 1 : 0
+                        animateFill: true
+                        text: "privacy_tip"
+                        iconSize: Appearance.font.pixelSize.large
+                        color: privacyModeButton.isActive
+                            ? (Appearance.inirEverywhere ? Appearance.inir.colError : Appearance.colors.colError)
+                            : (Appearance.inirEverywhere ? Appearance.inir.colText : Appearance.colors.colOnLayer2)
+                    }
+
+                    Rectangle {
+                        scale: privacyModeButton.isActive ? 1 : 0
+                        visible: scale > 0
+                        width: 6
+                        height: 6
+                        radius: 3
+                        color: Appearance.inirEverywhere ? Appearance.inir.colError : Appearance.colors.colError
+                        anchors { top: parent.top; right: parent.right }
+
+                        Behavior on scale {
+                            enabled: Appearance.animationsEnabled
+                            NumberAnimation {
+                                duration: Appearance.animation.elementMoveFast.duration
+                                easing.type: Appearance.animation.elementMoveFast.type
+                                easing.bezierCurve: Appearance.animation.elementMoveFast.bezierCurve
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         Loader {
             active: Config.options?.bar?.utilButtons?.showDarkModeToggle ?? true
             visible: active

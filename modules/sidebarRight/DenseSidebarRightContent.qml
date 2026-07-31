@@ -89,7 +89,8 @@ Item {
             { id: "calculator", icon: "calculate",    label: Translation.tr("Calc"),    component: calculatorComponent },
         ]
         const filtered = all.filter(t => enabled.includes(t.id))
-        return filtered.length > 0 ? filtered : all
+        const base = filtered.length > 0 ? filtered : all
+        return PrivacyMode.active ? base.filter(t => t.id !== "todo") : base
     }
 
     readonly property var miscTabs: {
@@ -451,6 +452,7 @@ Item {
             // ── 5. Upcoming events ───────────────────────────────
             DenseCard {
                 id: eventsCard
+                visible: !PrivacyMode.active
                 Layout.fillWidth: true
                 Layout.fillHeight: false
                 Layout.preferredHeight: Math.max(84, Math.round(bg.height * 0.11))

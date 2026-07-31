@@ -8,14 +8,14 @@ AndroidQuickToggleButton {
     id: root
     
     name: Translation.tr("Internet")
-    statusText: Network.networkName
+    statusText: Network.networkNameForDisplay
 
     toggled: Network.wifiStatus !== "disabled"
     buttonIcon: Network.materialSymbol
     mainAction: () => Network.toggleWifi()
     altAction: () => root.openMenu()
     StyledToolTip {
-        text: Translation.tr("%1 | Right-click to configure").arg(Network.networkName)
+        text: Translation.tr("%1 | Right-click to configure").arg(Network.networkNameForDisplay)
     }
 }
 

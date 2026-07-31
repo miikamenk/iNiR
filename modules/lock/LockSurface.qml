@@ -451,7 +451,7 @@ MouseArea {
                     Text {
                         anchors.verticalCenter: parent.verticalCenter
                         text: Network.networkName ?? ""
-                        visible: text.length > 0 && text.length < 16
+                        visible: text.length > 0 && text.length < 16 && !PrivacyMode.active
                         font.pixelSize: Appearance.font.pixelSize.smaller
                         font.family: Appearance.font.family.main
                         color: Appearance.colors.colOnSurfaceVariant
@@ -728,7 +728,7 @@ MouseArea {
             id: lockNotificationsLoader
             readonly property bool lockNotifEnabled: Config.options?.lock?.notifications?.enable ?? false
             readonly property int lockNotifMaxCount: Config.options?.lock?.notifications?.maxCount ?? 3
-            readonly property bool lockNotifShowBody: Config.options?.lock?.notifications?.showBody ?? true
+            readonly property bool lockNotifShowBody: (Config.options?.lock?.notifications?.showBody ?? true) && !PrivacyMode.active
             readonly property string lockNotifPosition: {
                 const pos = Config.options?.lock?.notifications?.position ?? "auto"
                 return pos === "auto" ? "center" : pos
@@ -1295,7 +1295,7 @@ MouseArea {
                         mipmap: true
                         sourceSize.width: avatarCircle.width * 2
                         sourceSize.height: avatarCircle.height * 2
-                        visible: status === Image.Ready
+                        visible: status === Image.Ready && !PrivacyMode.active
                         
                         layer.enabled: Appearance.effectsEnabled
                         layer.effect: OpacityMask {
@@ -1330,16 +1330,26 @@ MouseArea {
                         font.pixelSize: Math.round(40 * Appearance.fontSizeScale)
                         font.weight: Font.Medium
                         color: Appearance.colors.colOnPrimary
-                        visible: avatarImage.status !== Image.Ready
+                        visible: avatarImage.status !== Image.Ready && !PrivacyMode.active
+                    }
+
+                    // Privacy Mode: generic silhouette instead of avatar/initial
+                    MaterialSymbol {
+                        anchors.centerIn: parent
+                        visible: PrivacyMode.active
+                        text: "person"
+                        fill: 1
+                        iconSize: Math.round(44 * Appearance.fontSizeScale)
+                        color: Appearance.colors.colOnPrimary
                     }
                 }
             }
-            
+
             // Display name
             Text {
                 Layout.alignment: Qt.AlignHCenter
                 Layout.topMargin: 8
-                text: SystemInfo.displayName || SystemInfo.username
+                text: PrivacyMode.active ? Translation.tr("Locked") : (SystemInfo.displayName || SystemInfo.username)
                 font.pixelSize: Math.round(22 * Appearance.fontSizeScale)
                 font.weight: Font.Medium
                 font.family: Appearance.font.family.main

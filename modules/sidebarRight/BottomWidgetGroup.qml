@@ -119,6 +119,8 @@ Rectangle {
     property var tabs: allTabs.filter(tab => {
         if (tab.type === "screentime" && !(Config.options?.sidebar?.screenTime?.enable ?? false))
             return false
+        if (PrivacyMode.active && (tab.type === "weather" || tab.type === "todo" || tab.type === "events"))
+            return false
         return enabledWidgets.includes(tab.type)
     })
 

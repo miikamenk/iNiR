@@ -6,6 +6,7 @@ pragma ComponentBehavior: Bound
 import Quickshell
 import Quickshell.Io
 import QtQuick
+import qs.services
 import qs.services.network
 
 /**
@@ -26,6 +27,9 @@ Singleton {
     property string wifiStatus: "disconnected"
 
     property string networkName: ""
+    // Privacy Mode: masked network name for UI display only — networkName itself
+    // stays real so other logic (e.g. Work Safety keyword matching) keeps working
+    readonly property string networkNameForDisplay: PrivacyMode.active ? Translation.tr("Hidden") : networkName
     property int networkStrength
     // Gated on being *connected*, not on the radio being powered. wifiStatus is
     // only ever "connecting"/"disconnected" while the radio is on — i.e. while

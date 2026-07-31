@@ -15,7 +15,7 @@ Item {
 
     property bool showTimerIdle: false
     readonly property bool timerActive: TimerService.pomodoroRunning || TimerService.stopwatchRunning || TimerService.countdownRunning
-    readonly property bool weatherEnabled: (Config.options?.sidebar?.widgets?.contextShowWeather ?? true) && Weather.enabled && Weather.data.temp && !Weather.data.temp.startsWith("--")
+    readonly property bool weatherEnabled: (Config.options?.sidebar?.widgets?.contextShowWeather ?? true) && Weather.enabled && Weather.data.temp && !Weather.data.temp.startsWith("--") && !PrivacyMode.active
 
     // Reset showTimerIdle when timer starts
     onTimerActiveChanged: if (timerActive) showTimerIdle = false

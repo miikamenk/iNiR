@@ -293,7 +293,7 @@ Item {
             // Weather summary — live conditions, or the picked day's forecast.
             // Dimmed when the picked day is outside the forecast window.
             ColumnLayout {
-                visible: Weather.enabled
+                visible: Weather.enabled && !PrivacyMode.active
                 spacing: 2
                 Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
                 opacity: root.weatherUnavailable ? 0.35 : 1
@@ -411,7 +411,7 @@ Item {
 
                 // Hourly strip
                 ColumnLayout {
-                    visible: Weather.enabled && Weather.hourly.length > 0
+                    visible: Weather.enabled && Weather.hourly.length > 0 && !PrivacyMode.active
                     Layout.fillWidth: true
                     spacing: 6
 
@@ -487,7 +487,7 @@ Item {
 
                 // Daily forecast
                 ColumnLayout {
-                    visible: Weather.enabled && Weather.forecast.length > 0
+                    visible: Weather.enabled && Weather.forecast.length > 0 && !PrivacyMode.active
                     Layout.fillWidth: true
                     spacing: 4
 
@@ -586,6 +586,7 @@ Item {
 
                 // Upcoming events
                 ColumnLayout {
+                    visible: !PrivacyMode.active
                     Layout.fillWidth: true
                     spacing: 4
 

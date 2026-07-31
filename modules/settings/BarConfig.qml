@@ -2336,6 +2336,15 @@ ContentPage {
                     checked: Config.options?.bar?.utilButtons?.showPerformanceProfileToggle ?? false
                     onCheckedChanged: Config.setNestedValue("bar.utilButtons.showPerformanceProfileToggle", checked)
                 }
+                SettingsSwitch {
+                    buttonIcon: "privacy_tip"
+                    text: Translation.tr("Privacy mode")
+                    checked: Config.options?.bar?.utilButtons?.showPrivacyModeToggle ?? false
+                    onCheckedChanged: Config.setNestedValue("bar.utilButtons.showPrivacyModeToggle", checked)
+                    StyledToolTip {
+                        text: Translation.tr("Hides weather location, network name, lock screen identity and notification content, and enables Do Not Disturb")
+                    }
+                }
             }
         }
     }

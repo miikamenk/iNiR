@@ -49,9 +49,11 @@ AbstractQuickPanel {
         }
         
         IdleInhibitor {}
-        
+
         GameMode {}
-        
+
         CloudflareWarp {}
+
+        PrivacyMode {}
     }
 }

@@ -217,6 +217,7 @@ Item { // Notification item area
                     textFormat: Text.StyledText
                     text: {
                         if (!root.notificationObject) return ""
+                        if (PrivacyMode.active) return Translation.tr("Content hidden")
                         return NotificationUtils.processNotificationBody(notificationObject.body, notificationObject.appName || notificationObject.summary).replace(/\n/g, "<br/>")
                     }
                 }
@@ -246,6 +247,7 @@ Item { // Notification item area
                     textFormat: Text.RichText
                     text: {
                         if (!root.notificationObject) return ""
+                        if (PrivacyMode.active) return Translation.tr("Content hidden")
                         return `<style>img{max-width:100%;}</style>` +
                             `${NotificationUtils.processNotificationBody(notificationObject.body, notificationObject.appName || notificationObject.summary).replace(/\n/g, "<br/>")}`
                     }
