@@ -84,7 +84,7 @@ Scope {
             // None otherwise (avoids input capture during GameMode)
             WlrLayershell.keyboardFocus: GlobalStates.overlayOpen
                 ? WlrKeyboardFocus.Exclusive
-                : (OverlayContext.clickableWidgets.length > 0
+                : (OverlayContext.clickableWidgets.length > 0 && !GameMode.shouldHidePanels && !GameMode.shouldBlockInput
                     ? WlrKeyboardFocus.OnDemand
                     : WlrKeyboardFocus.None)
             color: "transparent"
@@ -102,7 +102,9 @@ Scope {
             property var _activeClickableRegions: []
             function _rebuildClickableRegions() {
                 for (const region of overlayWindow._activeClickableRegions) region.destroy();
-                overlayWindow._activeClickableRegions = OverlayContext.clickableWidgets.map((widget) => regionComponent.createObject(overlayWindow, {
+                const inputBlocked = GameMode.shouldHidePanels
+                    || (!GlobalStates.overlayOpen && GameMode.shouldBlockInput);
+                overlayWindow._activeClickableRegions = inputBlocked ? [] : OverlayContext.clickableWidgets.map((widget) => regionComponent.createObject(overlayWindow, {
                     item: widget
                 }));
                 clickableRegionMask.regions = overlayWindow._activeClickableRegions;
@@ -115,6 +117,13 @@ Scope {
             Connections {
                 target: GameMode
                 function onShouldHidePanelsChanged() { overlayWindow._rebuildClickableRegions(); }
+                function onShouldBlockInputChanged() { overlayWindow._rebuildClickableRegions(); }
+            }
+            Connections {
+                target: GlobalStates
+                // The gate below reads overlayOpen, so the region list has to be
+                // rebuilt when it flips — otherwise it keeps the previous verdict.
+                function onOverlayOpenChanged() { overlayWindow._rebuildClickableRegions(); }
             }
 
             mask: Region {

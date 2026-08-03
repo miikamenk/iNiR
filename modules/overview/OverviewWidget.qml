@@ -110,7 +110,7 @@ Item {
     StyledRectangularShadow {
         target: overviewBackground
     }
-    Rectangle { // Background
+    GlassBackground { // Background
         id: overviewBackground
         property real padding: 10
         anchors.fill: parent
@@ -119,11 +119,21 @@ Item {
         implicitWidth: workspaceColumnLayout.implicitWidth + padding * 2
         implicitHeight: workspaceColumnLayout.implicitHeight + padding * 2
         radius: root.largeWorkspaceRadius + padding
-        color: Appearance.angelEverywhere ? Appearance.angel.colGlassPopup
-             : Appearance.inirEverywhere ? Appearance.inir.colLayer1
+        fallbackColor: Appearance.angelEverywhere ? Appearance.angel.colGlassPopup
              : Appearance.auroraEverywhere ? Appearance.aurora.colPopupSurface
              : Appearance.colors.colBackgroundSurfaceContainer
-        border.width: Appearance.angelEverywhere ? Appearance.angel.cardBorderWidth : 1
+        inirColor: Appearance.inir.colLayer1
+        // Overflow must stay visible so windows dragged between workspaces are
+        // not cut off at the panel edge; the liquid shader masks itself.
+        clip: false
+        // The overview panel is centered on screen — close enough for the
+        // subtle rim refraction and blur alignment.
+        screenX: (root.panelWindow.width - width) / 2
+        screenY: (root.panelWindow.height - height) / 2
+        screenWidth: root.panelWindow.screen?.width ?? 1920
+        screenHeight: root.panelWindow.screen?.height ?? 1080
+        border.width: Appearance.liquidEverywhere ? 0
+                    : Appearance.angelEverywhere ? Appearance.angel.cardBorderWidth : 1
         border.color: Appearance.angelEverywhere ? Appearance.angel.colCardBorder
                     : Appearance.inirEverywhere ? Appearance.inir.colBorder
                     : Appearance.auroraEverywhere ? ColorUtils.transparentize(Appearance.colors.colOutlineVariant, 0.72)

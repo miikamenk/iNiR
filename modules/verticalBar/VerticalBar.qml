@@ -78,8 +78,9 @@ Scope {
                 // would draw the bar over fullscreen content (GameMode only
                 // detects games, not videos).
                 implicitWidth: Appearance.sizes.verticalBarWidth + Appearance.rounding.screenRounding
+                Item { id: emptyMask; width: 0; height: 0 }
                 mask: Region {
-                    item: hoverMaskRegion
+                    item: (GameMode.shouldHidePanels || GameMode.shouldBlockInput) ? emptyMask : hoverMaskRegion
                 }
                 color: "transparent"
 

@@ -54,6 +54,21 @@
       "name": "fish",
       "input": "fish/inir-colors.fish",
       "output": "~/.config/fish/conf.d/inir-colors.fish"
+    },
+    {
+      "name": "hyprland_colors",
+      "input": "hyprland/colors.lua",
+      "output": "~/.config/hypr/hyprland/colors.lua"
+    },
+    {
+      "name": "hyprlock_colors",
+      "input": "hyprland/hyprlock-colors.conf",
+      "output": "~/.config/hypr/hyprlock/colors.conf"
+    },
+    {
+      "name": "hyprglass_colors",
+      "input": "hyprland/hyprglass-colors.lua",
+      "output": "~/.config/hypr/hyprland/hyprglass-colors.lua"
     }
   ]
 }

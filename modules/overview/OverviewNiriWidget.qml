@@ -204,10 +204,13 @@ Item {
 
     StyledRectangularShadow {
         target: overviewBackground
-        visible: Appearance.angelEverywhere || (!Appearance.inirEverywhere && !Appearance.auroraEverywhere)
+        // Liquid gets a shadow like every other floating glass pane — a
+        // see-through surface needs it to lift off whatever shows through.
+        visible: Appearance.angelEverywhere || Appearance.liquidEverywhere
+            || (!Appearance.inirEverywhere && !Appearance.auroraEverywhere)
     }
 
-    Rectangle {
+    GlassBackground {
         id: overviewBackground
         property real padding: 10
         anchors.fill: parent
@@ -216,14 +219,24 @@ Item {
         implicitWidth: workspaceColumnLayout.implicitWidth + padding * 2
         implicitHeight: workspaceColumnLayout.implicitHeight + padding * 2
         radius: Appearance.angelEverywhere ? Appearance.angel.roundingLarge
+            : Appearance.liquidEverywhere ? Appearance.liquid.roundingLarge
             : Appearance.inirEverywhere ? Appearance.inir.roundingLarge
             : (Appearance.rounding.large + padding)
+        // Overflow must stay visible so windows dragged between workspaces are
+        // not cut off at the panel edge; the liquid shader masks itself.
         clip: false
-        color: Appearance.angelEverywhere ? Appearance.angel.colGlassCard
-             : Appearance.inirEverywhere ? Appearance.inir.colLayer1
+        fallbackColor: Appearance.angelEverywhere ? Appearance.angel.colGlassCard
              : Appearance.auroraEverywhere ? Appearance.aurora.colPopupSurface
              : Appearance.colors.colBackgroundSurfaceContainer
-        border.width: Appearance.angelEverywhere ? Appearance.angel.cardBorderWidth : 1
+        inirColor: Appearance.inir.colLayer1
+        // The overview panel is centered on screen — close enough for the
+        // subtle rim refraction and blur alignment.
+        screenX: (root.panelWindow.width - width) / 2
+        screenY: (root.panelWindow.height - height) / 2
+        screenWidth: root.panelWindow.screen?.width ?? 1920
+        screenHeight: root.panelWindow.screen?.height ?? 1080
+        border.width: Appearance.liquidEverywhere ? 0
+            : Appearance.angelEverywhere ? Appearance.angel.cardBorderWidth : 1
         border.color: Appearance.angelEverywhere ? Appearance.angel.colBorder
             : Appearance.inirEverywhere ? Appearance.inir.colBorder
             : Appearance.auroraEverywhere ? ColorUtils.transparentize(Appearance.colors.colOutlineVariant, 0.72)

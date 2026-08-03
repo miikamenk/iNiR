@@ -2089,7 +2089,11 @@ start_background() {
     fi
 
     apply_hot_reload_policy_for_dir "$dir"
-    nohup "$qs_bin" -n -d -p "$dir" >/dev/null 2>&1 &
+    # QS_DISABLE_CRASH_HANDLER matches inir.service: a teardown segfault
+    # (quickshell 0.3.0 IpcHandlerRegistry use-after-free) otherwise leaves a
+    # forked copy alive that still holds its layer surfaces — a duplicate bar
+    # that cannot be closed.
+    QS_DISABLE_CRASH_HANDLER=1 nohup "$qs_bin" -n -d -p "$dir" >/dev/null 2>&1 &
 }
 
 kill_wrapper() {

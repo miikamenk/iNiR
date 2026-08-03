@@ -10,8 +10,8 @@ hl.bind(
 ------------------------------------------------------------
 -- Disable defaults we don't want / are about to remap
 ------------------------------------------------------------
-hl.unbind("SUPER + SUPER_L") -- default: searchToggleRelease
-hl.unbind("SUPER + SUPER_R") -- default: searchToggleRelease
+hl.unbind("SUPER + SUPER_L") -- default: searchToggleRelease (ii-only global) -> rebound to ipc overview toggle below
+hl.unbind("SUPER + SUPER_R") -- default: searchToggleRelease (ii-only global) -> rebound to ipc overview toggle below
 hl.unbind("SUPER + A") -- default: sidebarLeftToggle       -> overview
 hl.unbind("SUPER + ALT + A") -- default: sidebarLeftToggleDetach -> moved to ALT+O
 hl.unbind("SUPER + J") -- default: barToggle               -> togglesplit
@@ -149,12 +149,53 @@ hl.bind("CTRL + SUPER + Right", hl.dsp.layout("swapcol r"), { description = "Mov
 ------------------------------------------------------------
 -- Apps / scripts
 ------------------------------------------------------------
-hl.bind("SUPER + Y", hl.dsp.exec_cmd("/home/menk/.config/toggle-hdr.sh"), { description = "Toggle HDR" })
-hl.bind(
-	"SUPER + ALT + R",
-	hl.dsp.exec_cmd("~/.config/hypr/custom/scripts/layout-switch.sh"),
-	{ description = "Switch layouts" }
-)
+-- Toggle HDR (cm srgb <-> hdr) on whichever monitor the focused window lives on
+hl.bind("SUPER + Y", function()
+	local w = hl.get_active_window()
+	if w == nil then
+		return
+	end
+	local mon = w.monitor
+	if mon == nil then
+		return
+	end
+
+	if mon.cm == "hdr" then
+		hl.monitor({ output = mon.name, cm = "srgb" })
+		hl.notification.create({ text = "HDR off (" .. mon.name .. ")", duration = 1500 })
+	else
+		hl.monitor({ output = mon.name, cm = "hdr", bitdepth = 10 })
+		hl.notification.create({ text = "HDR on (" .. mon.name .. ")", duration = 1500 })
+	end
+end, { description = "Toggle HDR" })
+
+-- Cycle the active workspace's layout: dwindle <-> scrolling
+local layoutCycle = { "dwindle", "scrolling" }
+
+hl.bind("SUPER + ALT + R", function()
+	local ws = hl.get_active_workspace()
+	if ws == nil then
+		return
+	end
+
+	local current = nil
+	local wins = hl.get_workspace_windows(ws.id)
+	if wins[1] ~= nil and wins[1].layout ~= nil then
+		current = wins[1].layout.name
+	end
+
+	local idx = 1
+	for i, name in ipairs(layoutCycle) do
+		if name == current then
+			idx = i
+			break
+		end
+	end
+	local nextLayout = layoutCycle[idx % #layoutCycle + 1]
+
+	hl.workspace_rule({ workspace = tostring(ws.id), layout = nextLayout })
+	hl.notification.create({ text = "Layout: " .. nextLayout, duration = 1500 })
+end, { description = "Switch layouts" })
 hl.bind(
 	"CTRL + SUPER + Slash",
 	hl.dsp.exec_cmd("kitty nvim ~/.config/illogical-impulse/config.json"),
@@ -172,6 +213,14 @@ hl.bind(
 	),
 	{ description = "Browser" }
 )
+hl.bind(
+	"SHIFT + SUPER + B",
+	hl.dsp.exec_cmd(
+		[[~/.config/hypr/hyprland/scripts/launch_first_available.sh "/home/menk/Applications/helium-0.11.2.1-x86_64_d78753143a673f460e0a20a3c5f43bb4.AppImage %U" "zen-browser" "firefox" "brave" "chromium" "microsoft-edge-stable" "opera" "librewolf"]]
+	),
+	{ description = "Browser" }
+)
+
 hl.bind(
 	"SUPER + C",
 	hl.dsp.exec_cmd(

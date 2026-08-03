@@ -36,7 +36,20 @@ Singleton {
     readonly property bool autoActivated: !_manualActive
         && (_autoActive || _reactiveAutoActive)
 
-    // Surface mapping caused native crash loops; GameMode only suppresses work.
+    // Surface mapping caused native crash loops; GameMode only suppresses work,
+    // so this stays false — auto-detect applies performance optimizations only,
+    // never panel/background hiding.
+    readonly property bool shouldHidePanels: false
+
+    // True when the focused window is fullscreen: panels stay visible and
+    // keep their reserved space (unlike shouldHidePanels), but their input
+    // mask is cleared so clicks pass through to the fullscreen app instead
+    // of being swallowed by the shell's layer-shell surface. Compositors
+    // (confirmed on Hyprland) keep top/overlay-layer surfaces interactive
+    // even when a fullscreen window is stacked visually above them, so
+    // without this a fullscreened game's UI is unclickable wherever the
+    // bar/dock/overlay surface overlaps it.
+    readonly property bool shouldBlockInput: _focusedIsFullscreen
     
     // When autoDetect is disabled, immediately clear auto state
     onAutoDetectChanged: {

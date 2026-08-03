@@ -34,22 +34,32 @@ hl.config({
 	cursor = {
 		hide_on_key_press = true,
 	},
+	decoration = {
+		-- hyprglass (custom/plugins.lua) draws its glass effect *behind* the
+		-- window as a decoration; it only shows through window transparency.
+		-- Without this, every window was fully opaque and the plugin had
+		-- nothing to show through, hence "no apps show it". Focused/fullscreen
+		-- windows stay opaque anyway — custom/rules.lua tags them
+		-- hyprglass_disabled, so this opacity only matters for the rest.
+		inactive_opacity = 0.72,
+	},
 	scrolling = {
 		column_width = 0.5,
 	},
+	binds = { scroll_event_delay = 175 },
 })
 
 -- Curves
 hl.curve("easeOutExpo", { type = "bezier", points = { { 0.16, 1 }, { 0.3, 1 } } }) -- niri ease-out-expo
 hl.curve("easeOutQuad", { type = "bezier", points = { { 0.25, 0.46 }, { 0.45, 0.94 } } }) -- niri ease-out-quad
-hl.curve("wsSpring", { type = "spring", mass = 1, stiffness = 80, dampening = 17 }) -- was 250 / 25
-hl.curve("moveSpring", { type = "spring", mass = 1, stiffness = 80, dampening = 21 }) -- was 300 / 33
+hl.curve("wsSpring", { type = "spring", mass = 1, stiffness = 250, dampening = 25 })
+hl.curve("moveSpring", { type = "spring", mass = 1, stiffness = 300, dampening = 33 })
 
 -- Animations (speed is in deciseconds: 1 = 100ms)
-hl.animation({ leaf = "windowsIn", enabled = true, speed = 2.5, bezier = "easeOutExpo", style = "popin 80%" }) -- 200ms
-hl.animation({ leaf = "windowsOut", enabled = true, speed = 2.5, bezier = "easeOutQuad", style = "popin 80%" })
-hl.animation({ leaf = "windowsMove", enabled = true, speed = 6, spring = "moveSpring" }) -- was speed 4
-hl.animation({ leaf = "workspaces", enabled = true, speed = 7, spring = "wsSpring" }) -- was speed 5
+hl.animation({ leaf = "windowsIn", enabled = true, speed = 2, bezier = "easeOutExpo", style = "popin 80%" })
+hl.animation({ leaf = "windowsOut", enabled = true, speed = 1.8, bezier = "easeOutQuad", style = "popin 80%" })
+hl.animation({ leaf = "windowsMove", enabled = true, speed = 2, spring = "moveSpring" })
+hl.animation({ leaf = "workspaces", enabled = true, speed = 3, spring = "wsSpring" })
 hl.animation({ leaf = "fade", enabled = true, speed = 2, bezier = "easeOutQuad" }) -- snappy fades
 
 -- Monitors

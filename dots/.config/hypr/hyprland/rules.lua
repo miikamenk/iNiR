@@ -129,9 +129,19 @@ hl.layer_rule({ match = { namespace = "osk[0-9]*" }, ignore_alpha = 0.6})
 
 -- Quickshell
 -- Quickshell: illogical-impulse
-hl.layer_rule({ match = { namespace = "quickshell:.*" }, blur_popups = true})
-hl.layer_rule({ match = { namespace = "quickshell:.*" }, blur = true})
-hl.layer_rule({ match = { namespace = "quickshell:.*" }, ignore_alpha = 0.79})
+-- NO compositor blur on shell surfaces.
+--
+-- Blur is what makes a panel read "translucent" (a milky frosted wash) instead
+-- of "transparent" (you can see what is actually behind it). It also makes the
+-- Glass opacity slider feel dead: behind a blurred pane sits a low-contrast
+-- average of the scene, so raising alpha reveals more blur rather than more
+-- detail. niri cannot blur layer surfaces at all, which is exactly why the
+-- shell looks see-through there — this keeps Hyprland matching it, and matching
+-- the settings window (a normal window, not a layer surface).
+--
+-- The glass look comes from QML instead: real surface alpha plus the
+-- LiquidGlassEdges sheen/specular/rim.
+hl.layer_rule({ match = { namespace = "quickshell:.*" }, blur = false})
 hl.layer_rule({ match = { namespace = "quickshell:bar" }, animation = "slide"})
 hl.layer_rule({ match = { namespace = "quickshell:actionCenter" }, no_anim = true})
 hl.layer_rule({ match = { namespace = "quickshell:cheatsheet" }, animation = "slide bottom"})
@@ -144,9 +154,6 @@ hl.layer_rule({ match = { namespace = "quickshell:overlay" }, ignore_alpha = 1})
 hl.layer_rule({ match = { namespace = "quickshell:overview" }, no_anim = true})
 hl.layer_rule({ match = { namespace = "quickshell:osk" }, animation = "slide bottom"})
 hl.layer_rule({ match = { namespace = "quickshell:polkit" }, no_anim = true})
-hl.layer_rule({ match = { namespace = "quickshell:popup" }, xray = false}) -- No weird color for bar tooltips (this in theory should suffice)
-hl.layer_rule({ match = { namespace = "quickshell:popup" }, ignore_alpha = 1}) -- No weird color for bar tooltips (but somehow this is necessary)
-hl.layer_rule({ match = { namespace = "quickshell:mediaControls" }, ignore_alpha = 1}) -- Same as above
 hl.layer_rule({ match = { namespace = "quickshell:reloadPopup" }, animation = "slide"})
 hl.layer_rule({ match = { namespace = "quickshell:regionSelector" }, no_anim = true})
 hl.layer_rule({ match = { namespace = "quickshell:screenshot" }, no_anim = true})

@@ -1595,15 +1595,30 @@ Singleton {
         readonly property real tooltipTransparentize: (Config.options?.appearance?.liquid?.transparency?.tooltip ?? 0.22) * _lightFactor
         readonly property real layerTransparentize: (Config.options?.appearance?.liquid?.transparency?.layer ?? 0.28) * _lightFactor
 
+        // ─── INTERIOR SURFACE SCALE (real glass only) ───
+        // With real transparency the panel body already carries surfaceOpacity,
+        // so a card drawn at its own full alpha composites on top of it: 0.7
+        // under 0.7 reads as 0.91 — far more solid than the bar, which is a
+        // single flat layer (its widgets live outside the background rect, so
+        // nothing stacks). Interior surfaces therefore have to fall back to
+        // light tints, keeping a panel's total close to the bar's.
+        // Hover/active keep more of their alpha so feedback stays visible.
+        readonly property real _interiorScale: realGlass ? 0.25 : 1.0
+        readonly property real _interiorScaleHover: realGlass ? 0.45 : 1.0
+        readonly property real _interiorScaleActive: realGlass ? 0.60 : 1.0
+        readonly property real _cardT: 1.0 - (1.0 - cardTransparentize) * _interiorScale
+        readonly property real _cardTHover: 1.0 - (1.0 - cardTransparentize) * _interiorScaleHover
+        readonly property real _cardTActive: 1.0 - (1.0 - cardTransparentize) * _interiorScaleActive
+
         // ─── GLASS SURFACES ───
         readonly property color colGlassPanel: ColorUtils.transparentize(
             root.colors.colLayer0Base, panelTransparentize)
         readonly property color colGlassCard: ColorUtils.transparentize(
-            root.colors.colLayer1Base, cardTransparentize)
+            root.colors.colLayer1Base, _cardT)
         readonly property color colGlassCardHover: ColorUtils.transparentize(
-            ColorUtils.mix(root.colors.colLayer1Base, root.colors.colOnLayer1, 0.92), cardTransparentize)
+            ColorUtils.mix(root.colors.colLayer1Base, root.colors.colOnLayer1, 0.92), _cardTHover)
         readonly property color colGlassCardActive: ColorUtils.transparentize(
-            ColorUtils.mix(root.colors.colLayer1Base, root.colors.colOnLayer1, 0.86), cardTransparentize)
+            ColorUtils.mix(root.colors.colLayer1Base, root.colors.colOnLayer1, 0.86), _cardTActive)
         readonly property color colGlassPopup: ColorUtils.transparentize(
             root.colors.colLayer2Base, popupTransparentize)
         readonly property color colGlassPopupHover: ColorUtils.transparentize(
@@ -1615,9 +1630,10 @@ Singleton {
         readonly property color colGlassDialog: ColorUtils.transparentize(
             root.colors.colLayer3Base, popupTransparentize * 0.85)
         readonly property color colGlassElevated: ColorUtils.transparentize(
-            root.colors.colLayer2Base, cardTransparentize * 0.9)
+            root.colors.colLayer2Base, 1.0 - (1.0 - cardTransparentize * 0.9) * _interiorScale)
         readonly property color colGlassElevatedHover: ColorUtils.transparentize(
-            ColorUtils.mix(root.colors.colLayer2Base, root.colors.colOnLayer2, 0.94), cardTransparentize * 0.9)
+            ColorUtils.mix(root.colors.colLayer2Base, root.colors.colOnLayer2, 0.94),
+            1.0 - (1.0 - cardTransparentize * 0.9) * _interiorScaleHover)
         // Interactive chips on a borderless bar want far less fill than a card.
         // At card alpha they are the only solid objects in the centre cluster and
         // read as grey blocks rather than glass. Derived from the user's card
@@ -1640,11 +1656,13 @@ Singleton {
         readonly property bool realGlass: Config.options?.appearance?.liquid?.realGlass?.enable ?? true
         // How solid the glass reads. 0 = invisible, 1 = opaque.
         readonly property real surfaceOpacity: Math.max(0.15, Math.min(1.0, Config.options?.appearance?.liquid?.realGlass?.opacity ?? 0.62))
-        // Panels/popups sit slightly more solid than base surfaces so text on
-        // them stays legible over arbitrary window content.
+        // All real-glass tiers share the panel alpha: the old 1.12/1.22
+        // multipliers made popups and dashboards read almost solid (and near
+        // black in dark mode) next to the bar and sidebars. Hierarchy comes
+        // from the layer tint, not from stacking opacity.
         readonly property color colGlassReal: ColorUtils.transparentize(root.colors.colLayer0Base, 1.0 - surfaceOpacity)
-        readonly property color colGlassRealElevated: ColorUtils.transparentize(root.colors.colLayer1Base, 1.0 - Math.min(1.0, surfaceOpacity * 1.12))
-        readonly property color colGlassRealPopup: ColorUtils.transparentize(root.colors.colLayer2Base, 1.0 - Math.min(1.0, surfaceOpacity * 1.22))
+        readonly property color colGlassRealElevated: ColorUtils.transparentize(root.colors.colLayer1Base, 1.0 - surfaceOpacity)
+        readonly property color colGlassRealPopup: ColorUtils.transparentize(root.colors.colLayer2Base, 1.0 - surfaceOpacity)
         // A translucent panel needs its own rim to read as an edge instead of a
         // fade, and a firmer shadow to lift it off whatever shows through.
         readonly property color colGlassRealBorder: root._auroraLightMode

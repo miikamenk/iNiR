@@ -97,12 +97,18 @@ LazyLoader {
             target: popupBackground
         }
 
-        Rectangle {
+        GlassBackground {
             id: popupBackground
             readonly property real margin: 10
 
             property bool _shown: false
-            Component.onCompleted: _shown = true
+            // Reparent instead of assigning `children`: that would wipe the
+            // glass decorations GlassBackground declares internally.
+            Component.onCompleted: {
+                if (root.contentItem)
+                    root.contentItem.parent = popupBackground;
+                _shown = true;
+            }
 
             opacity: _shown ? 1 : 0
             scale: _shown ? 1.0 : 0.88
@@ -125,16 +131,28 @@ LazyLoader {
             }
             implicitWidth: root.contentItem.implicitWidth + margin * 2
             implicitHeight: root.contentItem.implicitHeight + margin * 2
-            color: Appearance.angelEverywhere ? Appearance.angel.colGlassPopup
-                : Appearance.inirEverywhere ? Appearance.inir.colLayer2
-                : Appearance.colors.colSurfaceContainer
+            fallbackColor: Appearance.angelEverywhere ? Appearance.angel.colGlassPopup
+                : Appearance.m3colors.m3surfaceContainer
+            inirColor: Appearance.inir.colLayer2
+            auroraTransparency: Appearance.liquidEverywhere
+                ? Appearance.liquid.tooltipTransparentize
+                : Appearance.aurora.popupTransparentize
             radius: Appearance.angelEverywhere ? Appearance.angel.roundingNormal
+                : Appearance.liquidEverywhere ? Appearance.liquid.roundingNormal
                 : Appearance.inirEverywhere ? Appearance.inir.roundingNormal : Appearance.rounding.small
-            children: [root.contentItem]
 
-            border.width: 1
+            // Screen position for blur/refraction alignment: window margins place
+            // the surface, the background is inset by its own anchors within it.
+            screenX: popupWindow.margins.left + popupBackground.anchors.leftMargin
+            screenY: popupWindow.margins.top + popupBackground.anchors.topMargin
+            screenWidth: popupWindow.screen?.width ?? 1920
+            screenHeight: popupWindow.screen?.height ?? 1080
+
+            // The liquid rim comes from LiquidGlassEdges inside GlassBackground;
+            // a second rectangular border on top would double the edge.
+            border.width: Appearance.liquidEverywhere ? 0 : 1
             border.color: Appearance.angelEverywhere ? Appearance.angel.colBorder
-                : Appearance.inirEverywhere ? Appearance.inir.colBorder 
+                : Appearance.inirEverywhere ? Appearance.inir.colBorder
                 : Appearance.colors.colLayer0Border
         }
 

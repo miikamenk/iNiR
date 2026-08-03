@@ -151,13 +151,14 @@ Item {
         id: gradientEdges
 
         Item {
-            // Sheen — subtle top-down light gradient
+            // Sheen — subtle top-down light gradient. Stop matches the shader
+            // path's 0.55 falloff so toggling the shader doesn't move the light.
             Rectangle {
                 anchors.fill: parent
                 visible: Appearance.liquid.sheenEnabled && root.sheenOverContent
                 gradient: Gradient {
                     GradientStop { position: 0.0; color: Appearance.liquid.colSheen }
-                    GradientStop { position: 0.35; color: "transparent" }
+                    GradientStop { position: 0.55; color: "transparent" }
                 }
             }
 

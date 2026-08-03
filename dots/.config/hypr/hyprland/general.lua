@@ -21,18 +21,21 @@ hl.gesture({
     direction = "horizontal",
     action = "workspace"
 })
+-- quickshell:overviewWorkspacesToggle is an `ii`-only global (doesn't exist in
+-- the inir shell), so this dispatches over IPC instead. See custom/keybinds.lua
+-- for the same fix applied to SUPER+Tab.
 hl.gesture({
     fingers = 4,
     direction = "up",
     action = function()
-        hl.dispatch(hl.dsp.global("quickshell:overviewWorkspacesToggle"))
+        hl.dispatch(hl.dsp.exec_cmd("qs -c $qsConfig ipc call overview toggle"))
     end
 })
 hl.gesture({
     fingers = 4,
     direction = "down",
     action = function()
-        hl.dispatch(hl.dsp.global("quickshell:overviewWorkspacesToggle"))
+        hl.dispatch(hl.dsp.exec_cmd("qs -c $qsConfig ipc call overview toggle"))
     end
 })
 
@@ -79,11 +82,20 @@ hl.config({
             new_optimizations = true,
             size = 10,
             passes = 3,
-            brightness = 1,
-            noise = 0.05,
+            -- brightness/noise/vibrancy were imported from an unrelated config
+            -- and never tuned against a real glass panel. Liquid's realGlass
+            -- style leans on this compositor blur directly (niri can't blur
+            -- layer-shell surfaces at all, so it never showed this): at 0.05
+            -- noise and 0.5 vibrancy_darkness the grain and crushed darks read
+            -- as visible sensor noise through the sheen, especially in HDR
+            -- where the wider range makes it more perceptible. Dropped back
+            -- near Hyprland's own defaults (noise 0.0117, vibrancy 0.1696,
+            -- vibrancy_darkness 0.0, brightness 0.8172).
+            brightness = 0.9,
+            noise = 0.008,
             contrast = 0.89,
-            vibrancy = 0.5,
-            vibrancy_darkness = 0.5,
+            vibrancy = 0.15,
+            vibrancy_darkness = 0,
             popups = false,
             popups_ignorealpha = 0.6,
             input_methods = true,

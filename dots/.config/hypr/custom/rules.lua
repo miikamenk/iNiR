@@ -71,3 +71,27 @@ hl.window_rule({
 	workspace = "special",
 	float = true,
 })
+
+-- Liquid glass (hyprglass plugin, see custom/plugins.lua): only glass
+-- non-focused, non-fullscreen windows. `+tag` via window_rule only ever
+-- *adds* hyprglass_disabled when the match turns true — it does not clear it
+-- again when the match later turns false — so each focus/fullscreen combo
+-- needs its own explicit rule (all four are mutually exclusive, so order
+-- between them doesn't matter).
+hl.window_rule({ name = "liquidglass-off-1", match = { focus = false, fullscreen = false }, tag = "-hyprglass_disabled" })
+hl.window_rule({ name = "liquidglass-off-2", match = { focus = false, fullscreen = true }, tag = "+hyprglass_disabled" })
+hl.window_rule({ name = "liquidglass-off-3", match = { focus = true, fullscreen = false }, tag = "+hyprglass_disabled" })
+hl.window_rule({ name = "liquidglass-off-4", match = { focus = true, fullscreen = true }, tag = "+hyprglass_disabled" })
+
+-- Never glass PiP / screen-share indicator windows either, even while
+-- unfocused — they should stay clearly visible no matter what has focus.
+hl.window_rule({
+	name = "liquidglass-exclude-pip",
+	match = { title = "^([Pp]icture[-\\s]?[Ii]n[-\\s]?[Pp]icture)(.*)$" },
+	tag = "+hyprglass_disabled",
+})
+hl.window_rule({
+	name = "liquidglass-exclude-screenshare",
+	match = { title = ".*is sharing (a window|your screen).*" },
+	tag = "+hyprglass_disabled",
+})

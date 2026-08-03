@@ -91,15 +91,21 @@ void main() {
     float rimA = rimRGB.g;
 
     // The floor keeps a defined edge all the way round; the rest follows light.
-    // Weighted well above 1 on the lit side so the rim reads as light actually
-    // caught in the bevel rather than a hairline drawn on top.
-    float hi = 0.5 + 1.5 * lit;
+    // Kept close to 1 rather than spiking to 2 — the old range read as an
+    // almost-opaque cap right at the boundary that then fell straight to the
+    // body's flat alpha, i.e. a seam instead of one continuous material.
+    float hi = 0.35 + 0.65 * lit;
 
     vec3  rgb = vec3(0.0);
     float a   = 0.0;
 
-    // Sheen — top-down gradient, matching the old 0.0 -> 0.35 gradient stops.
-    float sheen = 1.0 - smoothstep(0.0, 0.35, qt_TexCoord0.y);
+    // Sheen — ambient wash falling off along the light direction instead of
+    // straight down, so the surface and the rim agree on where the light is.
+    // glassLight points toward the light (upper-left by default); the wash is
+    // strongest where it enters. The 0.72 falloff keeps mid-surface coverage
+    // equal to the old 0.55 vertical stop, just tilted.
+    float along = dot(qt_TexCoord0, -L);
+    float sheen = 1.0 - smoothstep(0.0, 0.72, along);
     rgb += ubuf.colSheen.rgb * sheen;
     a   += ubuf.colSheen.a   * sheen;
 
@@ -111,7 +117,10 @@ void main() {
     a   += ubuf.colSpecular.a   * band;
 
     // Edge highlight — hairline plus bevel, both weighted by the normal.
-    float bevLit = bevel * 1.0 * lit;
+    // bevLit's weight is cut to 0.6: at 1.0 it stacked with the hairline and
+    // the refraction band (in the refracting variant) to make the rim read as
+    // near-opaque against the body's actual base alpha.
+    float bevLit = bevel * 0.6 * lit;
     rgb += ubuf.colEdge.rgb * (rimRGB * hi + vec3(bevLit));
     a   += ubuf.colEdge.a   * (rimA   * hi + bevLit);
 

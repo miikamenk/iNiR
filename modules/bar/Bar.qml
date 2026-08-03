@@ -122,7 +122,7 @@ Scope {
                 // input-blocking area at the top of the screen.
                 Item { id: emptyMask; width: 0; height: 0 }
                 mask: Region {
-                    item: hoverMaskRegion
+                    item: (GameMode.shouldHidePanels || GameMode.shouldBlockInput) ? emptyMask : hoverMaskRegion
                 }
                 color: "transparent"
 

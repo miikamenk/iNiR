@@ -1,5 +1,6 @@
 import qs.modules.common
 import qs.modules.common.widgets
+import qs.modules.common.models
 import qs.modules.common.functions
 import qs.services
 import QtQuick
@@ -13,6 +14,27 @@ Rectangle {
     
     property color fallbackColor: Appearance.colors.colLayer1
     property color inirColor: Appearance.inir.colLayer1
+    // Real-glass surface tint. Defaults to the same wallpaper-blended layer0
+    // the bar and sidebars use (see below), so every glass surface reads as
+    // one material — raw colLayer0Base is near-black next to them.
+    property color realGlassColor: ColorUtils.applyAlpha(
+        root.blendedColors?.colLayer0 ?? Appearance.colors.colLayer0,
+        Appearance.panelSurfaceAlpha)
+
+    // Wallpaper-blended tint, same recipe as SidebarRightContent/BarContent.
+    // The quantizer only runs when a glass style actually paints with it.
+    ColorQuantizer {
+        id: glassQuantizer
+        source: (Appearance.liquidRealGlass || root.useWallpaperBackdrop || Appearance.angelEverywhere)
+            ? Wallpapers.effectiveWallpaperUrl : ""
+        depth: 0
+        rescaleSize: 10
+    }
+    readonly property color wallpaperDominantColor: glassQuantizer.colors?.[0] ?? Appearance.colors.colPrimary
+    readonly property QtObject blendedColors: AdaptedMaterialScheme {
+        color: ColorUtils.mix(root.wallpaperDominantColor, Appearance.colors.colPrimaryContainer, 0.8)
+            || Appearance.m3colors.m3secondaryContainer
+    }
     property real auroraTransparency: Appearance.aurora.popupTransparentize
     property bool wallpaperBackdropEnabled: true
     
@@ -50,7 +72,7 @@ Rectangle {
         && Appearance.liquid.shaderEnabled && Appearance.effectsEnabled
         && Appearance.liquid.shaderRefraction > 0
 
-    color: root.realGlass ? Appearance.liquid.colGlassReal
+    color: root.realGlass ? root.realGlassColor
         : root.useWallpaperBackdrop ? "transparent"
         : root.inirEverywhere ? root.inirColor
         : root.fallbackColor

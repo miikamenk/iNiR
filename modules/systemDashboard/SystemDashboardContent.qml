@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 
 import qs.services
 import qs.modules.common
+import qs.modules.common.models
 import qs.modules.common.widgets
 import qs.modules.common.functions
 import QtQuick
@@ -57,6 +58,25 @@ Item {
     readonly property bool realGlass: Appearance.liquidRealGlass
     readonly property bool useWallpaperBackdrop: auroraEverywhere && !inirEverywhere
         && !Appearance.gameModeMinimal && wallpaperUrl.length > 0 && !realGlass
+    // The liquid shader's edge refraction needs the wallpaper texture even in
+    // real-glass mode, where nothing is painted from it (same as GlassBackground).
+    readonly property bool wantsRefractionTexture: liquidEverywhere
+        && Appearance.liquid.shaderEnabled && Appearance.effectsEnabled
+        && Appearance.liquid.shaderRefraction > 0 && wallpaperUrl.length > 0
+
+    // Wallpaper-blended tint, same recipe as the bar/sidebars, so the panel
+    // matches them instead of reading near-black raw colLayer0.
+    ColorQuantizer {
+        id: dashboardQuantizer
+        source: (auroraEverywhere || angelEverywhere) ? root.wallpaperUrl : ""
+        depth: 0
+        rescaleSize: 10
+    }
+    readonly property color wallpaperDominantColor: dashboardQuantizer.colors?.[0] ?? Appearance.colors.colPrimary
+    readonly property QtObject blendedColors: AdaptedMaterialScheme {
+        color: ColorUtils.mix(root.wallpaperDominantColor, Appearance.colors.colPrimaryContainer, 0.8)
+            || Appearance.m3colors.m3secondaryContainer
+    }
 
     // ═══ Background ═══
     StyledRectangularShadow {
@@ -67,13 +87,15 @@ Item {
         id: background
         anchors.fill: parent
         color: root.inirEverywhere ? Appearance.inir.colLayer0
-            : root.auroraEverywhere ? ColorUtils.applyAlpha(Appearance.colors.colLayer0, Appearance.panelSurfaceAlpha)
+            : root.auroraEverywhere ? ColorUtils.applyAlpha(root.blendedColors?.colLayer0 ?? Appearance.colors.colLayer0, Appearance.panelSurfaceAlpha)
             : Appearance.colors.colLayer0
         radius: root.angelEverywhere ? Appearance.angel.roundingLarge
             : root.liquidEverywhere ? Appearance.liquid.roundingLarge
             : root.inirEverywhere ? Appearance.inir.roundingLarge
             : Appearance.rounding.large
-        border.width: 1
+        // The liquid rim comes from LiquidGlassEdges; a second rectangular
+        // border on top would double the edge.
+        border.width: root.liquidEverywhere ? 0 : 1
         border.color: root.angelEverywhere ? Appearance.angel.colBorder
             : root.inirEverywhere ? Appearance.inir.colBorder
             : root.auroraEverywhere ? Appearance.aurora.colTooltipBorder
@@ -95,7 +117,9 @@ Item {
             width: root.screenWidth
             height: root.screenHeight
             visible: root.useWallpaperBackdrop
-            source: root.useWallpaperBackdrop ? root.wallpaperUrl : ""
+            // Loaded — but not painted — when only the shader wants it: an Image
+            // is a texture provider regardless of visibility.
+            source: (root.useWallpaperBackdrop || root.wantsRefractionTexture) ? root.wallpaperUrl : ""
             fillMode: Image.PreserveAspectCrop
             cache: true
             sourceSize.width: root.screenWidth
@@ -132,6 +156,16 @@ Item {
 
         LiquidGlassEdges {
             visible: root.liquidEverywhere && !Appearance.gameModeMinimal
+            // Same treatment as GlassBackground: sheen over the surface, and
+            // rim refraction from the (centered) wallpaper texture.
+            sheenOverContent: root.useWallpaperBackdrop || root.realGlass
+            surfaceRadius: background.radius
+            backdropSource: blurredWallpaper.status === Image.Ready ? blurredWallpaper : null
+            // The wallpaper image is centered on the panel, so the panel's
+            // top-left sits at this offset inside it.
+            backdropOrigin: Qt.point((root.screenWidth - background.width) / 2,
+                                     (root.screenHeight - background.height) / 2)
+            backdropScreen: Qt.size(root.screenWidth, root.screenHeight)
         }
     }
 

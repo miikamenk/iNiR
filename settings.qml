@@ -475,6 +475,10 @@ ApplicationWindow {
     color: root.uiReady
         ? (Appearance.inirEverywhere ? Appearance.inir.colLayer0
           : Appearance.zzzEverywhere ? Appearance.colors.colLayer0
+          // Liquid: genuine window alpha — Hyprland frosts what's behind with
+          // its window blur, niri shows it sharply, same as the shell panels.
+          // Falls back to opaque when realGlass is off (panelSurfaceAlpha = 1).
+          : Appearance.liquidEverywhere ? CF.ColorUtils.applyAlpha(Appearance.colors.colLayer0Base, Appearance.panelSurfaceAlpha)
           : Appearance.m3colors.m3background)
         : "transparent"
 
@@ -1238,20 +1242,29 @@ ApplicationWindow {
                 // ZZZ: same bg2 plate + hairline as the overlay-mode content
                 // field, so both settings modes read as the same surface.
                 color: Appearance.angelEverywhere ? Appearance.angel.colGlassCard
+                     : Appearance.liquidEverywhere ? Appearance.liquid.colGlassCard
                      : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurface
                      : Appearance.zzzEverywhere ? Appearance.zzz.bg2
                      : Appearance.inirEverywhere ? Appearance.inir.colLayer1
                      : Appearance.colors.colSurfaceContainerLow
                 radius: Appearance.angelEverywhere ? Appearance.angel.roundingNormal
+                      : Appearance.liquidEverywhere ? Appearance.liquid.roundingNormal
                       : Appearance.inirEverywhere ? Appearance.inir.roundingNormal
                       : Appearance.rounding.windowRounding - root.contentPadding
                 border.width: Appearance.angelEverywhere ? Appearance.angel.cardBorderWidth
                             : Appearance.zzzEverywhere ? Appearance.zzz.borderThick
-                            : Appearance.inirEverywhere ? 1 : 0
+                            : (Appearance.inirEverywhere || Appearance.liquidEverywhere) ? 1 : 0
                 border.color: Appearance.angelEverywhere ? Appearance.angel.colCardBorder
                             : Appearance.zzzEverywhere ? Appearance.zzz.hairline
+                            : Appearance.liquidEverywhere ? Appearance.liquid.colGlassRealBorder
                             : Appearance.inirEverywhere ? Appearance.inir.colBorderSubtle
                             : "transparent"
+
+                // Liquid glass decorations — sheen, specular and rim
+                LiquidGlassEdges {
+                    visible: Appearance.liquidEverywhere
+                    sheenOverContent: true
+                }
 
                 // ── Page header: icon + name + description ──
                 Item {

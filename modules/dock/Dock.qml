@@ -181,8 +181,9 @@ Scope {
                     radius: dockRoot.nativeBlurItem?.radius ?? 0
                 }
 
+                Item { id: emptyMask; width: 0; height: 0 }
                 mask: Region {
-                    item: dockMouseArea
+                    item: (GameMode.shouldHidePanels || GameMode.shouldBlockInput) ? emptyMask : dockMouseArea
                 }
 
                 MouseArea {

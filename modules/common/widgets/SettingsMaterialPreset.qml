@@ -14,6 +14,7 @@ QtObject {
     // ── Card (SettingsCardSection) ──
     readonly property int cardRadius: Appearance.angelEverywhere ? Appearance.angel.roundingNormal
         : Appearance.zzzEverywhere ? Appearance.zzz.cornerRadius + 1
+        : Appearance.liquidEverywhere ? Appearance.liquid.roundingNormal
         : Appearance.inirEverywhere ? Appearance.inir.roundingNormal
         : Appearance.rounding.normal
     readonly property int cardPadding: Math.round(14 * Appearance.fontSizeScale)
@@ -21,6 +22,7 @@ QtObject {
     // ── Card header ──
     readonly property int headerRadius: Appearance.angelEverywhere ? Appearance.angel.roundingSmall
         : Appearance.zzzEverywhere ? Appearance.zzz.cornerRadius
+        : Appearance.liquidEverywhere ? Appearance.liquid.roundingSmall
         : Appearance.inirEverywhere ? Appearance.inir.roundingSmall
         : Appearance.rounding.small
     readonly property int headerPaddingX: Math.round(12 * Appearance.fontSizeScale)
@@ -29,14 +31,15 @@ QtObject {
     // ── Group (SettingsGroup) ──
     readonly property int groupRadius: Appearance.angelEverywhere ? Appearance.angel.roundingSmall
         : Appearance.zzzEverywhere ? Appearance.zzz.cornerRadius
+        : Appearance.liquidEverywhere ? Appearance.liquid.roundingSmall
         : Appearance.inirEverywhere ? Appearance.inir.roundingSmall
         : Appearance.rounding.small
     readonly property int groupPadding: Math.round(12 * Appearance.fontSizeScale)
     readonly property int groupSpacing: Math.round(7 * Appearance.fontSizeScale)
 
     // ── Colors ──
-    // In angel/aurora, cards are more transparent to let the content area's
-    // GlassBackground blur show through (like Overlay widgets do).
+    // In angel/aurora/liquid, cards are more transparent to let the container's
+    // glass show through (like Overlay widgets do).
     readonly property color cardColor: Appearance.angelEverywhere
         ? ColorUtils.transparentize(Appearance.colors.colLayer1Base, Appearance.angel.cardTransparentize * 0.7)
         // bg3 (not tile): the content field sits at bg2 now, so cards must lift a
@@ -45,12 +48,14 @@ QtObject {
         // (dark or light) instead of stacking another dark plate. Definition comes
         // from the diagonal pattern + accent bar, not a filled surface + line.
         : Appearance.zzzEverywhere ? "transparent"
+        : Appearance.liquidEverywhere ? Appearance.liquid.colGlassCard
         : Appearance.inirEverywhere ? Appearance.inir.colLayer1
         : Appearance.auroraEverywhere ? ColorUtils.transparentize(Appearance.colors.colLayer1Base, 0.85)
         : Appearance.colors.colLayer1
     readonly property color cardBorderColor: Appearance.angelEverywhere
         ? Appearance.angel.colCardBorder
         : Appearance.zzzEverywhere ? Appearance.zzz.hairline
+        : Appearance.liquidEverywhere ? Appearance.liquid.colGlassRealBorder
         : Appearance.inirEverywhere ? Appearance.inir.colBorder
         : Appearance.auroraEverywhere ? Appearance.aurora.colPopupBorder
         : Appearance.colors.colLayer0Border
@@ -58,12 +63,14 @@ QtObject {
     readonly property color groupColor: Appearance.angelEverywhere
         ? ColorUtils.transparentize(Appearance.colors.colLayer2Base, Appearance.angel.popupTransparentize * 0.6)
         : Appearance.zzzEverywhere ? "transparent"
+        : Appearance.liquidEverywhere ? Appearance.liquid.colGlassChip
         : Appearance.inirEverywhere ? ColorUtils.transparentize(Appearance.inir.colLayer2, 0.45)
         : Appearance.auroraEverywhere ? ColorUtils.transparentize(Appearance.colors.colLayer2Base, 0.88)
         : ColorUtils.transparentize(Appearance.colors.colLayer2, 0.4)
     readonly property color groupBorderColor: Appearance.angelEverywhere
         ? Appearance.angel.colBorderSubtle
         : Appearance.zzzEverywhere ? Appearance.zzz.hairlineStrong
+        : Appearance.liquidEverywhere ? Appearance.liquid.colEdgeHighlight
         : Appearance.inirEverywhere ? Appearance.inir.colBorderSubtle
         : Appearance.auroraEverywhere ? Appearance.aurora.colPopupBorder
         : Appearance.colors.colLayer0Border
@@ -72,6 +79,7 @@ QtObject {
     readonly property color headerHoverColor: Appearance.angelEverywhere
         ? Appearance.angel.colGlassCardHover
         : Appearance.zzzEverywhere ? Appearance.zzz.paperAlt
+        : Appearance.liquidEverywhere ? Appearance.liquid.colGlassCardHover
         : Appearance.inirEverywhere ? Appearance.inir.colLayer1Hover
         : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurfaceHover
         : Appearance.colors.colLayer1Hover
@@ -80,6 +88,7 @@ QtObject {
     readonly property color accentColor: Appearance.angelEverywhere
         ? Appearance.angel.colPrimary
         : Appearance.zzzEverywhere ? Appearance.zzz.accent
+        : Appearance.liquidEverywhere ? Appearance.liquid.colPrimary
         : Appearance.inirEverywhere ? Appearance.inir.colAccent
         : Appearance.colors.colPrimary
 
@@ -88,11 +97,13 @@ QtObject {
         ? Appearance.angel.colText
         // Carbon doctrine: title in light ink; the colour lives in the badge/tick, not the text.
         : Appearance.zzzEverywhere ? Appearance.zzz.onColor
+        : Appearance.liquidEverywhere ? Appearance.liquid.colText
         : Appearance.inirEverywhere ? Appearance.inir.colText
         : Appearance.colors.colOnSecondaryContainer
     readonly property color titleCollapsedColor: Appearance.angelEverywhere
         ? Appearance.angel.colTextSecondary
         : Appearance.zzzEverywhere ? Appearance.colors.colOnLayer1
+        : Appearance.liquidEverywhere ? Appearance.liquid.colTextSecondary
         : Appearance.inirEverywhere ? Appearance.inir.colTextSecondary
         : Appearance.colors.colOnSurfaceVariant
 
@@ -104,11 +115,13 @@ QtObject {
     readonly property color iconExpandedColor: Appearance.angelEverywhere
         ? Appearance.angel.colPrimary
         : Appearance.zzzEverywhere ? Appearance.zzz.onSticker
+        : Appearance.liquidEverywhere ? Appearance.liquid.colPrimary
         : Appearance.inirEverywhere ? Appearance.inir.colAccent
         : Appearance.colors.colPrimary
     readonly property color iconCollapsedColor: Appearance.angelEverywhere
         ? Appearance.angel.colTextMuted
         : Appearance.zzzEverywhere ? Appearance.zzz.onSecondary
+        : Appearance.liquidEverywhere ? Appearance.liquid.colTextMuted
         : Appearance.inirEverywhere ? Appearance.inir.colTextSecondary
         : Appearance.colors.colOnSurfaceVariant
 

@@ -53,7 +53,13 @@ hl.bind("CTRL + SUPER + ALT + T", hl.dsp.global("quickshell:wallpaperSelectorRan
 hl.bind("CTRL + SUPER + SHIFT + D", hl.dsp.global("quickshell:toggleLightDark"),
     { description = "Shell: Toggle light/dark mode" })
 hl.bind("CTRL + SUPER + T", hl.dsp.exec_cmd(qsIsAlive .. " || " .. qsScripts .. "/colors/switchwall.sh"))
-hl.bind("CTRL + SUPER + R", hl.dsp.exec_cmd("killall ydotool qs quickshell; qs -c $qsConfig &"),
+-- -w makes killall wait for qs/quickshell to actually exit before the relaunch
+-- runs. Without it, "qs -c $qsConfig &" could start while the old instance was
+-- still tearing down (layer surfaces, IPC socket) and lose the race, so the
+-- new instance saw a live duplicate and quit immediately instead of coming up.
+-- QS_DISABLE_CRASH_HANDLER matches execs.lua: without it a teardown segfault
+-- leaves a forked copy holding its layer surfaces, i.e. a duplicate bar.
+hl.bind("CTRL + SUPER + R", hl.dsp.exec_cmd("killall -q ydotool; killall -q -w qs quickshell; QS_DISABLE_CRASH_HANDLER=1 qs -n -c $qsConfig &"),
     { description = "Shell: Restart widgets" })
 hl.bind("CTRL + SUPER + P", hl.dsp.global("quickshell:panelFamilyCycle"), { description = "Shell: Cycle panel family" })
 
