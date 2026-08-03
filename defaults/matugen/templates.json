@@ -69,6 +69,11 @@
       "name": "hyprglass_colors",
       "input": "hyprland/hyprglass-colors.lua",
       "output": "~/.config/hypr/hyprland/hyprglass-colors.lua"
+    },
+    {
+      "name": "herdr",
+      "input": "herdr/config.toml",
+      "output": "~/.config/herdr/config.toml"
     }
   ]
 }

@@ -1398,3 +1398,18 @@ if args.render_templates:
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
         )
+
+    # herdr post-hook: a running server only re-reads config.toml when asked,
+    # so tell it to. No socket means no server — nothing to reload.
+    import shutil
+
+    herdr_config_dir = os.path.join(
+        os.environ.get("XDG_CONFIG_HOME") or os.path.expanduser("~/.config"), "herdr"
+    )
+    herdr_bin = shutil.which("herdr")
+    if herdr_bin and os.path.exists(os.path.join(herdr_config_dir, "herdr.sock")):
+        subprocess.Popen(
+            [herdr_bin, "server", "reload-config"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
